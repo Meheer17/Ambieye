@@ -1,0 +1,47 @@
+{
+  "expo": {
+    "name": "Ambi Eye",
+    "slug": "ambi-eye",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/logo.png",
+    "scheme": "ambi-eye",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.meheer17.ambieye"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/logowithbg.png",
+        "backgroundColor": "#0D0145"
+      },
+      "package": "com.meheer17.ambieye"
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/images/logo.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-font",
+      ["expo-splash-screen",
+        {
+          "backgroundColor": "#0D0145",
+          "image": "assets/images/logowithbg.png",
+          "imageWidth": 320,
+          "imageResizeMode": "contain"
+        }
+      ]
+    ],
+    "splash": {
+      "image": "./assets/images/logowithbg.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0D0145"
+    },
+    "experiments": {
+      "typedRoutes": true
+    }
+  }
+}
