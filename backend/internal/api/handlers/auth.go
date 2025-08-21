@@ -48,6 +48,7 @@ func (h *AuthHandler) Login(c *gin.Context) {
 
 	// Find the user by username
 	var user models.User
+	fmt.Println(credentials)
 	err := h.userCollection.FindOne(ctx, bson.M{"username": credentials.Username}).Decode(&user)
 	if err != nil {
 		if err == mongo.ErrNoDocuments {
@@ -90,6 +91,14 @@ func (h *AuthHandler) Signup(c *gin.Context) {
 		Email    string `json:"email" binding:"required,email"`
 		Password string `json:"password" binding:"required,min=6"`
 		UserType string `json:"userType" binding:"required,oneof=doctor patient"`
+
+		Phone       string `json:"phone" binding:"required"`
+		Age         string `json:"age" binding:"required"`
+		Gender      string `json:"gender" binding:"required"`
+		FatherName  string `json:"fatherName" binding:"required"`
+		MotherName  string `json:"motherName" binding:"required"`
+		Address     string `json:"address" binding:"required"`
+		DateOfBirth string `json:"dateOfBirth" binding:"required"`
 	}
 
 	if err := c.ShouldBindJSON(&userData); err != nil {
@@ -132,10 +141,19 @@ func (h *AuthHandler) Signup(c *gin.Context) {
 	// Create new user
 	now := time.Now()
 	user := models.User{
-		ID:        primitive.NewObjectID(),
-		FullName:  userData.FullName,
-		Username:  userData.Username,
-		Uuid:      uuid.NewString(),
+		ID:       primitive.NewObjectID(),
+		FullName: userData.FullName,
+		Username: userData.Username,
+
+		Phone:       userData.Phone,
+		Age:         userData.Age,
+		Gender:      userData.Gender,
+		FatherName:  userData.FatherName,
+		MotherName:  userData.MotherName,
+		Address:     userData.Address,
+		DateOfBirth: userData.DateOfBirth,
+
+		Uuid:      uuid.NewString()[0:7],
 		Email:     userData.Email,
 		Password:  string(hashedPassword),
 		Role:      userData.UserType,

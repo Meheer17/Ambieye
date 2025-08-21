@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from "react";
+import React, { useState, useCallback, useRef } from "react";
 import {
   StyleSheet,
   View,
@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   RefreshControl,
-  Image,
   Platform,
   StatusBar,
   Dimensions,
@@ -17,7 +16,6 @@ import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
 import Feather from "@expo/vector-icons/Feather";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
-import Ionicons from "@expo/vector-icons/Ionicons";
 import { Patient, doctorService } from "@/services/api/doctorService";
 import {
   DoctorQuery,
@@ -73,62 +71,64 @@ export default function DoctorDashboard() {
     }
   };
 
-  const shouldFetchFromServer = () => {
-    const now = Date.now();
-    return now - lastFetchTimeRef.current > CACHE_DURATION;
-  };
+  const fetchData = useCallback(
+    async (forceRefresh = false) => {
+      const shouldFetchFromServer = () => {
+        const now = Date.now();
+        return now - lastFetchTimeRef.current > CACHE_DURATION;
+      };
+      setLoading(true);
 
-  const fetchData = async (forceRefresh = false) => {
-    setLoading(true);
+      // Check if we can use cached data
+      if (!forceRefresh) {
+        const hasCachedData = await loadCachedData();
+        if (hasCachedData && !shouldFetchFromServer()) {
+          setLoading(false);
+          setRefreshing(false);
+          return;
+        }
+      }
 
-    // Check if we can use cached data
-    if (!forceRefresh) {
-      const hasCachedData = await loadCachedData();
-      if (hasCachedData && !shouldFetchFromServer()) {
+      try {
+        // Fetch patients
+        const patientResponse = await doctorService.getPatients();
+        if (patientResponse.success) {
+          setPatients(patientResponse.patients);
+          setPatientError("");
+        } else {
+          setPatientError(patientResponse.message);
+        }
+
+        // Fetch queries
+        const queryResponse = await doctorQueryService.getAllQueries(
+          "pending",
+          false,
+        );
+        if (queryResponse.success) {
+          setQueries(queryResponse.queries);
+          setQueryError("");
+
+          // Cache the new data
+          if (patientResponse.success && queryResponse.success) {
+            cacheData(patientResponse.patients, queryResponse.queries);
+          }
+        } else {
+          setQueryError(queryResponse.message);
+        }
+      } catch (error) {
+        console.error("Dashboard data fetch error:", error);
+      } finally {
         setLoading(false);
         setRefreshing(false);
-        return;
       }
-    }
-
-    try {
-      // Fetch patients
-      const patientResponse = await doctorService.getPatients();
-      if (patientResponse.success) {
-        setPatients(patientResponse.patients);
-        setPatientError("");
-      } else {
-        setPatientError(patientResponse.message);
-      }
-
-      // Fetch queries
-      const queryResponse = await doctorQueryService.getAllQueries(
-        "pending",
-        false,
-      );
-      if (queryResponse.success) {
-        setQueries(queryResponse.queries);
-        setQueryError("");
-
-        // Cache the new data
-        if (patientResponse.success && queryResponse.success) {
-          cacheData(patientResponse.patients, queryResponse.queries);
-        }
-      } else {
-        setQueryError(queryResponse.message);
-      }
-    } catch (error) {
-      console.error("Dashboard data fetch error:", error);
-    } finally {
-      setLoading(false);
-      setRefreshing(false);
-    }
-  };
+    },
+    [CACHE_DURATION],
+  );
 
   useFocusEffect(
     useCallback(() => {
       fetchData();
-    }, []),
+    }, [fetchData]),
   );
 
   const onRefresh = () => {
@@ -226,8 +226,7 @@ export default function DoctorDashboard() {
             <FontAwesome name="user" size={20} color="#fff" />
           </View>
           <View style={styles.statTextContainer}>
-            {patients.length}
-
+            <Text style={styles.statNumber}>{patients.length}</Text>
             <Text style={styles.statLabel}>Patients</Text>
           </View>
         </TouchableOpacity>
@@ -242,8 +241,7 @@ export default function DoctorDashboard() {
             <Feather name="help-circle" size={20} color="#fff" />
           </View>
           <View style={styles.statTextContainer}>
-            {queries.length}
-
+            <Text style={styles.statNumber}>{queries.length}</Text>
             <Text style={styles.statLabel}>Pending Queries</Text>
           </View>
         </TouchableOpacity>
@@ -370,7 +368,9 @@ export default function DoctorDashboard() {
         <View style={styles.emptyStateContainer}>
           <Feather name="inbox" size={40} color="#5f2446" />
           <Text style={styles.emptyStateText}>No pending queries</Text>
-          <Text style={styles.emptyStateSubText}>You're all caught up!</Text>
+          <Text style={styles.emptyStateSubText}>
+            You&apos;re all caught up!
+          </Text>
         </View>
       )}
 

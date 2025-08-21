@@ -45,27 +45,30 @@ export default function EditProfileScreen() {
   });
 
   useEffect(() => {
-    fetchProfileData();
-  }, []);
-
-  const fetchProfileData = async () => {
-    setIsLoading(true);
-    try {
-      const response = await patientService.getProfile();
-      if (response.success) {
-        setProfileData(response.profile);
-      } else {
-        Alert.alert("Error", response.message || "Failed to fetch profile data");
+    const fetchProfileData = async () => {
+      setIsLoading(true);
+      try {
+        const response = await patientService.getProfile();
+        if (response.success) {
+          setProfileData(response.profile);
+        } else {
+          Alert.alert(
+            "Error",
+            response.message || "Failed to fetch profile data",
+          );
+          router.back();
+        }
+      } catch (error) {
+        console.error("Error fetching profile data:", error);
+        Alert.alert("Error", "An unexpected error occurred. Please try again.");
         router.back();
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error("Error fetching profile data:", error);
-      Alert.alert("Error", "An unexpected error occurred. Please try again.");
-      router.back();
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    };
+
+    fetchProfileData();
+  }, [router]);
 
   const handleUpdateProfile = async () => {
     // Basic validation
@@ -91,7 +94,7 @@ export default function EditProfileScreen() {
         gender: profileData.gender ?? "",
         fatherName: profileData.fatherName ?? "",
         motherName: profileData.motherName ?? "",
-        address: profileData.address ?? ""
+        address: profileData.address ?? "",
       });
 
       if (response.success) {
@@ -131,7 +134,10 @@ export default function EditProfileScreen() {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
-        <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer}>
+        <ScrollView
+          style={styles.container}
+          contentContainerStyle={styles.contentContainer}
+        >
           <View style={styles.sectionHeader}>
             <Text style={styles.sectionHeaderText}>Personal Information</Text>
           </View>
@@ -141,7 +147,9 @@ export default function EditProfileScreen() {
             <TextInput
               style={styles.input}
               value={profileData.fullName}
-              onChangeText={(text) => setProfileData({ ...profileData, fullName: text })}
+              onChangeText={(text) =>
+                setProfileData({ ...profileData, fullName: text })
+              }
               placeholder="Enter your full name"
               placeholderTextColor="#aaa"
             />
@@ -162,7 +170,9 @@ export default function EditProfileScreen() {
             <TextInput
               style={styles.input}
               value={profileData.email}
-              onChangeText={(text) => setProfileData({ ...profileData, email: text })}
+              onChangeText={(text) =>
+                setProfileData({ ...profileData, email: text })
+              }
               placeholder="Enter your email"
               placeholderTextColor="#aaa"
             />
@@ -173,7 +183,9 @@ export default function EditProfileScreen() {
             <TextInput
               style={styles.input}
               value={profileData.age}
-              onChangeText={(text) => setProfileData({ ...profileData, age: text })}
+              onChangeText={(text) =>
+                setProfileData({ ...profileData, age: text })
+              }
               placeholder="Your age"
               placeholderTextColor="#aaa"
               keyboardType="numeric"
@@ -185,7 +197,9 @@ export default function EditProfileScreen() {
             <TextInput
               style={styles.input}
               value={profileData.gender}
-              onChangeText={(text) => setProfileData({ ...profileData, gender: text })}
+              onChangeText={(text) =>
+                setProfileData({ ...profileData, gender: text })
+              }
               placeholder="Your gender"
               placeholderTextColor="#aaa"
             />
@@ -200,7 +214,9 @@ export default function EditProfileScreen() {
             <TextInput
               style={styles.input}
               value={profileData.phone}
-              onChangeText={(text) => setProfileData({ ...profileData, phone: text })}
+              onChangeText={(text) =>
+                setProfileData({ ...profileData, phone: text })
+              }
               placeholder="Enter your phone number"
               placeholderTextColor="#aaa"
               keyboardType="phone-pad"
@@ -212,7 +228,9 @@ export default function EditProfileScreen() {
             <TextInput
               style={styles.input}
               value={profileData.address}
-              onChangeText={(text) => setProfileData({ ...profileData, address: text })}
+              onChangeText={(text) =>
+                setProfileData({ ...profileData, address: text })
+              }
               placeholder="Enter your address"
               placeholderTextColor="#aaa"
               multiline={true}
@@ -225,22 +243,26 @@ export default function EditProfileScreen() {
           </View>
 
           <View style={styles.formGroup}>
-            <Text style={styles.label}>Father's Name</Text>
+            <Text style={styles.label}>Father&apos;s Name</Text>
             <TextInput
               style={styles.input}
               value={profileData.fatherName}
-              onChangeText={(text) => setProfileData({ ...profileData, fatherName: text })}
+              onChangeText={(text) =>
+                setProfileData({ ...profileData, fatherName: text })
+              }
               placeholder="Father's name"
               placeholderTextColor="#aaa"
             />
           </View>
 
           <View style={styles.formGroup}>
-            <Text style={styles.label}>Mother's Name</Text>
+            <Text style={styles.label}>Mother&apos;s Name</Text>
             <TextInput
               style={styles.input}
               value={profileData.motherName}
-              onChangeText={(text) => setProfileData({ ...profileData, motherName: text })}
+              onChangeText={(text) =>
+                setProfileData({ ...profileData, motherName: text })
+              }
               placeholder="Mother's name"
               placeholderTextColor="#aaa"
             />

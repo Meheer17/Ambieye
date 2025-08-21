@@ -5,33 +5,44 @@ import {
   Text,
   TouchableOpacity,
   ScrollView,
-  Switch,
-  Alert,
   ActivityIndicator,
   TextInput,
   Modal,
   KeyboardAvoidingView,
   Platform,
+  Alert,
   Linking,
 } from "react-native";
 import { useRouter, Stack } from "expo-router";
 import Feather from "@expo/vector-icons/Feather";
 import Ionicons from "@expo/vector-icons/Ionicons";
-import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useAuth } from "@/hooks/useAuth";
 import { patientService } from "@/services/api/patientService";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 
-interface VisitRecord {
-  date: string | Date;
-  distantVision?: string;
-  nearVision?: string;
-  chiefComplaint?: string;
-  presentingIllness?: string;
-  bp?: string;
-  temperature?: string;
-  glassPrescription?: string;
+// Custom alert for web compatibility
+function showAlert(title: string, message?: string) {
+  if (Platform.OS === "web") {
+    window.alert(title + (message ? "\n\n" + message : ""));
+  } else {
+    Alert.alert(title, message);
+  }
 }
+
+export type MedicalInfo = {
+  visionwithpg?: string;
+  chiefcomplaint?: string;
+  presentingillness?: string;
+  pastHistory?: string;
+  personalHistory?: string;
+  familyHistory?: string;
+  drugHistory?: string;
+  allergyHistory?: string;
+  bp?: string;
+  pr?: string;
+  temp?: string;
+  respirationrate?: string;
+  notes?: string;
+};
 
 interface ProfileData {
   id: string;
@@ -39,7 +50,7 @@ interface ProfileData {
   username: string;
   email: string;
   doctor_id?: string;
-  visitRecords?: VisitRecord[];
+  medicalInfo?: MedicalInfo;
 }
 
 interface DoctorData {
@@ -62,8 +73,6 @@ export default function SettingsScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showAboutModal, setShowAboutModal] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
-  const [showVisitDetailsModal, setShowVisitDetailsModal] = useState(false);
-  const [selectedVisitRecord, setSelectedVisitRecord] = useState<VisitRecord | null>(null);
 
   // Fetch profile data and notification settings when component mounts
   useEffect(() => {
@@ -78,16 +87,20 @@ export default function SettingsScreen() {
           // If doctor_id exists, fetch doctor details
           if (profileResponse.profile.doctor_id) {
             fetchDoctorData(profileResponse.profile.doctor_id);
+          } else {
+            setShowDoctorModal(true);
           }
         } else {
-          Alert.alert("Error", profileResponse.message || "Failed to fetch profile data");
+          showAlert(
+            "Error",
+            profileResponse.message || "Failed to fetch profile data",
+          );
         }
 
         // Get notification settings
-
       } catch (error) {
         console.error("Error in fetchProfileData:", error);
-        Alert.alert("Error", "Failed to load profile data. Please try again.");
+        showAlert("Error", "Failed to load profile data. Please try again.");
       } finally {
         setIsLoading(false);
       }
@@ -113,13 +126,30 @@ export default function SettingsScreen() {
   };
 
   const handleLogout = () => {
-    Alert.alert(
-      "Logout",
-      "Are you sure you want to logout?",
-      [
+    if (Platform.OS === "web") {
+      // Simple confirm for web
+      if (window.confirm("Are you sure you want to logout?")) {
+        (async () => {
+          try {
+            setIsLoggingOut(true);
+            await logout();
+            setIsLoggingOut(false);
+          } catch (error) {
+            setIsLoggingOut(false);
+            showAlert(
+              "Logout Failed",
+              "There was a problem logging out. Please try again.",
+            );
+            console.error("Logout error:", error);
+          }
+        })();
+      }
+    } else {
+
+      Alert.alert("Logout", "Are you sure you want to logout?", [
         {
           text: "Cancel",
-          style: "cancel"
+          style: "cancel",
         },
         {
           text: "Logout",
@@ -130,23 +160,75 @@ export default function SettingsScreen() {
               setIsLoggingOut(false);
             } catch (error) {
               setIsLoggingOut(false);
-              Alert.alert(
+              showAlert(
                 "Logout Failed",
                 "There was a problem logging out. Please try again.",
-                [{ text: "OK" }]
               );
               console.error("Logout error:", error);
             }
           },
-          style: "destructive"
-        }
-      ]
-    );
+          style: "destructive",
+        },
+      ]);
+    }
+  };
+
+  const handleDelete = () => {
+    if (Platform.OS === "web") {
+      // Simple confirm for web
+      if (window.confirm("Are you sure you want to Delete Account?")) {
+        (async () => {
+          try {
+            setIsLoggingOut(true);
+            await patientService.deleteAccount();
+            await logout();
+            setIsLoggingOut(false);
+          } catch (error) {
+            setIsLoggingOut(false);
+            showAlert(
+              "Delete Failed",
+              "There was a problem Delete Account. Please try again.",
+            );
+            console.error("Logout error:", error);
+          }
+        })();
+      }
+    } else {
+      Alert.alert(
+        "Delete Account",
+        "Are you sure you want to Delete Account?",
+        [
+          {
+            text: "Cancel",
+            style: "cancel",
+          },
+          {
+            text: "Delete Account",
+            onPress: async () => {
+              try {
+                setIsLoggingOut(true);
+                await patientService.deleteAccount();
+                await logout();
+                setIsLoggingOut(false);
+              } catch (error) {
+                setIsLoggingOut(false);
+                showAlert(
+                  "Delete Account Failed",
+                  "There was a problem deleting account. Please try again.",
+                );
+                console.error("Logout error:", error);
+              }
+            },
+            style: "destructive",
+          },
+        ],
+      );
+    }
   };
 
   const handleUpdateDoctorId = async () => {
     if (!doctorId.trim()) {
-      Alert.alert("Error", "Please enter a Doctor ID");
+      showAlert("Error", "Please enter a Doctor ID");
       return;
     }
 
@@ -154,75 +236,106 @@ export default function SettingsScreen() {
     try {
       const response = await patientService.updateDoctorId(doctorId);
       if (response.success) {
-        Alert.alert("Success", "Doctor ID updated successfully");
+        showAlert("Success", "Doctor ID updated successfully");
         setShowDoctorModal(false);
 
         // Update profile data with new doctor_id
         if (profileData) {
           setProfileData({
             ...profileData,
-            doctor_id: doctorId
+            doctor_id: doctorId,
           });
         }
 
         // Fetch doctor details with the new ID
         fetchDoctorData(doctorId);
       } else {
-        Alert.alert("Error", response.message || "Failed to update Doctor ID");
+        showAlert("Error", response.message || "Failed to update Doctor ID");
       }
     } catch (error) {
       console.error("Error updating doctor ID:", error);
-      Alert.alert("Error", "An unexpected error occurred. Please try again.");
+      showAlert("Error", "An unexpected error occurred. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
   };
 
   const handleRemoveDoctorId = async () => {
-    Alert.alert(
-      "Remove Doctor",
-      "Are you sure you want to remove your current doctor?",
-      [
-        {
-          text: "Cancel",
-          style: "cancel"
-        },
-        {
-          text: "Remove",
-          onPress: async () => {
-            setIsSubmitting(true);
-            try {
-              const response = await patientService.updateDoctorId("");
-              if (response.success) {
-                Alert.alert("Success", "Doctor removed successfully");
+    if (Platform.OS === "web") {
+      if (
+        window.confirm("Are you sure you want to remove your current doctor?")
+      ) {
+        setIsSubmitting(true);
+        try {
+          const response = await patientService.updateDoctorId("");
+          if (response.success) {
+            showAlert("Success", "Doctor removed successfully");
 
-                // Update local state
-                if (profileData) {
-                  setProfileData({
-                    ...profileData,
-                    doctor_id: undefined
-                  });
-                }
-                setDoctorData(null);
-              } else {
-                Alert.alert("Error", response.message || "Failed to remove doctor");
-              }
-            } catch (error) {
-              console.error("Error removing doctor:", error);
-              Alert.alert("Error", "An unexpected error occurred. Please try again.");
-            } finally {
-              setIsSubmitting(false);
+            // Update local state
+            if (profileData) {
+              setProfileData({
+                ...profileData,
+                doctor_id: undefined,
+              });
             }
-          },
-          style: "destructive"
+            setDoctorData(null);
+          } else {
+            showAlert("Error", response.message || "Failed to remove doctor");
+          }
+        } catch (error) {
+          console.error("Error removing doctor:", error);
+          showAlert("Error", "An unexpected error occurred. Please try again.");
+        } finally {
+          setIsSubmitting(false);
         }
-      ]
-    );
-  };
+      }
+    } else {
+      Alert.alert(
+        "Remove Doctor",
+        "Are you sure you want to remove your current doctor?",
+        [
+          {
+            text: "Cancel",
+            style: "cancel",
+          },
+          {
+            text: "Remove",
+            onPress: async () => {
+              setIsSubmitting(true);
+              try {
+                const response = await patientService.updateDoctorId("");
+                if (response.success) {
+                  showAlert("Success", "Doctor removed successfully");
 
-  const showVisitDetails = (visit: VisitRecord) => {
-    setSelectedVisitRecord(visit);
-    setShowVisitDetailsModal(true);
+                  // Update local state
+                  if (profileData) {
+                    setProfileData({
+                      ...profileData,
+                      doctor_id: undefined,
+                    });
+                  }
+                  setDoctorData(null);
+                } else {
+                  showAlert(
+                    "Error",
+                    response.message || "Failed to remove doctor",
+                  );
+                }
+              } catch (error) {
+                console.error("Error removing doctor:", error);
+                showAlert(
+                  "Error",
+                  "An unexpected error occurred. Please try again.",
+                );
+              } finally {
+                setIsSubmitting(false);
+              }
+            },
+            style: "destructive",
+          },
+        ],
+      );
+    }
   };
 
   const navigateToEditProfile = () => {
@@ -230,14 +343,14 @@ export default function SettingsScreen() {
   };
 
   const renderSettingItem = (
-    icon: string, 
-    title: string, 
-    onPress: (() => void) | null, 
-    showArrow = true, 
-    additionalContent: React.ReactNode = null
+    icon: string,
+    title: string,
+    onPress: (() => void) | null,
+    showArrow = true,
+    additionalContent: React.ReactNode = null,
   ) => {
     return (
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.settingItem}
         onPress={onPress || undefined}
         disabled={!onPress}
@@ -249,38 +362,19 @@ export default function SettingsScreen() {
           <Text style={styles.settingTitle}>{title}</Text>
           {additionalContent}
         </View>
-        {showArrow && (
-          <Feather name="chevron-right" size={20} color="#888" />
-        )}
+        {showArrow && <Feather name="chevron-right" size={20} color="#888" />}
       </TouchableOpacity>
     );
   };
 
-  // Format date to a readable string
-  const formatDate = (dateString: string | Date) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit'
-    });
-  };
-
-  // Get the latest two visit records sorted by date
-  const getLatestVisitRecords = () => {
-    if (!profileData?.visitRecords || profileData.visitRecords.length === 0) {
-      return [];
-    }
-
-    // Sort by date descending (newest first)
-    const sortedRecords = [...profileData.visitRecords].sort((a, b) => {
-      return new Date(b.date).getTime() - new Date(a.date).getTime();
-    });
-
-    // Return the latest two records
-    return sortedRecords.slice(0, 2);
+  // Helper function to check if medical info is available
+  const hasMedicalInfo = () => {
+    return (
+      profileData?.medicalInfo &&
+      Object.keys(profileData.medicalInfo).some(
+        (key) => profileData.medicalInfo?.[key as keyof MedicalInfo],
+      )
+    );
   };
 
   if (isLoading) {
@@ -293,7 +387,7 @@ export default function SettingsScreen() {
 
   return (
     <>
-      <Stack.Screen 
+      <Stack.Screen
         options={{
           title: "Settings",
         }}
@@ -303,16 +397,19 @@ export default function SettingsScreen() {
           <View style={styles.profileInfo}>
             <View style={styles.profileAvatar}>
               <Text style={styles.avatarText}>
-                {profileData?.fullName.charAt(0).toUpperCase() || username?.toString().charAt(0).toUpperCase()}
+                {profileData?.fullName.charAt(0).toUpperCase() ||
+                  username?.toString().charAt(0).toUpperCase()}
               </Text>
             </View>
             <View>
-              <Text style={styles.doctorName}>{profileData?.fullName || username}</Text>
+              <Text style={styles.doctorName}>
+                {profileData?.fullName || username}
+              </Text>
               <Text style={styles.specialization}>Patient</Text>
               <Text style={styles.emailText}>{profileData?.email || ""}</Text>
             </View>
           </View>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.editProfileButton}
             onPress={navigateToEditProfile}
           >
@@ -337,22 +434,30 @@ export default function SettingsScreen() {
                       </Text>
                     </View>
                     <View style={styles.doctorInfo}>
-                      <Text style={styles.doctorName}>Dr. {doctorData.fullName}</Text>
+                      <Text style={styles.doctorName}>
+                        Dr. {doctorData.fullName}
+                      </Text>
                       {doctorData.specialization && (
-                        <Text style={styles.doctorSpecialty}>{doctorData.specialization}</Text>
+                        <Text style={styles.doctorSpecialty}>
+                          {doctorData.specialization}
+                        </Text>
                       )}
                       <Text style={styles.doctorEmail}>{doctorData.email}</Text>
                     </View>
                   </View>
                   <View style={styles.doctorActions}>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={styles.doctorActionButton}
                       onPress={() => router.push("/queries")}
                     >
-                      <Ionicons name="chatbubble-outline" size={20} color="#5f2446" />
+                      <Ionicons
+                        name="chatbubble-outline"
+                        size={20}
+                        color="#5f2446"
+                      />
                       <Text style={styles.doctorActionText}>Send Query</Text>
                     </TouchableOpacity>
-                    <TouchableOpacity 
+                    <TouchableOpacity
                       style={[styles.doctorActionButton, styles.removeButton]}
                       onPress={handleRemoveDoctorId}
                       disabled={isSubmitting}
@@ -374,17 +479,19 @@ export default function SettingsScreen() {
                   <Text style={styles.doctorNotFoundText}>
                     Doctor with ID {profileData.doctor_id} not found
                   </Text>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.updateDoctorButton}
                     onPress={() => setShowDoctorModal(true)}
                   >
-                    <Text style={styles.updateDoctorText}>Update Doctor ID</Text>
+                    <Text style={styles.updateDoctorText}>
+                      Update Doctor ID
+                    </Text>
                   </TouchableOpacity>
                 </View>
               )}
             </View>
           ) : (
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.addDoctorButton}
               onPress={() => setShowDoctorModal(true)}
             >
@@ -394,53 +501,175 @@ export default function SettingsScreen() {
           )}
         </View>
 
-        {/* Recent Visit Records Section */}
+        {/* Medical Information Section */}
         <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>Recent Visit Records</Text>
+          <Text style={styles.sectionTitle}>Medical Information</Text>
 
-          {getLatestVisitRecords().length > 0 ? (
-            getLatestVisitRecords().map((visit, index) => (
-              <TouchableOpacity
-                key={index}
-                style={styles.visitRecordCard}
-                onPress={() => showVisitDetails(visit)}
-              >
-                <View style={styles.visitRecordHeader}>
-                  <View style={styles.visitDateContainer}>
-                    <Feather name="calendar" size={16} color="#5f2446" />
-                    <Text style={styles.visitDate}>{formatDate(visit.date)}</Text>
+          {hasMedicalInfo() ? (
+            <View style={styles.medicalInfoCard}>
+              {profileData?.medicalInfo?.chiefcomplaint && (
+                <View style={styles.medicalInfoItem}>
+                  <Text style={styles.medicalInfoLabel}>Chief Complaint:</Text>
+                  <Text style={styles.medicalInfoValue}>
+                    {profileData.medicalInfo.chiefcomplaint}
+                  </Text>
+                </View>
+              )}
+
+              {profileData?.medicalInfo?.presentingillness && (
+                <View style={styles.medicalInfoItem}>
+                  <Text style={styles.medicalInfoLabel}>
+                    Presenting Illness:
+                  </Text>
+                  <Text style={styles.medicalInfoValue}>
+                    {profileData.medicalInfo.presentingillness}
+                  </Text>
+                </View>
+              )}
+
+              {/*{profileData?.medicalInfo?.visionwithpg && (
+                <View style={styles.medicalInfoItem}>
+                  <Text style={styles.medicalInfoLabel}>Vision with PG:</Text>
+                  <Text style={styles.medicalInfoValue}>
+                    {profileData.medicalInfo.visionwithpg}
+                  </Text>
+                </View>
+              )}*/}
+
+              {(profileData?.medicalInfo?.pastHistory ||
+                profileData?.medicalInfo?.personalHistory ||
+                profileData?.medicalInfo?.familyHistory) && (
+                  <View style={styles.medicalInfoSection}>
+                    <Text style={styles.medicalInfoSectionTitle}>History</Text>
+
+                    {profileData?.medicalInfo?.pastHistory && (
+                      <View style={styles.medicalInfoItem}>
+                        <Text style={styles.medicalInfoLabel}>Past History:</Text>
+                        <Text style={styles.medicalInfoValue}>
+                          {profileData.medicalInfo.pastHistory}
+                        </Text>
+                      </View>
+                    )}
+
+                    {profileData?.medicalInfo?.personalHistory && (
+                      <View style={styles.medicalInfoItem}>
+                        <Text style={styles.medicalInfoLabel}>
+                          Personal History:
+                        </Text>
+                        <Text style={styles.medicalInfoValue}>
+                          {profileData.medicalInfo.personalHistory}
+                        </Text>
+                      </View>
+                    )}
+
+                    {profileData?.medicalInfo?.familyHistory && (
+                      <View style={styles.medicalInfoItem}>
+                        <Text style={styles.medicalInfoLabel}>
+                          Family History:
+                        </Text>
+                        <Text style={styles.medicalInfoValue}>
+                          {profileData.medicalInfo.familyHistory}
+                        </Text>
+                      </View>
+                    )}
                   </View>
-                  <Feather name="chevron-right" size={20} color="#888" />
+                )}
+
+              {(profileData?.medicalInfo?.drugHistory ||
+                profileData?.medicalInfo?.allergyHistory) && (
+                  <View style={styles.medicalInfoSection}>
+                    <Text style={styles.medicalInfoSectionTitle}>
+                      Medications & Allergies
+                    </Text>
+
+                    {profileData?.medicalInfo?.drugHistory && (
+                      <View style={styles.medicalInfoItem}>
+                        <Text style={styles.medicalInfoLabel}>Drug History:</Text>
+                        <Text style={styles.medicalInfoValue}>
+                          {profileData.medicalInfo.drugHistory}
+                        </Text>
+                      </View>
+                    )}
+
+                    {profileData?.medicalInfo?.allergyHistory && (
+                      <View style={styles.medicalInfoItem}>
+                        <Text style={styles.medicalInfoLabel}>
+                          Allergy History:
+                        </Text>
+                        <Text style={styles.medicalInfoValue}>
+                          {profileData.medicalInfo.allergyHistory}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                )}
+
+              {(profileData?.medicalInfo?.bp ||
+                profileData?.medicalInfo?.pr ||
+                profileData?.medicalInfo?.temp ||
+                profileData?.medicalInfo?.respirationrate) && (
+                  <View style={styles.medicalInfoSection}>
+                    <Text style={styles.medicalInfoSectionTitle}>
+                      Vital Signs
+                    </Text>
+
+                    {profileData?.medicalInfo?.bp && (
+                      <View style={styles.medicalInfoItem}>
+                        <Text style={styles.medicalInfoLabel}>
+                          Blood Pressure:
+                        </Text>
+                        <Text style={styles.medicalInfoValue}>
+                          {profileData.medicalInfo.bp}
+                        </Text>
+                      </View>
+                    )}
+
+                    {profileData?.medicalInfo?.pr && (
+                      <View style={styles.medicalInfoItem}>
+                        <Text style={styles.medicalInfoLabel}>Pulse Rate:</Text>
+                        <Text style={styles.medicalInfoValue}>
+                          {profileData.medicalInfo.pr}
+                        </Text>
+                      </View>
+                    )}
+
+                    {profileData?.medicalInfo?.temp && (
+                      <View style={styles.medicalInfoItem}>
+                        <Text style={styles.medicalInfoLabel}>Temperature:</Text>
+                        <Text style={styles.medicalInfoValue}>
+                          {profileData.medicalInfo.temp}
+                        </Text>
+                      </View>
+                    )}
+
+                    {profileData?.medicalInfo?.respirationrate && (
+                      <View style={styles.medicalInfoItem}>
+                        <Text style={styles.medicalInfoLabel}>
+                          Respiration Rate:
+                        </Text>
+                        <Text style={styles.medicalInfoValue}>
+                          {profileData.medicalInfo.respirationrate}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                )}
+
+              {profileData?.medicalInfo?.notes && (
+                <View style={styles.medicalInfoSection}>
+                  <Text style={styles.medicalInfoSectionTitle}>Notes</Text>
+                  <Text style={styles.medicalInfoNotes}>
+                    {profileData.medicalInfo.notes}
+                  </Text>
                 </View>
-
-                <View style={styles.visitRecordDetails}>
-                  {visit.chiefComplaint && (
-                    <View style={styles.visitRecordItem}>
-                      <Text style={styles.visitRecordLabel}>Chief Complaint:</Text>
-                      <Text style={styles.visitRecordValue}>{visit.chiefComplaint}</Text>
-                    </View>
-                  )}
-
-                  {visit.distantVision && (
-                    <View style={styles.visitRecordItem}>
-                      <Text style={styles.visitRecordLabel}>Distant Vision:</Text>
-                      <Text style={styles.visitRecordValue}>{visit.distantVision}</Text>
-                    </View>
-                  )}
-
-                  {visit.nearVision && (
-                    <View style={styles.visitRecordItem}>
-                      <Text style={styles.visitRecordLabel}>Near Vision:</Text>
-                      <Text style={styles.visitRecordValue}>{visit.nearVision}</Text>
-                    </View>
-                  )}
-                </View>
-              </TouchableOpacity>
-            ))
+              )}
+            </View>
           ) : (
             <View style={styles.noRecordsContainer}>
               <Feather name="file-text" size={40} color="#ccc" />
-              <Text style={styles.noRecordsText}>No visit records available</Text>
+              <Text style={styles.noRecordsText}>
+                No medical information available
+              </Text>
             </View>
           )}
         </View>
@@ -448,12 +677,19 @@ export default function SettingsScreen() {
         {/* Account Section */}
         <View style={styles.sectionContainer}>
           <Text style={styles.sectionTitle}>Account</Text>
-          {renderSettingItem("help-circle", "Help & Support", () => setShowHelpModal(true))}
-          {renderSettingItem("info", "About AmbiEye", () => setShowAboutModal(true))}
+          {renderSettingItem("help-circle", "Help & Support", () =>
+            setShowHelpModal(true),
+          )}
+          {renderSettingItem("info", "About AmbiEye", () =>
+            setShowAboutModal(true),
+          )}
+          {renderSettingItem("book", "Privacy Policy", () =>
+            router.push("/(patient)/(stack)/privacy"),
+          )}
         </View>
 
-        <TouchableOpacity 
-          style={styles.logoutButton} 
+        <TouchableOpacity
+          style={styles.logoutButton}
           onPress={handleLogout}
           disabled={isLoggingOut}
         >
@@ -461,6 +697,18 @@ export default function SettingsScreen() {
             <ActivityIndicator color="#fff" />
           ) : (
             <Text style={styles.logoutText}>Logout</Text>
+          )}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.logoutButton}
+          onPress={handleDelete}
+          disabled={isLoggingOut}
+        >
+          {isLoggingOut ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.logoutText}>Delete Account</Text>
           )}
         </TouchableOpacity>
 
@@ -473,19 +721,22 @@ export default function SettingsScreen() {
           visible={showDoctorModal}
           transparent={true}
           animationType="fade"
-          onRequestClose={() => setShowDoctorModal(false)}
+        // onRequestClose={() => setShowDoctorModal(false)}
         >
-          <KeyboardAvoidingView 
+          <KeyboardAvoidingView
             behavior={Platform.OS === "ios" ? "padding" : "height"}
             style={styles.modalOverlay}
           >
             <View style={styles.modalContent}>
               <Text style={styles.modalTitle}>
-                {profileData?.doctor_id ? "Update Doctor ID" : "Add Your Doctor"}
+                {profileData?.doctor_id
+                  ? "Update Doctor ID"
+                  : "Add Your Doctor"}
               </Text>
 
               <Text style={styles.modalDescription}>
-                Enter the ID provided by your doctor to connect with them on AmbiEye.
+                Enter the ID provided by your doctor to connect with them on
+                AmbiEye.
               </Text>
 
               <TextInput
@@ -499,21 +750,21 @@ export default function SettingsScreen() {
               />
 
               <View style={styles.modalButtonContainer}>
-                <TouchableOpacity
+                {/* <TouchableOpacity
                   style={styles.modalCancelButton}
                   onPress={() => {
-                    setShowDoctorModal(false);
-                    setDoctorId("");
+                    // setShowDoctorModal(false);
+                    // setDoctorId("");
                   }}
                   disabled={isSubmitting}
                 >
                   <Text style={styles.modalCancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
+                </TouchableOpacity> */}
 
                 <TouchableOpacity
                   style={[
                     styles.modalSubmitButton,
-                    (!doctorId.trim() || isSubmitting) && styles.disabledButton
+                    (!doctorId.trim() || isSubmitting) && styles.disabledButton,
                   ]}
                   onPress={handleUpdateDoctorId}
                   disabled={!doctorId.trim() || isSubmitting}
@@ -527,111 +778,6 @@ export default function SettingsScreen() {
               </View>
             </View>
           </KeyboardAvoidingView>
-        </Modal>
-
-        {/* Visit Details Modal */}
-        <Modal
-          visible={showVisitDetailsModal}
-          transparent={true}
-          animationType="fade"
-          onRequestClose={() => setShowVisitDetailsModal(false)}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Visit Details</Text>
-                <TouchableOpacity onPress={() => setShowVisitDetailsModal(false)}>
-                  <Feather name="x" size={24} color="#333" />
-                </TouchableOpacity>
-              </View>
-
-              <ScrollView style={styles.modalScrollContent}>
-                {selectedVisitRecord && (
-                  <>
-                    <View style={styles.visitDetailHeader}>
-                      <Feather name="calendar" size={18} color="#5f2446" />
-                      <Text style={styles.visitDetailDate}>
-                        {formatDate(selectedVisitRecord.date)}
-                      </Text>
-                    </View>
-
-                    <View style={styles.visitDetailSection}>
-                      <Text style={styles.visitDetailSectionTitle}>Complaint & Condition</Text>
-
-                      {selectedVisitRecord.chiefComplaint && (
-                        <View style={styles.visitDetailItem}>
-                          <Text style={styles.visitDetailLabel}>Chief Complaint:</Text>
-                          <Text style={styles.visitDetailValue}>{selectedVisitRecord.chiefComplaint}</Text>
-                        </View>
-                      )}
-
-                      {selectedVisitRecord.presentingIllness && (
-                        <View style={styles.visitDetailItem}>
-                          <Text style={styles.visitDetailLabel}>Presenting Illness:</Text>
-                          <Text style={styles.visitDetailValue}>{selectedVisitRecord.presentingIllness}</Text>
-                        </View>
-                      )}
-                    </View>
-
-                    <View style={styles.visitDetailSection}>
-                      <Text style={styles.visitDetailSectionTitle}>Vision Assessment</Text>
-
-                      {selectedVisitRecord.distantVision && (
-                        <View style={styles.visitDetailItem}>
-                          <Text style={styles.visitDetailLabel}>Distant Vision:</Text>
-                          <Text style={styles.visitDetailValue}>{selectedVisitRecord.distantVision}</Text>
-                        </View>
-                      )}
-
-                      {selectedVisitRecord.nearVision && (
-                        <View style={styles.visitDetailItem}>
-                          <Text style={styles.visitDetailLabel}>Near Vision:</Text>
-                          <Text style={styles.visitDetailValue}>{selectedVisitRecord.nearVision}</Text>
-                        </View>
-                      )}
-                    </View>
-
-                    {(selectedVisitRecord.bp || selectedVisitRecord.temperature) && (
-                      <View style={styles.visitDetailSection}>
-                        <Text style={styles.visitDetailSectionTitle}>Vitals</Text>
-
-                        {selectedVisitRecord.bp && (
-                          <View style={styles.visitDetailItem}>
-                            <Text style={styles.visitDetailLabel}>Blood Pressure:</Text>
-                            <Text style={styles.visitDetailValue}>{selectedVisitRecord.bp}</Text>
-                          </View>
-                        )}
-
-                        {selectedVisitRecord.temperature && (
-                          <View style={styles.visitDetailItem}>
-                            <Text style={styles.visitDetailLabel}>Temperature:</Text>
-                            <Text style={styles.visitDetailValue}>{selectedVisitRecord.temperature}</Text>
-                          </View>
-                        )}
-                      </View>
-                    )}
-
-                    {selectedVisitRecord.glassPrescription && (
-                      <View style={styles.visitDetailSection}>
-                        <Text style={styles.visitDetailSectionTitle}>Prescription</Text>
-                        <View style={styles.visitDetailItem}>
-                          <Text style={styles.visitDetailLabel}>Glass Prescription:</Text>
-                          <Text style={styles.visitDetailValue}>{selectedVisitRecord.glassPrescription}</Text>
-                        </View>
-                      </View>
-                    )}
-                  </>
-                )}
-              </ScrollView>
-
-              <TouchableOpacity 
-                style={styles.modalCloseButton}
-                onPress={() => setShowVisitDetailsModal(false)}
-              >
-                <Text style={styles.modalCloseButtonText}>Close</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
         </Modal>
 
         {/* Help & Support Modal */}
@@ -653,49 +799,75 @@ export default function SettingsScreen() {
               <ScrollView style={styles.modalScrollContent}>
                 <View style={styles.helpSection}>
                   <Text style={styles.helpSectionTitle}>Contact Support</Text>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.helpItem}
-                    onPress={() => Linking.openURL('mailto:support@ambieye.com')}
+                    onPress={() =>
+                      Linking.openURL("mailto:support@ambieye.com")
+                    }
                   >
-                    <Feather name="mail" size={20} color="#5f2446" style={styles.helpItemIcon} />
-                    <Text style={styles.helpItemText}>Email: support@ambieye.com</Text>
+                    <Feather
+                      name="mail"
+                      size={20}
+                      color="#5f2446"
+                      style={styles.helpItemIcon}
+                    />
+                    <Text style={styles.helpItemText}>
+                      Email: support@ambieye.com
+                    </Text>
                   </TouchableOpacity>
 
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.helpItem}
-                    onPress={() => Linking.openURL('tel:+15551234567')}
+                    onPress={() => Linking.openURL("tel:+15551234567")}
                   >
-                    <Feather name="phone" size={20} color="#5f2446" style={styles.helpItemIcon} />
-                    <Text style={styles.helpItemText}>Phone: +1 (555) 123-4567</Text>
+                    <Feather
+                      name="phone"
+                      size={20}
+                      color="#5f2446"
+                      style={styles.helpItemIcon}
+                    />
+                    <Text style={styles.helpItemText}>
+                      Phone: +1 (555) 123-4567
+                    </Text>
                   </TouchableOpacity>
                 </View>
 
                 <View style={styles.helpSection}>
                   <Text style={styles.helpSectionTitle}>FAQ</Text>
                   <View style={styles.faqItem}>
-                    <Text style={styles.faqQuestion}>How do I connect with my doctor?</Text>
+                    <Text style={styles.faqQuestion}>
+                      How do I connect with my doctor?
+                    </Text>
                     <Text style={styles.faqAnswer}>
-                      Ask your doctor for their AmbiEye ID, then enter it in the "My Doctor" section in settings.
+                      Ask your doctor for their AmbiEye ID, then enter it in the
+                      &quot;My Doctor&quot; section in settings.
                     </Text>
                   </View>
 
                   <View style={styles.faqItem}>
-                    <Text style={styles.faqQuestion}>How do I submit a query to my doctor?</Text>
+                    <Text style={styles.faqQuestion}>
+                      How do I submit a query to my doctor?
+                    </Text>
                     <Text style={styles.faqAnswer}>
-                      Once connected with your doctor, go to the "Queries" tab and tap "New Query".
+                      Once connected with your doctor, go to the
+                      &quot;Queries&quot; tab and tap &quot;New Query&quot;.
                     </Text>
                   </View>
 
                   <View style={styles.faqItem}>
-                    <Text style={styles.faqQuestion}>How often should I use the eye exercises?</Text>
+                    <Text style={styles.faqQuestion}>
+                      How often should I use the eye exercises?
+                    </Text>
                     <Text style={styles.faqAnswer}>
-                      We recommend daily practice with the eye exercises for optimal results. Your doctor may provide specific recommendations.
+                      We recommend daily practice with the eye exercises for
+                      optimal results. Your doctor may provide specific
+                      recommendations.
                     </Text>
                   </View>
                 </View>
               </ScrollView>
 
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.modalCloseButton}
                 onPress={() => setShowHelpModal(false)}
               >
@@ -728,52 +900,100 @@ export default function SettingsScreen() {
                 </View>
 
                 <Text style={styles.aboutDescription}>
-                  AmbiEye is a comprehensive digital health platform designed for treating amblyopia (lazy eye) through interactive games and exercises, while keeping doctors connected with their patients.
+                  AmbiEye is a comprehensive digital health platform designed
+                  for treating amblyopia (lazy eye) through interactive games
+                  and exercises, while keeping doctors connected with their
+                  patients.
                 </Text>
 
                 <View style={styles.aboutSection}>
                   <Text style={styles.aboutSectionTitle}>Key Features</Text>
                   <View style={styles.aboutFeatureItem}>
-                    <Feather name="check-circle" size={18} color="#5f2446" style={styles.aboutFeatureIcon} />
-                    <Text style={styles.aboutFeatureText}>Interactive vision therapy games</Text>
+                    <Feather
+                      name="check-circle"
+                      size={18}
+                      color="#5f2446"
+                      style={styles.aboutFeatureIcon}
+                    />
+                    <Text style={styles.aboutFeatureText}>
+                      Interactive vision therapy games
+                    </Text>
                   </View>
                   <View style={styles.aboutFeatureItem}>
-                    <Feather name="check-circle" size={18} color="#5f2446" style={styles.aboutFeatureIcon} />
-                    <Text style={styles.aboutFeatureText}>Direct communication with doctors</Text>
+                    <Feather
+                      name="check-circle"
+                      size={18}
+                      color="#5f2446"
+                      style={styles.aboutFeatureIcon}
+                    />
+                    <Text style={styles.aboutFeatureText}>
+                      Direct communication with doctors
+                    </Text>
                   </View>
                   <View style={styles.aboutFeatureItem}>
-                    <Feather name="check-circle" size={18} color="#5f2446" style={styles.aboutFeatureIcon} />
-                    <Text style={styles.aboutFeatureText}>Progress tracking and reports</Text>
+                    <Feather
+                      name="check-circle"
+                      size={18}
+                      color="#5f2446"
+                      style={styles.aboutFeatureIcon}
+                    />
+                    <Text style={styles.aboutFeatureText}>
+                      Progress tracking and reports
+                    </Text>
                   </View>
                   <View style={styles.aboutFeatureItem}>
-                    <Feather name="check-circle" size={18} color="#5f2446" style={styles.aboutFeatureIcon} />
-                    <Text style={styles.aboutFeatureText}>Customizable treatment plans</Text>
+                    <Feather
+                      name="check-circle"
+                      size={18}
+                      color="#5f2446"
+                      style={styles.aboutFeatureIcon}
+                    />
+                    <Text style={styles.aboutFeatureText}>
+                      Customizable treatment plans
+                    </Text>
                   </View>
                 </View>
 
                 <View style={styles.aboutSection}>
                   <Text style={styles.aboutSectionTitle}>Legal</Text>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.aboutLegalItem}
-                    onPress={() => Alert.alert("Terms of Service", "Terms of Service content would be displayed here.")}
+                    onPress={() =>
+                      showAlert(
+                        "Terms of Service",
+                        "Terms of Service content would be displayed here.",
+                      )
+                    }
                   >
                     <Text style={styles.aboutLegalText}>Terms of Service</Text>
                     <Feather name="chevron-right" size={18} color="#888" />
                   </TouchableOpacity>
 
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.aboutLegalItem}
-                    onPress={() => Alert.alert("Privacy Policy", "Privacy Policy content would be displayed here.")}
+                    onPress={() =>
+                      showAlert(
+                        "Privacy Policy",
+                        "Privacy Policy content would be displayed here.",
+                      )
+                    }
                   >
                     <Text style={styles.aboutLegalText}>Privacy Policy</Text>
                     <Feather name="chevron-right" size={18} color="#888" />
                   </TouchableOpacity>
 
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.aboutLegalItem}
-                    onPress={() => Alert.alert("Licenses", "Third-party licenses would be displayed here.")}
+                    onPress={() =>
+                      showAlert(
+                        "Licenses",
+                        "Third-party licenses would be displayed here.",
+                      )
+                    }
                   >
-                    <Text style={styles.aboutLegalText}>Third-Party Licenses</Text>
+                    <Text style={styles.aboutLegalText}>
+                      Third-Party Licenses
+                    </Text>
                     <Feather name="chevron-right" size={18} color="#888" />
                   </TouchableOpacity>
                 </View>
@@ -783,7 +1003,7 @@ export default function SettingsScreen() {
                 </Text>
               </ScrollView>
 
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.modalCloseButton}
                 onPress={() => setShowAboutModal(false)}
               >
@@ -1249,53 +1469,48 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginVertical: 20,
   },
-  // Visit record styles
-  visitRecordCard: {
+  // Medical Info styles
+  medicalInfoCard: {
     backgroundColor: "#fff",
     borderRadius: 12,
     padding: 16,
-    marginBottom: 12,
     elevation: 2,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.2,
     shadowRadius: 1.5,
   },
-  visitRecordHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 10,
-    paddingBottom: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
+  medicalInfoSection: {
+    marginTop: 16,
+    paddingTop: 16,
+    borderTopWidth: 1,
+    borderTopColor: "#f0f0f0",
   },
-  visitDateContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  visitDate: {
-    fontSize: 14,
+  medicalInfoSectionTitle: {
+    fontSize: 16,
+    fontWeight: "600",
     color: "#5f2446",
-    fontWeight: "500",
-    marginLeft: 6,
+    marginBottom: 12,
   },
-  visitRecordDetails: {
-    paddingTop: 4,
+  medicalInfoItem: {
+    marginBottom: 12,
   },
-  visitRecordItem: {
-    flexDirection: "row",
-    marginBottom: 8,
-  },
-  visitRecordLabel: {
+  medicalInfoLabel: {
     fontSize: 14,
     color: "#666",
-    width: 120,
+    fontWeight: "500",
+    marginBottom: 4,
   },
-  visitRecordValue: {
-    fontSize: 14,
+  medicalInfoValue: {
+    fontSize: 15,
     color: "#333",
-    flex: 1,
+    lineHeight: 20,
+  },
+  medicalInfoNotes: {
+    fontSize: 15,
+    color: "#333",
+    lineHeight: 22,
+    fontStyle: "italic",
   },
   noRecordsContainer: {
     alignItems: "center",
@@ -1312,49 +1527,5 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#666",
     marginTop: 16,
-  },
-  // Visit detail modal styles
-  visitDetailHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 16,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
-  },
-  visitDetailDate: {
-    fontSize: 14,
-    color: "#333",
-    marginLeft: 8,
-    fontWeight: "500",
-  },
-  visitDetailSection: {
-    marginBottom: 20,
-    padding: 12,
-    backgroundColor: "#f9f9f9",
-    borderRadius: 8,
-  },
-  visitDetailSectionTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#5f2446",
-    marginBottom: 12,
-    paddingBottom: 8,
-    borderBottomWidth: 1,
-    borderBottomColor: "#eee",
-  },
-  visitDetailItem: {
-    marginBottom: 10,
-  },
-  visitDetailLabel: {
-    fontSize: 14,
-    color: "#555",
-    fontWeight: "500",
-    marginBottom: 4,
-  },
-  visitDetailValue: {
-    fontSize: 15,
-    color: "#333",
-    lineHeight: 20,
   },
 });

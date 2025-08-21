@@ -60,19 +60,63 @@ export default function CountAndChooseGame() {
     const count = Math.min(3 + nextRound, 15);
     setCorrectAnswer(count);
 
-    // Create objects with random positions
+    // Create objects with non-overlapping positions
     const newObjects = [];
     for (let i = 0; i < count; i++) {
+      const size = Math.random() * 10 + 20; // Size between 20-30
+      let position;
+      let overlapFound;
+      let attempts = 0;
+      const maxAttempts = 50; // Prevent infinite loop
+
+      // Keep generating positions until we find one with no overlap
+      do {
+        overlapFound = false;
+        position = {
+          x: Math.random() * 240 + 20, // Adjust based on screen width
+          y: Math.random() * 200 + 20, // Position within the game area
+        };
+
+        // Check for overlap with existing objects
+        for (let j = 0; j < newObjects.length; j++) {
+          const existingObj = newObjects[j];
+          const minDistance = (size + existingObj.size) / 2; // Minimum distance to avoid overlap
+
+          // Calculate distance between objects
+          const dx = position.x - existingObj.position.x;
+          const dy = position.y - existingObj.position.y;
+          const distance = Math.sqrt(dx * dx + dy * dy);
+
+          if (distance < minDistance) {
+            overlapFound = true;
+            break;
+          }
+        }
+
+        attempts++;
+      } while (overlapFound && attempts < maxAttempts);
+
+      // If we exceeded max attempts, adjust position to ensure no overlap
+      if (attempts >= maxAttempts) {
+        // Place objects in a grid-like pattern if we can't find non-overlapping positions
+        const gridSize = Math.ceil(Math.sqrt(count));
+        const cellWidth = 240 / gridSize;
+        const cellHeight = 200 / gridSize;
+        const row = Math.floor(i / gridSize);
+        const col = i % gridSize;
+        position = {
+          x: 20 + col * cellWidth + (cellWidth - size) / 2,
+          y: 20 + row * cellHeight + (cellHeight - size) / 2
+        };
+      }
+
       newObjects.push({
         id: i,
         icon: randomIcon.name,
         color: randomIcon.color,
-        size: Math.random() * 10 + 20, // Size between 20-30
+        size: size,
         rotation: Math.random() * 360,
-        position: {
-          x: Math.random() * 240 + 20, // Adjust based on screen width
-          y: Math.random() * 200 + 20, // Position within the game area
-        }
+        position: position
       });
     }
     setObjects(newObjects);

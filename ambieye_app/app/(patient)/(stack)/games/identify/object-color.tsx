@@ -171,7 +171,7 @@ export default function ObjectColorGame() {
         <TouchableOpacity onPress={() => router.push("/games")}>
           <FontAwesome name="arrow-left" size={24} color="#5f2446" />
         </TouchableOpacity>
-        <Text style={styles.gameTitle}>Identify the Object's Color</Text>
+        <Text style={styles.gameTitle}>Identify the Object&apos;s Color</Text>
       </View>
   
       {!gameActive ? (

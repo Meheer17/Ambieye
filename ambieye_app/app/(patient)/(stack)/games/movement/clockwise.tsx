@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   StyleSheet,
   View,
@@ -7,6 +7,7 @@ import {
   Animated,
   Dimensions,
   Alert,
+  Easing,
 } from "react-native";
 import { useRouter } from "expo-router";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
@@ -15,113 +16,163 @@ import { saveGameResult } from "@/utils/gameUtils";
 const { width } = Dimensions.get("window");
 const BALL_SIZE = 30;
 const TRACK_RADIUS = width * 0.35;
-const INITIAL_DURATION = 10000; // 10 seconds for the first round
+const CIRCLE_DURATION = 5000; // 3 seconds per circle - faster for better visual feedback
 
 export default function ClockwiseGame() {
   const router = useRouter();
   const [gameActive, setGameActive] = useState(false);
-  const [score, setScore] = useState(0);
+  const [timeLeft, setTimeLeft] = useState(60);
   const [gameStartTime, setGameStartTime] = useState(0);
-  const [completedRounds, setCompletedRounds] = useState(0);
-  const [totalRounds] = useState(3); // 3 full circles
   const ballPosition = useRef(new Animated.Value(0)).current;
-  const animationRef = useRef<any>(null);
-  const roundCounterRef = useRef(0);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const animationRef = useRef<Animated.CompositeAnimation | null>(null);
 
-  // Create the circular path animation with adjustable speed
-  const createAnimation = (roundNumber: number) => {
-    // Reset position
-    ballPosition.setValue(0);
-
-    // Calculate duration - decrease by 2000ms each round (faster speed)
-    const speedFactor = Math.max(0.5, 1 - (roundNumber * 0.2)); // Get faster by 20% each round, minimum 50% speed
-    const duration = INITIAL_DURATION * speedFactor;
-
-    // Create the animation for a full circle
-    animationRef.current = Animated.timing(ballPosition, {
-      toValue: 1,
-      duration: duration,
-      useNativeDriver: true,
-    });
+  // Create the circular path animation for clockwise motion
+  const createAnimation = () => {
+    // Create the animation for continuous clockwise circles
+    animationRef.current = Animated.loop(
+      Animated.timing(ballPosition, {
+        toValue: 1,
+        duration: CIRCLE_DURATION,
+        easing: Easing.linear, // Linear easing for consistent speed
+        useNativeDriver: true,
+      })
+    );
   };
 
   const startGame = () => {
     setGameActive(true);
-    setScore(0);
-    setCompletedRounds(0);
-    roundCounterRef.current = 0;
+    setTimeLeft(60);
     setGameStartTime(Date.now());
 
-    createAnimation(0);
-    runAnimation();
-  };
+    // Reset the ball position to ensure smooth animation start
+    ballPosition.setValue(0);
 
-  const runAnimation = () => {
-    animationRef.current?.reset();
+    // Start the timer
+    timerRef.current = setInterval(() => {
+      setTimeLeft((prev) => {
+        if (prev <= 1) {
+          // End game when timer reaches 0
+          endGame();
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000) as unknown as NodeJS.Timeout;
 
-    // Start the animation
-    animationRef.current?.start(() => {
-      // Increment the round counter
-      roundCounterRef.current += 1;
-
-      // Update UI state
-      setCompletedRounds(roundCounterRef.current);
-      setScore(roundCounterRef.current * 30); // 30 points per completed round
-
-      if (roundCounterRef.current < totalRounds) {
-        // Continue with the next round with increased speed
-        createAnimation(roundCounterRef.current);
-        runAnimation();
-      } else {
-        // End the game
-        endGame();
-      }
-    });
+    // Start the animation that will loop until the game ends
+    createAnimation();
+    animationRef.current?.start();
   };
 
   const endGame = async () => {
+    // Clear timer
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+
+    // Stop animation
+    if (animationRef.current) {
+      animationRef.current.stop();
+      animationRef.current = null;
+    }
+
     setGameActive(false);
     const gameDuration = (Date.now() - gameStartTime) / 1000; // in seconds
-
-    // Calculate final score based on completed rounds (max 100)
-    const finalScore = Math.min(100, roundCounterRef.current * 30);
 
     try {
       // Save game result to API
       await saveGameResult({
         gameId: 6, // ID for "Follow the ball in clockwise direction" game
-        score: finalScore,
+        score: 100, // Perfect score since they completed the full minute
         duration: gameDuration,
         date: new Date().toISOString(),
         details: {
-          completedRounds: roundCounterRef.current,
+          completedTime: gameDuration,
         }
       });
 
       Alert.alert(
-        "Game Complete!",
-        `Score: ${finalScore}%\nTime: ${Math.round(gameDuration)}s`,
+        "Exercise Complete!",
+        `You successfully followed the ball for 1 minute!`,
         [{ text: "OK", onPress: () => router.push("/games") }]
       );
     } catch (error) {
       console.error("Failed to save game result:", error);
       Alert.alert(
-        "Game Complete!",
-        `Score: ${finalScore}%\nTime: ${Math.round(gameDuration)}s\n(Failed to save results)`,
+        "Exercise Complete!",
+        `You successfully followed the ball for 1 minute!\n(Failed to save results)`,
         [{ text: "OK", onPress: () => router.push("/games") }]
       );
     }
   };
 
-  // Create interpolations for x and y positions
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) {
+        clearInterval(timerRef.current);
+      }
+      if (animationRef.current) {
+        animationRef.current.stop();
+      }
+    };
+  }, []);
+
+  // Calculate the position for clockwise movement using sine and cosine for a perfect circle
   const translateX = ballPosition.interpolate({
-    inputRange: [0, 0.25, 0.5, 0.75, 1],
-    outputRange: [0, TRACK_RADIUS, 0, -TRACK_RADIUS, 0]
+    inputRange: [0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1],
+    outputRange: [
+      TRACK_RADIUS,                                  // 0°
+      TRACK_RADIUS * Math.cos(Math.PI * 0.05 * 2),   // 36°
+      TRACK_RADIUS * Math.cos(Math.PI * 0.1 * 2),    // 72°
+      TRACK_RADIUS * Math.cos(Math.PI * 0.15 * 2),   // 108°
+      TRACK_RADIUS * Math.cos(Math.PI * 0.2 * 2),    // 144°
+      TRACK_RADIUS * Math.cos(Math.PI * 0.25 * 2),   // 180°
+      TRACK_RADIUS * Math.cos(Math.PI * 0.3 * 2),    // 216°
+      TRACK_RADIUS * Math.cos(Math.PI * 0.35 * 2),   // 252°
+      TRACK_RADIUS * Math.cos(Math.PI * 0.4 * 2),    // 288°
+      TRACK_RADIUS * Math.cos(Math.PI * 0.45 * 2),   // 324°
+      TRACK_RADIUS * Math.cos(Math.PI * 0.5 * 2),    // 360°
+      TRACK_RADIUS * Math.cos(Math.PI * 0.55 * 2),   // 396°
+      TRACK_RADIUS * Math.cos(Math.PI * 0.6 * 2),    // 432°
+      TRACK_RADIUS * Math.cos(Math.PI * 0.65 * 2),   // 468°
+      TRACK_RADIUS * Math.cos(Math.PI * 0.7 * 2),    // 504°
+      TRACK_RADIUS * Math.cos(Math.PI * 0.75 * 2),   // 540°
+      TRACK_RADIUS * Math.cos(Math.PI * 0.8 * 2),    // 576°
+      TRACK_RADIUS * Math.cos(Math.PI * 0.85 * 2),   // 612°
+      TRACK_RADIUS * Math.cos(Math.PI * 0.9 * 2),    // 648°
+      TRACK_RADIUS * Math.cos(Math.PI * 0.95 * 2),   // 684°
+      TRACK_RADIUS,                                  // 720°
+    ],
   });
 
   const translateY = ballPosition.interpolate({
-    inputRange: [0, 0.25, 0.5, 0.75, 1],
-    outputRange: [-TRACK_RADIUS, 0, TRACK_RADIUS, 0, -TRACK_RADIUS]
+    inputRange: [0, 0.05, 0.1, 0.15, 0.2, 0.25, 0.3, 0.35, 0.4, 0.45, 0.5, 0.55, 0.6, 0.65, 0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1],
+    outputRange: [
+      0,                                            // 0°
+      TRACK_RADIUS * Math.sin(Math.PI * 0.05 * 2),  // 36°
+      TRACK_RADIUS * Math.sin(Math.PI * 0.1 * 2),   // 72°
+      TRACK_RADIUS * Math.sin(Math.PI * 0.15 * 2),  // 108°
+      TRACK_RADIUS * Math.sin(Math.PI * 0.2 * 2),   // 144°
+      TRACK_RADIUS * Math.sin(Math.PI * 0.25 * 2),  // 180°
+      TRACK_RADIUS * Math.sin(Math.PI * 0.3 * 2),   // 216°
+      TRACK_RADIUS * Math.sin(Math.PI * 0.35 * 2),  // 252°
+      TRACK_RADIUS * Math.sin(Math.PI * 0.4 * 2),   // 288°
+      TRACK_RADIUS * Math.sin(Math.PI * 0.45 * 2),  // 324°
+      TRACK_RADIUS * Math.sin(Math.PI * 0.5 * 2),   // 360°
+      TRACK_RADIUS * Math.sin(Math.PI * 0.55 * 2),  // 396°
+      TRACK_RADIUS * Math.sin(Math.PI * 0.6 * 2),   // 432°
+      TRACK_RADIUS * Math.sin(Math.PI * 0.65 * 2),  // 468°
+      TRACK_RADIUS * Math.sin(Math.PI * 0.7 * 2),   // 504°
+      TRACK_RADIUS * Math.sin(Math.PI * 0.75 * 2),  // 540°
+      TRACK_RADIUS * Math.sin(Math.PI * 0.8 * 2),   // 576°
+      TRACK_RADIUS * Math.sin(Math.PI * 0.85 * 2),  // 612°
+      TRACK_RADIUS * Math.sin(Math.PI * 0.9 * 2),   // 648°
+      TRACK_RADIUS * Math.sin(Math.PI * 0.95 * 2),  // 684°
+      0,                                            // 720°
+    ],
   });
 
   return (
@@ -142,22 +193,21 @@ export default function ClockwiseGame() {
       {!gameActive ? (
         <View style={styles.startContainer}>
           <Text style={styles.instructionText}>
-            Follow the ball with your eyes as it moves in a clockwise direction. 
+            Follow the ball with your eyes as it moves in a clockwise direction for 1 minute. 
             This exercise helps strengthen your eye muscles and improve tracking ability.
           </Text>
           <TouchableOpacity style={styles.startButton} onPress={startGame}>
-            <Text style={styles.startButtonText}>Start Game</Text>
+            <Text style={styles.startButtonText}>Start Exercise</Text>
           </TouchableOpacity>
         </View>
       ) : (
         <View style={styles.gameContainer}>
           <View style={styles.scoreContainer}>
-            <Text style={styles.scoreText}>Score: {score}</Text>
-            <Text style={styles.roundText}>Round: {completedRounds}/{totalRounds}</Text>
+            <Text style={styles.timerText}>Time Left: {timeLeft}s</Text>
           </View>
 
           <Text style={styles.instructions}>
-            Follow the red ball with your eyes as it moves
+            Follow the red ball with your eyes as it moves clockwise
           </Text>
 
           <View style={styles.trackContainer}>
@@ -230,19 +280,14 @@ const styles = StyleSheet.create({
   },
   scoreContainer: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "center",
     width: "100%",
     marginBottom: 20,
   },
-  scoreText: {
+  timerText: {
     fontSize: 18,
     fontWeight: "bold",
     color: "#5f2446",
-  },
-  roundText: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#333",
   },
   instructions: {
     fontSize: 16,

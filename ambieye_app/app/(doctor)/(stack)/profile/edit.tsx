@@ -45,27 +45,27 @@ export default function EditProfileScreen() {
   });
 
   useEffect(() => {
-    fetchProfileData();
-  }, []);
-
-  const fetchProfileData = async () => {
-    setIsLoading(true);
-    try {
-      const response = await patientService.getProfile();
-      if (response.success) {
-        setProfileData(response.profile);
-      } else {
-        Alert.alert("Error", response.message || "Failed to fetch profile data");
+    const fetchProfileData = async () => {
+      setIsLoading(true);
+      try {
+        const response = await patientService.getProfile();
+        if (response.success) {
+          setProfileData(response.profile);
+        } else {
+          Alert.alert("Error", response.message || "Failed to fetch profile data");
+          router.back();
+        }
+      } catch (error) {
+        console.error("Error fetching profile data:", error);
+        Alert.alert("Error", "An unexpected error occurred. Please try again.");
         router.back();
+      } finally {
+        setIsLoading(false);
       }
-    } catch (error) {
-      console.error("Error fetching profile data:", error);
-      Alert.alert("Error", "An unexpected error occurred. Please try again.");
-      router.back();
-    } finally {
-      setIsLoading(false);
-    }
-  };
+    };
+
+    fetchProfileData();
+  }, [router]);
 
   const handleUpdateProfile = async () => {
     // Basic validation
@@ -225,7 +225,7 @@ export default function EditProfileScreen() {
           </View>
 
           <View style={styles.formGroup}>
-            <Text style={styles.label}>Father's Name</Text>
+            <Text style={styles.label}>Father&apos;s Name</Text>
             <TextInput
               style={styles.input}
               value={profileData.fatherName}
@@ -236,7 +236,7 @@ export default function EditProfileScreen() {
           </View>
 
           <View style={styles.formGroup}>
-            <Text style={styles.label}>Mother's Name</Text>
+            <Text style={styles.label}>Mother&apos;s Name</Text>
             <TextInput
               style={styles.input}
               value={profileData.motherName}

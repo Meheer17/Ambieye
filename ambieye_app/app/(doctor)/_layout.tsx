@@ -1,9 +1,8 @@
 import React from "react";
-import { Tabs } from "expo-router";
+import { Tabs , usePathname } from "expo-router";
 import { View, StyleSheet, Text } from "react-native";
 import Feather from "@expo/vector-icons/Feather";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
-import { usePathname } from "expo-router";
 
 const ICON_SIZE = 24;
 

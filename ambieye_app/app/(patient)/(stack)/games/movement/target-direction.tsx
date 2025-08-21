@@ -31,12 +31,12 @@ export default function TargetDirectionGame() {
   const targetOpacity = useRef(new Animated.Value(0)).current;
 
   const directions = ["left", "right", "up", "down"];
-  const directionIcons = {
-    left: "arrow-left",
-    right: "arrow-right",
-    up: "arrow-up",
-    down: "arrow-down",
-  };
+  // const directionIcons = {
+  //   left: "arrow-left",
+  //   right: "arrow-right",
+  //   up: "arrow-up",
+  //   down: "arrow-down",
+  // };
 
   // Animation configurations for different directions
   const directionConfigs = {
@@ -72,7 +72,7 @@ export default function TargetDirectionGame() {
     Animated.parallel([
       Animated.timing(targetPosition, {
         toValue: config.end,
-        duration: 2000, // 2 seconds for the animation
+        duration: 3000, // 3 seconds for the animation (slower speed)
         useNativeDriver: true,
       }),
       Animated.sequence([
@@ -81,7 +81,7 @@ export default function TargetDirectionGame() {
           duration: 100,
           useNativeDriver: true,
         }),
-        Animated.delay(1800), // Keep fully visible during most of the animation
+        Animated.delay(2800), // Keep fully visible during most of the animation
         Animated.timing(targetOpacity, {
           toValue: 0,
           duration: 100,
@@ -199,7 +199,7 @@ export default function TargetDirectionGame() {
       {!gameActive ? (
         <View style={styles.startContainer}>
           <Text style={styles.instructionText}>
-            Watch the moving target and identify which direction it's moving.
+            Watch the moving target and identify which direction it&apos;s moving.
             Select the correct direction after the target disappears.
           </Text>
           <TouchableOpacity style={styles.startButton} onPress={startGame}>

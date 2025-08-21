@@ -13,8 +13,6 @@ import { useLocalSearchParams, useRouter, Stack } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
 import { patientService } from "@/services/api/patientService";
 import { doctorQueryService } from "@/services/api/doctorQueryService";
-import Feather from "@expo/vector-icons/Feather";
-import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 
 export default function QueryDetailScreen() {
@@ -29,11 +27,7 @@ export default function QueryDetailScreen() {
   const [responseText, setResponseText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  useEffect(() => {
-    fetchQueryDetails();
-  }, [id]);
-
-  const fetchQueryDetails = async () => {
+  const fetchQueryDetails = React.useCallback(async () => {
     if (!id) return;
 
     setIsLoading(true);
@@ -61,7 +55,11 @@ export default function QueryDetailScreen() {
     } finally {
       setIsLoading(false);
     }
-  };
+  }, [id, userType, router]);
+
+  useEffect(() => {
+    fetchQueryDetails();
+  }, [fetchQueryDetails]);
 
   const handleSubmitResponse = async () => {
     if (!responseText.trim()) {
@@ -128,7 +126,7 @@ export default function QueryDetailScreen() {
           </TouchableOpacity>
           <Text style={styles.gameTitle}>Query Details</Text>
         </View>
-        
+
         <View style={styles.card}>
           <View style={styles.header}>
             <View

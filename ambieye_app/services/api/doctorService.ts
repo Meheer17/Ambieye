@@ -1,49 +1,65 @@
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import apiClient from "./apiService";
 import { API_CONFIG } from "./config";
 
 export type MedicalInfo = {
+  visionwithpg?: string;
+  chiefcomplaint?: string;
+  presentingillness?: string;
   pastHistory?: string;
   personalHistory?: string;
   familyHistory?: string;
   drugHistory?: string;
   allergyHistory?: string;
+  bp?: string;
+  pr?: string;
+  temp?: string;
+  respirationrate?: string;
+  notes?: string;
 };
 
 export type VisitRecord = {
   date: Date | string;
-  distantVision?: string;
-  nearVision?: string;
-  arBcva?: string;
-  retroscopy?: string;
-  netAdar?: string;
-  pda?: string;
-  nct?: string;
-  colorVision?: string;
-  visionWithPg?: string;
-  pgPower?: string;
+  pmtvisiontpg?: string;
+  pgpower?: string;
   pmt?: string;
-  chiefComplaint?: string;
-  presentingIllness?: string;
-  bp?: string;
-  pr?: string;
-  temperature?: string;
+  pda?: string;
+  adar?: string;
+  dryretinoscopy?: string;
+  wetretinoscopy?: string;
+  bcvanear?: string;
+  bcvadistant?: string;
+  nct?: string;
+  colorvision?: string;
+  ar?: string;
+  visiondistant?: string;
+  visionnear?: string;
+  // Prescription
   glassPrescription?: string;
+  notes?: string;
 };
 
 export type Patient = {
   id: string;
-  uuid?: string;
   fullName: string;
+  username?: string;
   email: string;
+  password?: string;
+  role?: string;
+  uuid?: string;
+  doctor_id?: string;
+
+  phone?: string;
   age?: string;
   gender?: string;
-  phone?: string;
-  condition?: string;
-  lastVisitDate?: string;
+  fatherName?: string;
+  motherName?: string;
+  address?: string;
+
   medicalInfo?: MedicalInfo;
   visitRecords?: VisitRecord[];
+  lastVisitDate: any;
   createdAt: string;
+  updatedAt?: string;
 };
 
 export const doctorService = {

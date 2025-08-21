@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import apiClient from "./apiService";
 import { API_CONFIG } from "./config";
+import { useAuth } from "@/hooks/useAuth";
 
 export type Query = {
   id: string;
@@ -65,14 +66,15 @@ export const patientService = {
     }
   },
 
-  updateDoctorId: async (doctorId: string) => {
+  updateDoctorId: async (doctor_id: string) => {
     try {
       const response = await apiClient.put(
         API_CONFIG.ENDPOINTS.PATIENT.PROFILE,
         {
-          doctorId,
+          doctor_id,
         },
       );
+      console.log(response.data)
       return {
         success: true,
         message: "Doctor ID updated successfully",
@@ -87,6 +89,40 @@ export const patientService = {
     }
   },
 
+  deleteAccount: async () => {
+    try {
+      const response = await apiClient.post(
+        API_CONFIG.ENDPOINTS.PATIENT.DELETE,
+      );
+      return {
+        success: true,
+        message: "Account Deleted Successfully",
+        data: response.data,
+      };
+    } catch (error: any) {
+      console.error("Error Deleting Account:", error);
+      return {
+        success: false,
+        message: error.response?.data?.error || "Failed to delete account",
+      };
+    }
+  },
+  deleteDocAccount: async () => {
+    try {
+      const response = await apiClient.post(API_CONFIG.ENDPOINTS.DOCTOR.DELETE);
+      return {
+        success: true,
+        message: "Account Deleted Successfully",
+        data: response.data,
+      };
+    } catch (error: any) {
+      console.error("Error Deleting Account:", error);
+      return {
+        success: false,
+        message: error.response?.data?.error || "Failed to delete account",
+      };
+    }
+  },
   getDoctorDetails: async (doctorId: string) => {
     try {
       const response = await apiClient.get(
@@ -210,33 +246,77 @@ export const patientService = {
 
   getProgressData: async () => {
     try {
-      const response = await apiClient.get(API_CONFIG.ENDPOINTS.GAMES.TODAY);
-      // If API call is successful, transform the data to match getProgressData format
+      // Get today's game data from local storage instead of API
+      const todayGameDataJson = await AsyncStorage.getItem("todayGameData");
+
+      if (!todayGameDataJson) {
+        // No data found in local storage
+        return {
+          success: true,
+          todayStats: {
+            minutes: 0,
+            gamesCompleted: 0,
+            accuracy: 0,
+            dailyGoal: 5,
+          },
+          gamesPlayed: [],
+        };
+      }
+
+      const todayGameData = JSON.parse(todayGameDataJson);
+      const games = todayGameData.games || [];
+
+      // Calculate summary statistics
+      const totalGames = games.length;
+      const totalPlayTime = games.reduce(
+        (total: number, game: any) => total + (game.time || 0),
+        0,
+      );
+
+      // Calculate average accuracy
+      const averageAccuracy =
+        totalGames > 0
+          ? Math.round(
+            games.reduce(
+              (total: number, game: any) => total + (game.accuracy || 0),
+              0,
+            ) / totalGames,
+          )
+          : 0;
+
       return {
         success: true,
         todayStats: {
-          minutes: response.data.summary.totalPlayTime || 0,
-          gamesCompleted: response.data.summary.totalGames || 0,
-          accuracy: response.data.summary.averageAccuracy || 0,
+          minutes: Math.round(totalPlayTime / 60), // Convert seconds to minutes
+          gamesCompleted: totalGames,
+          accuracy: averageAccuracy,
           dailyGoal: 5, // This could come from user settings in the future
         },
-        gamesPlayed: response.data.results.map((game: any) => ({
+        gamesPlayed: games.map((game: any) => ({
           id: game.id || "",
           name: game.game || "",
           score: game.score || 0,
-          accuracy: `${Math.round(response.data.summary.averageAccuracy || 0)}%`,
+          accuracy: `${game.accuracy || 0}%`,
           date: game.date || new Date().toISOString(),
           timeSpent: game.time || 0,
           details: game.details || {},
         })),
       };
     } catch (error: any) {
-      console.error("Error fetching today's game results:", error);
+      console.error(
+        "Error fetching today's game results from local storage:",
+        error,
+      );
 
-      // Fall back to mock data if API fails
+      // Return empty data on error
       return {
         success: false,
-        todayStats: {},
+        todayStats: {
+          minutes: 0,
+          gamesCompleted: 0,
+          accuracy: 0,
+          dailyGoal: 5,
+        },
         gamesPlayed: [],
       };
     }
@@ -265,47 +345,4 @@ export const patientService = {
       };
     }
   },
-
-  // Get patient game history and progress data
-  // getProgressData: async () => {
-  //   try {
-  //     // This would be the actual API endpoint for progress data
-  //     // For now using a mock
-  //     await new Promise((resolve) => setTimeout(resolve, 800));
-
-  //     return {
-  //       success: true,
-  //       todayStats: {
-  //         minutes: 15,
-  //         gamesCompleted: 2,
-  //         accuracy: 85,
-  //         dailyGoal: 5,
-  //       },
-  //       gamesPlayed: [
-  //         {
-  //           id: "1",
-  //           name: "Focus Training",
-  //           score: 90,
-  //           accuracy: "90%",
-  //           date: new Date().toISOString(),
-  //           timeSpent: 8,
-  //         },
-  //         {
-  //           id: "2",
-  //           name: "Memory Match",
-  //           score: 75,
-  //           accuracy: "75%",
-  //           date: new Date().toISOString(),
-  //           timeSpent: 10,
-  //         },
-  //       ],
-  //     };
-  //   } catch (error: any) {
-  //     console.error("Error fetching progress data:", error);
-  //     return {
-  //       success: false,
-  //       message: "Failed to fetch progress data",
-  //     };
-  //   }
-  // },
 };

@@ -13,8 +13,9 @@ import { useRouter } from "expo-router";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { saveGameResult } from "@/utils/gameUtils";
 
-const { width } = Dimensions.get("window");
-const LETTER_SIZE = width * 0.15;
+const { width, height } = Dimensions.get("window");
+const LETTER_SIZE = width * 0.15; // Match similar size to BALL_SIZE in the reference
+// const GRID_PADDING = 10; // Padding between letters
 
 export default function AlphabetGame() {
   const router = useRouter();
@@ -40,13 +41,43 @@ export default function AlphabetGame() {
 
   const alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
 
-  const generateRandomPosition = () => {
-    const maxX = width - LETTER_SIZE - 40;
-    const maxY = 300;
-    return {
-      x: Math.random() * maxX + 20,
-      y: Math.random() * maxY,
-    };
+  // Creates a grid-based position to avoid overlaps
+  const generateNonOverlappingPositions = (count: number) => {
+    const positions: { x: number; y: number }[] = [];
+    const gameAreaWidth = width - 40; // Use more width
+    const gameAreaHeight = height * 0.6; // Reduced height to match reference
+
+    // Create a grid with exactly 5 columns
+    const cols = 5; // Fixed to 5 columns as in reference
+    const cellSize = gameAreaWidth / cols;
+    const rows = Math.floor(gameAreaHeight / cellSize);
+
+    // Calculate offset to center the grid
+    const horizontalOffset = (width - (cellSize * cols)) / 2 - 20;
+
+    // Create a grid of possible positions
+    const grid: { x: number; y: number }[] = [];
+    for (let row = 0; row < rows; row++) {
+      for (let col = 0; col < cols; col++) {
+        grid.push({
+          x: horizontalOffset + col * cellSize + (cellSize - LETTER_SIZE) / 2 + (Math.random() * LETTER_SIZE * 0.1),
+          y: row * cellSize + (cellSize - LETTER_SIZE) / 2 + (Math.random() * LETTER_SIZE * 0.1),
+        });
+      }
+    }
+
+    // Shuffle the grid positions
+    for (let i = grid.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [grid[i], grid[j]] = [grid[j], grid[i]];
+    }
+
+    // Take positions from the shuffled grid
+    for (let i = 0; i < Math.min(count, grid.length); i++) {
+      positions.push(grid[i]);
+    }
+
+    return positions;
   };
 
   const setupRound = () => {
@@ -68,30 +99,43 @@ export default function AlphabetGame() {
     const newTargetLetter = alphabet[Math.floor(Math.random() * alphabet.length)];
     setTargetLetter(newTargetLetter);
 
-    // Create 8-12 letters
-    const totalLetters = Math.floor(Math.random() * 5) + 8;
+    // Create at least 30 letters
+    const totalLetters = 30;
+
+    // Generate positions for all letters without overlap
+    const positions = generateNonOverlappingPositions(totalLetters);
+
+    // Ensure at least 6 letters have the target letter
+    const minimumTargetLetters = 6;
     const newLetters = [];
 
-    // Ensure at least one letter is the target
-    newLetters.push({
-      id: 0,
-      letter: newTargetLetter,
-      position: generateRandomPosition(),
-      selected: false
-    });
+    // Add target letters first (at least 6)
+    for (let i = 0; i < minimumTargetLetters; i++) {
+      newLetters.push({
+        id: i,
+        letter: newTargetLetter,
+        position: positions[i],
+        selected: false,
+      });
+    }
 
-    // Add remaining letters
-    for (let i = 1; i < totalLetters; i++) {
+    // Add remaining letters with random letters
+    for (let i = minimumTargetLetters; i < totalLetters; i++) {
+      // Get random letter, but avoid having too many target letters
       let letter;
-      do {
-        letter = alphabet[Math.floor(Math.random() * alphabet.length)];
-      } while (letter === newTargetLetter && Math.random() > 0.2); // Allow some duplicates of target
+      if (Math.random() < 0.85) { // 85% chance to get a non-target letter
+        do {
+          letter = alphabet[Math.floor(Math.random() * alphabet.length)];
+        } while (letter === newTargetLetter);
+      } else {
+        letter = newTargetLetter;
+      }
 
       newLetters.push({
         id: i,
         letter,
-        position: generateRandomPosition(),
-        selected: false
+        position: positions[i],
+        selected: false,
       });
     }
 
@@ -103,12 +147,12 @@ export default function AlphabetGame() {
 
     setLetters(newLetters);
 
-    // Reset and start the timer animation - only for time tracking, not for round control
+    // Reset and start the timer animation - with longer duration for children with lazy eye
     timeElapsed.setValue(0);
     animationRef.current = Animated.timing(timeElapsed, {
       toValue: 100,
-      duration: 10000, // 10 seconds per round
-      useNativeDriver: false
+      duration: 60000, // 60 seconds per round to match reference
+      useNativeDriver: false,
     });
 
     animationRef.current.start();
@@ -134,7 +178,10 @@ export default function AlphabetGame() {
     const gameDuration = (Date.now() - gameStartTime) / 1000; // in seconds
 
     // Calculate score (percentage based on correct selections)
-    const finalScore = Math.round((correctSelections / (correctSelections + wrongSelections)) * 100) || 0;
+    const finalScore =
+      Math.round(
+        (correctSelections / (correctSelections + wrongSelections)) * 100
+      ) || 0;
 
     try {
       // Save game result to API
@@ -146,21 +193,21 @@ export default function AlphabetGame() {
         details: {
           rounds: round,
           correctSelections,
-          wrongSelections
-        }
+          wrongSelections,
+        },
       });
 
       Alert.alert(
         "Game Complete!",
         `Score: ${finalScore}%\nTime: ${Math.round(gameDuration)}s`,
-        [{ text: "OK", onPress: () => router.push("/games") }]
+        [{ text: "OK", onPress: () => router.push("/games") }],
       );
     } catch (error) {
       console.error("Failed to save game result:", error);
       Alert.alert(
         "Game Complete!",
         `Score: ${finalScore}%\nTime: ${Math.round(gameDuration)}s\n(Failed to save results)`,
-        [{ text: "OK", onPress: () => router.push("/games") }]
+        [{ text: "OK", onPress: () => router.push("/games") }],
       );
     }
   };
@@ -171,15 +218,15 @@ export default function AlphabetGame() {
     if (selectedLetter?.selected) return;
 
     // Mark this letter as selected
-    const updatedLetters = letters.map((letter) => 
+    const updatedLetters = letters.map((letter) =>
       letter.id === letterId ? { ...letter, selected: true } : letter
     );
     setLetters(updatedLetters);
 
     if (letterValue === targetLetter) {
-      setCorrectSelections(prev => prev + 1);
-      setScore(prevScore => prevScore + 10);
-      setTargetLettersRemaining(prev => prev - 1);
+      setCorrectSelections((prev) => prev + 1);
+      setScore((prevScore) => prevScore + 10);
+      setTargetLettersRemaining((prev) => prev - 1);
 
       // If we've found all target letters, move to next round
       if (targetLettersRemaining <= 1) {
@@ -188,8 +235,8 @@ export default function AlphabetGame() {
         setupRound();
       }
     } else {
-      setWrongSelections(prev => prev + 1);
-      setScore(prevScore => Math.max(0, prevScore - 5));
+      setWrongSelections((prev) => prev + 1);
+      setScore((prevScore) => Math.max(0, prevScore - 5));
     }
   };
 
@@ -222,24 +269,33 @@ export default function AlphabetGame() {
           <View style={styles.gameContainer}>
             <View style={styles.scoreContainer}>
               <Text style={styles.scoreText}>Score: {score}</Text>
-              <Text style={styles.roundText}>Round: {round}/{totalRounds}</Text>
+              <Text style={styles.roundText}>
+                Round: {round}/{totalRounds}
+              </Text>
             </View>
 
             <Text style={styles.targetText}>
-              Find all <Text style={styles.targetLetter}>{targetLetter}</Text> letters
-              <Text style={styles.remainingText}> ({targetLettersRemaining} remaining)</Text>
+              Find all{" "}
+              <Text style={styles.targetLetter}>{targetLetter}</Text>{" "}
+              letters
+              <Text style={styles.remainingText}>
+                {" "}
+                ({targetLettersRemaining} remaining)
+              </Text>
             </Text>
 
-            <Animated.View style={{
-              height: 6,
-              width: timeElapsed.interpolate({
-                inputRange: [0, 100],
-                outputRange: ['0%', '100%']
-              }),
-              backgroundColor: '#5f2446',
-              borderRadius: 3,
-              marginBottom: 20
-            }} />
+            <Animated.View
+              style={{
+                height: 6,
+                width: timeElapsed.interpolate({
+                  inputRange: [0, 100],
+                  outputRange: ["0%", "100%"],
+                }),
+                backgroundColor: "#5f2446",
+                borderRadius: 3,
+                marginBottom: 20,
+              }}
+            />
 
             <View style={styles.gameArea}>
               {letters.map((item) => (
@@ -253,7 +309,7 @@ export default function AlphabetGame() {
                       opacity: item.selected ? 0.4 : 1,
                       borderWidth: item.selected ? 2 : 0,
                       borderColor: "#000",
-                    }
+                    },
                   ]}
                   onPress={() => handleLetterPress(item.id, item.letter)}
                 >
@@ -278,10 +334,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#f5f5f5",
     padding: 20,
-  },
-  backButton: {
-    marginTop: 20,
-    marginBottom: 10,
   },
   gameTitle: {
     fontSize: 24,
@@ -346,7 +398,9 @@ const styles = StyleSheet.create({
   gameArea: {
     flex: 1,
     position: "relative",
-    paddingBottom: 20, // Added 20px padding from bottom
+    height: height * 0.6, // Reduced height to match reference
+    paddingBottom: 20,
+    alignItems: "center", // Center content horizontally
   },
   letterBox: {
     position: "absolute",

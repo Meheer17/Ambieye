@@ -185,6 +185,8 @@ func (h *DoctorHandler) GetProfile(c *gin.Context) {
 		return
 	}
 
+	doctor.Password = "" // Exclude password from response
+
 	// Get query stats
 	totalQueries, err := h.queryCollection.CountDocuments(ctx, bson.M{"doctorId": doctorID})
 	if err != nil {
@@ -592,5 +594,42 @@ func (h *DoctorHandler) AddPatientVisitRecord(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"message":     "Visit record added successfully",
 		"visitRecord": visitRecord,
+	})
+}
+
+func (h *DoctorHandler) DeleteDoctor(c *gin.Context) {
+	patientID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found"})
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	var patient models.User
+	err := h.userCollection.FindOne(ctx, bson.M{"_id": patientID, "role": "doctor"}).Decode(&patient)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Patient not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+		return
+	}
+
+	_, err = h.userCollection.UpdateMany(ctx, bson.M{"doctor_id": patient.Uuid}, bson.M{"doctor_id": ""})
+	_, err = h.userCollection.DeleteOne(ctx, bson.M{"_id": patientID, "role": "doctor"})
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Patient not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"response": "Deleted",
 	})
 }

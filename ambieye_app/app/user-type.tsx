@@ -22,7 +22,7 @@ export default function UserTypeScreen() {
         >
           <View style={styles.iconContainer}>
             <Image
-              source={require("../assets/images/doctor.png")}
+              source={require("@/assets/images/patient.png")}
               style={styles.icon}
             />
           </View>
@@ -35,7 +35,7 @@ export default function UserTypeScreen() {
         >
           <View style={styles.iconContainer}>
             <Image
-              source={require("@/assets/images/doctor.png")}
+              source={require("@/assets/images/patient.png")}
               style={styles.icon}
             />
           </View>

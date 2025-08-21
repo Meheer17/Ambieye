@@ -13,7 +13,7 @@ import { useRouter } from "expo-router";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { saveGameResult } from "@/utils/gameUtils";
 
-const { width } = Dimensions.get("window");
+const { width, height } = Dimensions.get("window");
 const BALL_SIZE = width * 0.15;
 const COLORS = ["red", "blue", "green", "yellow", "purple", "orange"];
 
@@ -39,12 +39,43 @@ export default function ColoredBallsGame() {
   const timeElapsed = useRef(new Animated.Value(0)).current;
   const animationRef = useRef<Animated.CompositeAnimation | null>(null);
 
-  const generateRandomPosition = () => {
-    const maxX = width - BALL_SIZE - 40;
-    return {
-      x: Math.random() * maxX,
-      y: Math.random() * 300,
-    };
+  // Creates a grid-based position to avoid overlaps
+  const generateNonOverlappingPositions = (count: number) => {
+    const positions = [];
+    const gameAreaWidth = width - 40; // Removed BALL_SIZE subtraction to use more width
+    const gameAreaHeight = height * 0.6; // Reduced height as requested
+
+    // Create a grid with exactly 5 columns
+    const cols = 5; // Fixed to 5 columns as requested
+    const cellSize = gameAreaWidth / cols;
+    const rows = Math.floor(gameAreaHeight / cellSize);
+
+    // Calculate offset to center the grid
+    const horizontalOffset = (width - (cellSize * cols)) / 2 - 20;
+
+    // Create a grid of possible positions
+    const grid = [];
+    for (let row = 0; row < rows; row++) {
+      for (let col = 0; col < cols; col++) {
+        grid.push({
+          x: horizontalOffset + col * cellSize + (cellSize - BALL_SIZE) / 2 + (Math.random() * BALL_SIZE * 0.1),
+          y: row * cellSize + (cellSize - BALL_SIZE) / 2 + (Math.random() * BALL_SIZE * 0.1),
+        });
+      }
+    }
+
+    // Shuffle the grid positions
+    for (let i = grid.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [grid[i], grid[j]] = [grid[j], grid[i]];
+    }
+
+    // Take positions from the shuffled grid
+    for (let i = 0; i < Math.min(count, grid.length); i++) {
+      positions.push(grid[i]);
+    }
+
+    return positions;
   };
 
   const setupRound = () => {
@@ -66,25 +97,42 @@ export default function ColoredBallsGame() {
     const newTargetColor = COLORS[Math.floor(Math.random() * COLORS.length)];
     setTargetColor(newTargetColor);
 
-    // Create 6-10 balls with random colors
-    const totalBalls = Math.floor(Math.random() * 5) + 6;
+    // Create at least 30 balls
+    const totalBalls = 30;
+
+    // Generate positions for all balls without overlap
+    const positions = generateNonOverlappingPositions(totalBalls);
+
+    // Ensure at least 6 balls have the target color
+    const minimumTargetBalls = 6;
     const newBalls = [];
 
-    // Ensure at least one ball has the target color
-    newBalls.push({
-      id: 0,
-      color: newTargetColor,
-      position: generateRandomPosition(),
-      selected: false,
-    });
+    // Add target color balls first (at least 6)
+    for (let i = 0; i < minimumTargetBalls; i++) {
+      newBalls.push({
+        id: i,
+        color: newTargetColor,
+        position: positions[i],
+        selected: false,
+      });
+    }
 
     // Add remaining balls with random colors
-    for (let i = 1; i < totalBalls; i++) {
-      const color = COLORS[Math.floor(Math.random() * COLORS.length)];
+    for (let i = minimumTargetBalls; i < totalBalls; i++) {
+      // Get random color, but avoid having too many target color balls
+      let color;
+      if (Math.random() < 0.85) { // 85% chance to get a non-target color
+        do {
+          color = COLORS[Math.floor(Math.random() * COLORS.length)];
+        } while (color === newTargetColor);
+      } else {
+        color = newTargetColor;
+      }
+
       newBalls.push({
         id: i,
         color,
-        position: generateRandomPosition(),
+        position: positions[i],
         selected: false,
       });
     }
@@ -97,11 +145,11 @@ export default function ColoredBallsGame() {
 
     setBalls(newBalls);
 
-    // Reset and start the timer animation - only for time tracking, not for round control
+    // Reset and start the timer animation - with longer duration for children with lazy eye
     timeElapsed.setValue(0);
     animationRef.current = Animated.timing(timeElapsed, {
       toValue: 100,
-      duration: 20000, // 20 seconds per round
+      duration: 60000, // 60 seconds per round to give ample time
       useNativeDriver: false,
     });
 
@@ -347,7 +395,9 @@ const styles = StyleSheet.create({
   gameArea: {
     flex: 1,
     position: "relative",
-    paddingBottom: 20, // Added 20px padding from bottom
+    height: height * 0.6, // Reduced height to match generateNonOverlappingPositions
+    paddingBottom: 20,
+    alignItems: "center", // Center content horizontally
   },
   ball: {
     position: "absolute",

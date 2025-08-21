@@ -9,7 +9,10 @@
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.meheer17.ambieye"
+      "bundleIdentifier": "com.meheer17.ambieye",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -26,7 +29,8 @@
     "plugins": [
       "expo-router",
       "expo-font",
-      ["expo-splash-screen",
+      [
+        "expo-splash-screen",
         {
           "backgroundColor": "#0D0145",
           "image": "assets/images/logowithbg.png",
@@ -42,6 +46,12 @@
     },
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "b2c51b49-b94f-4c6d-a342-26e06dcc8092"
+      }
     }
   }
 }

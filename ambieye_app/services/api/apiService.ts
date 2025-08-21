@@ -77,10 +77,9 @@ export const authService = {
         user: user,
       };
     } catch (error: any) {
-      console.log(error)
       return {
         success: false,
-        error: error.response?.data?.message || "Login failed",
+        error: error.response?.data?.message || "Login failed " + error.message,
       };
     }
   },
@@ -90,6 +89,13 @@ export const authService = {
     username: string;
     email: string;
     password: string;
+    phone: string;
+    dateOfBirth: string;
+    age: string;
+    gender: string;
+    fatherName: string;
+    motherName: string;
+    address: string;
     userType: "doctor" | "patient";
   }) => {
     try {
@@ -136,22 +142,45 @@ export const authService = {
 
   logout: async () => {
     try {
-      await apiClient.post(API_CONFIG.ENDPOINTS.AUTH.LOGOUT);
-      // Clear stored data
+      // Clear stored data on both mobile (AsyncStorage) and web (localStorage/sessionStorage)
       await AsyncStorage.removeItem("access_token");
       await AsyncStorage.removeItem("refresh_token");
       await AsyncStorage.removeItem("userId");
       await AsyncStorage.removeItem("username");
-      // We don't clear userType to remember the last selection
+      if (typeof window !== "undefined" && window.localStorage) {
+        window.localStorage.removeItem("access_token");
+        window.localStorage.removeItem("refresh_token");
+        window.localStorage.removeItem("userId");
+        window.localStorage.removeItem("username");
+      }
+      if (typeof window !== "undefined" && window.sessionStorage) {
+        window.sessionStorage.removeItem("access_token");
+        window.sessionStorage.removeItem("refresh_token");
+        window.sessionStorage.removeItem("userId");
+        window.sessionStorage.removeItem("username");
+      }
 
       return { success: true };
     } catch (error) {
       console.error("Logout error:", error);
-      // Even if the API call fails, we still clear local storage
+      // Even if the API call fails, we still clear local and web storage
       await AsyncStorage.removeItem("access_token");
       await AsyncStorage.removeItem("refresh_token");
       await AsyncStorage.removeItem("userId");
       await AsyncStorage.removeItem("username");
+
+      if (typeof window !== "undefined" && window.localStorage) {
+        window.localStorage.removeItem("access_token");
+        window.localStorage.removeItem("refresh_token");
+        window.localStorage.removeItem("userId");
+        window.localStorage.removeItem("username");
+      }
+      if (typeof window !== "undefined" && window.sessionStorage) {
+        window.sessionStorage.removeItem("access_token");
+        window.sessionStorage.removeItem("refresh_token");
+        window.sessionStorage.removeItem("userId");
+        window.sessionStorage.removeItem("username");
+      }
 
       return { success: true };
     }

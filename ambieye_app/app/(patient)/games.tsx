@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   StyleSheet,
   View,
@@ -117,10 +117,25 @@ export default function PatientHome() {
   };
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      <View style={styles.welcomeSection}>
-        <Text style={styles.welcomeText}>Hello,</Text>
-        <Text style={styles.patientName}>{username}</Text>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={true}>
+      <View style={[styles.welcomeSection, { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }]}>
+        <View>
+          <Text style={styles.welcomeText}>Hello,</Text>
+          <Text style={styles.patientName}>{username}</Text>
+        </View>
+        <TouchableOpacity 
+          onPress={() => router.push("/settings")}
+          style={{
+            width: 40, 
+            height: 40, 
+            borderRadius: 20, 
+            backgroundColor: "rgba(255,255,255,0.2)",
+            justifyContent: "center",
+            alignItems: "center"
+          }}
+        >
+          <Feather name="settings" size={22} color="#fff" />
+        </TouchableOpacity>
       </View>
 
       <View style={styles.contentSection}>
@@ -236,8 +251,8 @@ const styles = StyleSheet.create({
   welcomeSection: {
     backgroundColor: "#5f2446",
     paddingHorizontal: 20,
-    paddingTop: 30,
-    paddingBottom: 50,
+    paddingTop: 10,
+    paddingBottom: 10,
     borderBottomLeftRadius: 20,
     borderBottomRightRadius: 20,
   },
@@ -254,6 +269,7 @@ const styles = StyleSheet.create({
   contentSection: {
     marginTop: 15,
     paddingHorizontal: 20,
+    paddingBottom: 55,
   },
   sectionHeader: {
     flexDirection: "row",

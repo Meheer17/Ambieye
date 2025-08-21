@@ -13,8 +13,10 @@ import { useRouter } from "expo-router";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { saveGameResult } from "@/utils/gameUtils";
 
-const { width } = Dimensions.get("window");
-const SYMBOL_SIZE = width * 0.18;
+const { width, height } = Dimensions.get("window");
+const SYMBOL_SIZE = width * 0.15; // Slightly smaller to fit more
+const GAME_AREA_HEIGHT = height * 0.6; // Reduced to match reference (60% of screen height)
+// const GRID_PADDING = 10; // Padding between symbols
 
 // Collection of symbols to use in the game
 const SYMBOLS = [
@@ -45,13 +47,43 @@ export default function SymbolGame() {
   const timeElapsed = useRef(new Animated.Value(0)).current;
   const animationRef = useRef<Animated.CompositeAnimation | null>(null);
 
-  const generateRandomPosition = () => {
-    const maxX = width - SYMBOL_SIZE - 40;
-    const maxY = 300;
-    return {
-      x: Math.random() * maxX + 20,
-      y: Math.random() * maxY,
-    };
+  // Creates a grid-based position to avoid overlaps
+  const generateNonOverlappingPositions = (count: number) => {
+    const positions: { x: number; y: number }[] = [];
+    const gameAreaWidth = width - 40; // Use more width
+    const gameAreaHeight = GAME_AREA_HEIGHT;
+
+    // Create a grid with exactly 5 columns
+    const cols = 5; // Fixed to 5 columns as in reference
+    const cellSize = gameAreaWidth / cols;
+    const rows = Math.floor(gameAreaHeight / cellSize)-1;
+
+    // Calculate offset to center the grid
+    const horizontalOffset = (width - (cellSize * cols)) / 2 - 20;
+
+    // Create a grid of possible positions
+    const grid: { x: number; y: number }[] = [];
+    for (let row = 0; row < rows; row++) {
+      for (let col = 0; col < cols; col++) {
+        grid.push({
+          x: horizontalOffset + col * cellSize + (cellSize - SYMBOL_SIZE) / 2 + (Math.random() * SYMBOL_SIZE * 0.1),
+          y: row * cellSize + (cellSize - SYMBOL_SIZE) / 2 + (Math.random() * SYMBOL_SIZE * 0.1),
+        });
+      }
+    }
+
+    // Shuffle the grid positions
+    for (let i = grid.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [grid[i], grid[j]] = [grid[j], grid[i]];
+    }
+
+    // Take positions from the shuffled grid
+    for (let i = 0; i < Math.min(count, grid.length); i++) {
+      positions.push(grid[i]);
+    }
+
+    return positions;
   };
 
   const setupRound = () => {
@@ -73,48 +105,51 @@ export default function SymbolGame() {
     const newTargetSymbol = SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)];
     setTargetSymbol(newTargetSymbol);
 
-    // Create 6-10 symbols with random positions
-    const totalSymbols = Math.floor(Math.random() * 5) + 6;
+    // Create at least 30 symbols with grid-based positions
+    const totalSymbols = 30;
+    const targetCount = 6; // Ensure at least 6 target symbols
+
+    // Generate positions for all symbols without overlap
+    const positions = generateNonOverlappingPositions(totalSymbols);
+
     const newSymbols = [];
 
-    // Ensure at least one symbol is the target
-    newSymbols.push({
-      ...newTargetSymbol,
-      id: 0,
-      position: generateRandomPosition(),
-      isTarget: true,
-      selected: false,
-    });
-
-    // Add remaining symbols
-    for (let i = 1; i < totalSymbols; i++) {
-      let symbol;
-      do {
-        symbol = SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)];
-      } while (symbol.name === newTargetSymbol.name && Math.random() > 0.2); // Allow some duplicates
-
+    // First add the required target symbols (6)
+    for (let i = 0; i < targetCount; i++) {
       newSymbols.push({
-        ...symbol,
+        ...newTargetSymbol,
         id: i,
-        position: generateRandomPosition(),
-        isTarget: symbol.name === newTargetSymbol.name,
+        position: positions[i],
+        isTarget: true,
         selected: false,
       });
     }
 
-    // Count how many target symbols we have
-    const targetSymbols = newSymbols.filter(
-      (symbol) => symbol.isTarget
-    ).length;
-    setTargetSymbolsRemaining(targetSymbols);
+    // Add the remaining symbols (24 non-target symbols)
+    for (let i = targetCount; i < totalSymbols; i++) {
+      let symbol;
+      do {
+        symbol = SYMBOLS[Math.floor(Math.random() * SYMBOLS.length)];
+      } while (symbol.name === newTargetSymbol.name); // No more target symbols
 
+      newSymbols.push({
+        ...symbol,
+        id: i,
+        position: positions[i],
+        isTarget: false,
+        selected: false,
+      });
+    }
+
+    // Count target symbols (should be exactly 6 based on our setup)
+    setTargetSymbolsRemaining(targetCount);
     setSymbols(newSymbols);
 
-    // Reset and start the timer animation
+    // Reset and start the timer animation with longer duration for children
     timeElapsed.setValue(0);
     animationRef.current = Animated.timing(timeElapsed, {
       toValue: 100,
-      duration: 20000, // 20 seconds per round
+      duration: 60000, // 60 seconds per round for children with lazy eye
       useNativeDriver: false,
     });
 
@@ -263,7 +298,7 @@ export default function SymbolGame() {
               }}
             />
 
-            <View style={styles.gameArea}>
+            <View style={[styles.gameArea, { height: GAME_AREA_HEIGHT }]}>
               {symbols.map((symbol) => (
                 <TouchableOpacity
                   key={symbol.id}
@@ -383,6 +418,7 @@ const styles = StyleSheet.create({
     flex: 1,
     position: "relative",
     paddingBottom: 20,
+    alignItems: "center", // Center content horizontally
   },
   symbolBox: {
     position: "absolute",

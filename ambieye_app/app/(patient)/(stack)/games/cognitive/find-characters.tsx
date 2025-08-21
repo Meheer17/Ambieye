@@ -226,7 +226,7 @@ export default function FindCharactersGame() {
 
           <View style={styles.targetContainer}>
             <Text style={styles.targetText}>
-              Find all "{targetChar}" characters: {foundCount}/{targetCount}
+              Find all &qout;{targetChar}&qout; characters: {foundCount}/{targetCount}
             </Text>
             <Text style={styles.timeText}>Time: {timeRemaining}s</Text>
           </View>

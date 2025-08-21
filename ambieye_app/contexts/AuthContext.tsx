@@ -1,4 +1,5 @@
 import React, { createContext, useState, useEffect } from "react";
+import { Text } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { authService } from "../services/api/apiService";
 
@@ -19,6 +20,13 @@ type AuthContextType = AuthState & {
     username: string;
     email: string;
     password: string;
+    phone: string;
+    dateOfBirth: string;
+    age: string;
+    gender: string;
+    fatherName: string;
+    motherName: string;
+    address: string;
   }) => Promise<boolean>;
   logout: () => Promise<void>;
   setSelectedUserType: (type: UserType) => Promise<void>;
@@ -166,6 +174,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     username: string;
     email: string;
     password: string;
+    phone: string;
+    dateOfBirth: string;
+    age: string;
+    gender: string;
+    fatherName: string;
+    motherName: string;
+    address: string;
   }): Promise<boolean> => {
     try {
       setAuthState((prev) => ({ ...prev, isLoading: true, error: null }));
@@ -250,6 +265,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
     setAuthState((prev) => ({ ...prev, error: null }));
   };
 
+  // Ensure children are properly wrapped
+  const wrappedChildren =
+    typeof children === "string" ? <Text>{children}</Text> : children;
+
   return (
     <AuthContext.Provider
       value={{
@@ -261,7 +280,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         clearError,
       }}
     >
-      {children}
+      {wrappedChildren}
     </AuthContext.Provider>
   );
 };

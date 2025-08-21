@@ -1,41 +1,12 @@
 import React from 'react';
-import { Tabs } from 'expo-router';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, StyleSheet } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { usePathname } from 'expo-router';
-import { TouchableOpacity } from 'react-native-gesture-handler';
-import { useAuth } from '@/hooks/useAuth';
+import { Tabs } from 'expo-router';
 
 const ICON_SIZE = 24;
 
 export default function PatientTabLayout() {
-  const pathname = usePathname();
-  const { logout } = useAuth();
-
-  const handleLogout = () => {
-    logout();
-  };
-
-  const getHeaderTitle = () => {
-    if (pathname.includes("profile/edit")) return "Edit Profile";
-    if (pathname.includes("appointments/")) return "Appointment Details";
-    if (pathname.includes("medications/")) return "Medication Details";
-
-    switch (pathname) {
-      case "/(patient)/":
-        return "Patient Home";
-      case "/(patient)/appointments":
-        return "My Appointments";
-      case "/(patient)/medications":
-        return "My Medications";
-      case "/(patient)/settings":
-        return "Settings";
-      default:
-        return "Patient Portal";
-    }
-  };
-
   return (
     <Tabs
       screenOptions={{
@@ -58,15 +29,8 @@ export default function PatientTabLayout() {
         header: () => {
           return (
             <View style={styles.customHeader}>
-              {/* <Text style={styles.headerTitle}>{getHeaderTitle()}</Text>
-              <TouchableOpacity onPress={handleLogout}>
-                <Feather name="log-out" size={22} color="#fff" />
-              </TouchableOpacity> */}
             </View>
           );
-        },
-        sceneStyle: {
-          paddingBottom: 55,
         },
       }}
     >
@@ -77,6 +41,7 @@ export default function PatientTabLayout() {
           tabBarIcon: ({ color }) => (
             <Feather name="home" size={ICON_SIZE} color={color} />
           ),
+          tabBarStyle: { display: 'none' },
         }}
       />
       <Tabs.Screen
@@ -86,6 +51,7 @@ export default function PatientTabLayout() {
           tabBarIcon: ({ color }) => (
             <FontAwesome name="gamepad" size={ICON_SIZE} color={color} />
           ),
+          tabBarStyle: { display: 'none' },
         }}
       />
       <Tabs.Screen

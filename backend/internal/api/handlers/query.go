@@ -45,7 +45,7 @@ func (h *QueryHandler) CreateQuery(c *gin.Context) {
 	}
 
 	if err := c.ShouldBindJSON(&queryData); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body" + err.Error()})
 		return
 	}
 

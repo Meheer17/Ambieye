@@ -1,26 +1,30 @@
 import React, { useState, useEffect } from "react";
 import {
-  StyleSheet, 
+  StyleSheet,
   View,
   Text,
   TouchableOpacity,
   ScrollView,
-  Switch,
-  Alert,
   ActivityIndicator,
-  TextInput,
   Modal,
-  KeyboardAvoidingView,
-  Platform,
   Linking,
+  Alert,
   Share,
+  Platform,
 } from "react-native";
 import { useRouter, Stack } from "expo-router";
 import Feather from "@expo/vector-icons/Feather";
-import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { useAuth } from "@/hooks/useAuth";
 import { patientService } from "@/services/api/patientService";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+
+// Custom alert for web compatibility
+function showAlert(title: string, message?: string) {
+  if (Platform.OS === "web") {
+    window.alert(title + (message ? "\n\n" + message : ""));
+  } else {
+    Alert.alert(title, message || "");
+  }
+}
 
 interface ProfileData {
   id: string;
@@ -37,8 +41,6 @@ export default function SettingsScreen() {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [emailUpdatesEnabled, setEmailUpdatesEnabled] = useState(true);
   const [showAboutModal, setShowAboutModal] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
 
@@ -52,23 +54,14 @@ export default function SettingsScreen() {
         if (profileResponse.success) {
           setProfileData(profileResponse.profile);
         } else {
-          Alert.alert("Error", profileResponse.message || "Failed to fetch profile data");
-        }
-
-        // Get notification settings from AsyncStorage
-        const notifications = await AsyncStorage.getItem('notificationsEnabled');
-        const emailUpdates = await AsyncStorage.getItem('emailUpdatesEnabled');
-
-        if (notifications !== null) {
-          setNotificationsEnabled(notifications === 'true');
-        }
-
-        if (emailUpdates !== null) {
-          setEmailUpdatesEnabled(emailUpdates === 'true');
+          showAlert(
+            "Error",
+            profileResponse.message || "Failed to fetch profile data",
+          );
         }
       } catch (error) {
         console.error("Error in fetchProfileData:", error);
-        Alert.alert("Error", "Failed to load profile data. Please try again.");
+        showAlert("Error", "Failed to load profile data. Please try again.");
       } finally {
         setIsLoading(false);
       }
@@ -78,13 +71,33 @@ export default function SettingsScreen() {
   }, []);
 
   const handleLogout = () => {
-    Alert.alert(
-      "Logout",
-      "Are you sure you want to logout?",
-      [
+    if (Platform.OS === "web") {
+      // Use window.confirm for web
+      const confirmed = window.confirm("Are you sure you want to logout?");
+      if (confirmed) {
+        (async () => {
+          try {
+            setIsLoggingOut(true);
+            await logout();
+            setIsLoggingOut(false);
+          } catch (error) {
+            setIsLoggingOut(false);
+            showAlert(
+              "Logout Failed",
+              "There was a problem logging out. Please try again.",
+            );
+            console.error("Logout error:", error);
+          }
+        })();
+      }
+    } else {
+      console.log("Clicked Logout Button")
+      // @ts-ignore
+      // Use Alert directly since it's already available in react-native
+      Alert.alert("Logout", "Are you sure you want to logout?", [
         {
           text: "Cancel",
-          style: "cancel"
+          style: "cancel",
         },
         {
           text: "Logout",
@@ -95,18 +108,71 @@ export default function SettingsScreen() {
               setIsLoggingOut(false);
             } catch (error) {
               setIsLoggingOut(false);
-              Alert.alert(
+              showAlert(
                 "Logout Failed",
                 "There was a problem logging out. Please try again.",
-                [{ text: "OK" }]
               );
               console.error("Logout error:", error);
             }
           },
-          style: "destructive"
-        }
-      ]
-    );
+          style: "destructive",
+        },
+      ]);
+    }
+  };
+
+  const handleDelete = () => {
+    if (Platform.OS === "web") {
+      // Simple confirm for web
+      if (window.confirm("Are you sure you want to Delete Account?")) {
+        (async () => {
+          try {
+            setIsLoggingOut(true);
+            await patientService.deleteDocAccount();
+            await logout();
+            setIsLoggingOut(false);
+          } catch (error) {
+            setIsLoggingOut(false);
+            showAlert(
+              "Delete Failed",
+              "There was a problem Delete Account. Please try again.",
+            );
+            console.error("Logout error:", error);
+          }
+        })();
+      }
+    } else {
+      // Native Alert
+      Alert.alert(
+        "Delete Account",
+        "Are you sure you want to Delete Account?",
+        [
+          {
+        text: "Cancel",
+        style: "cancel",
+          },
+          {
+        text: "Delete Account",
+        onPress: async () => {
+          try {
+            setIsLoggingOut(true);
+            await patientService.deleteDocAccount();
+            await logout();
+            setIsLoggingOut(false);
+          } catch (error) {
+            setIsLoggingOut(false);
+            showAlert(
+          "Delete Account Failed",
+          "There was a problem deleting account. Please try again.",
+            );
+            console.error("Logout error:", error);
+          }
+        },
+        style: "destructive",
+          },
+        ],
+      );
+    }
   };
 
   const navigateToEditProfile = () => {
@@ -120,26 +186,26 @@ export default function SettingsScreen() {
     try {
       Share.share({
         message: shareMessage,
-        title: 'Share Doctor Code',
+        title: "Share Doctor Code",
       });
     } catch (error) {
       console.error("Error sharing doctor code:", error);
-      Alert.alert(
+      showAlert(
         "Sharing Failed",
-        "Unable to share your doctor code. Please try again later."
+        "Unable to share your doctor code. Please try again later.",
       );
     }
   };
 
   const renderSettingItem = (
-    icon: string, 
-    title: string, 
-    onPress: (() => void) | null, 
-    showArrow = true, 
-    additionalContent: React.ReactNode = null
+    icon: string,
+    title: string,
+    onPress: (() => void) | null,
+    showArrow = true,
+    additionalContent: React.ReactNode = null,
   ) => {
     return (
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.settingItem}
         onPress={onPress || undefined}
         disabled={!onPress}
@@ -151,9 +217,7 @@ export default function SettingsScreen() {
           <Text style={styles.settingTitle}>{title}</Text>
           {additionalContent}
         </View>
-        {showArrow && (
-          <Feather name="chevron-right" size={20} color="#888" />
-        )}
+        {showArrow && <Feather name="chevron-right" size={20} color="#888" />}
       </TouchableOpacity>
     );
   };
@@ -171,7 +235,7 @@ export default function SettingsScreen() {
 
   return (
     <>
-      <Stack.Screen 
+      <Stack.Screen
         options={{
           title: "Settings",
         }}
@@ -181,16 +245,19 @@ export default function SettingsScreen() {
           <View style={styles.profileInfo}>
             <View style={styles.profileAvatar}>
               <Text style={styles.avatarText}>
-                {profileData?.fullName?.charAt(0).toUpperCase() || username?.toString().charAt(0).toUpperCase()}
+                {profileData?.fullName?.charAt(0).toUpperCase() ||
+                  username?.toString().charAt(0).toUpperCase()}
               </Text>
             </View>
             <View>
-              <Text style={styles.doctorName}>{profileData?.fullName || username}</Text>
+              <Text style={styles.doctorName}>
+                {profileData?.fullName || username}
+              </Text>
               <Text style={styles.specialization}>Doctor</Text>
               <Text style={styles.emailText}>{profileData?.email || ""}</Text>
             </View>
           </View>
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.editProfileButton}
             onPress={navigateToEditProfile}
           >
@@ -205,7 +272,7 @@ export default function SettingsScreen() {
               <Text style={styles.docCode}>{docCode}</Text>
             </View>
             <View style={styles.docCodeActions}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.docCodeButton}
                 onPress={shareDocCode}
               >
@@ -220,12 +287,19 @@ export default function SettingsScreen() {
 
         <View style={styles.sectionContainer}>
           <Text style={styles.sectionTitle}>Account</Text>
-          {renderSettingItem("help-circle", "Help & Support", () => setShowHelpModal(true))}
-          {renderSettingItem("info", "About AmbiEye", () => setShowAboutModal(true))}
+          {renderSettingItem("help-circle", "Help & Support", () =>
+            setShowHelpModal(true),
+          )}
+          {renderSettingItem("info", "About AmbiEye", () =>
+            setShowAboutModal(true),
+          )}
+          {renderSettingItem("book", "Privacy Policy", () =>
+            router.push("/(doctor)/(stack)/privacy"),
+          )}
         </View>
 
-        <TouchableOpacity 
-          style={styles.logoutButton} 
+        <TouchableOpacity
+          style={styles.logoutButton}
           onPress={handleLogout}
           disabled={isLoggingOut}
         >
@@ -233,6 +307,18 @@ export default function SettingsScreen() {
             <ActivityIndicator color="#fff" />
           ) : (
             <Text style={styles.logoutText}>Logout</Text>
+          )}
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={styles.logoutButton}
+          onPress={handleDelete}
+          disabled={isLoggingOut}
+        >
+          {isLoggingOut ? (
+            <ActivityIndicator color="#fff" />
+          ) : (
+            <Text style={styles.logoutText}>Delete Account</Text>
           )}
         </TouchableOpacity>
 
@@ -259,42 +345,64 @@ export default function SettingsScreen() {
               <ScrollView style={styles.modalScrollContent}>
                 <View style={styles.helpSection}>
                   <Text style={styles.helpSectionTitle}>Contact Support</Text>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.helpItem}
-                    onPress={() => Linking.openURL('mailto:support@ambieye.com')}
+                    onPress={() =>
+                      Linking.openURL("mailto:support@ambieye.com")
+                    }
                   >
-                    <Feather name="mail" size={20} color="#5f2446" style={styles.helpItemIcon} />
-                    <Text style={styles.helpItemText}>Email: support@ambieye.com</Text>
+                    <Feather
+                      name="mail"
+                      size={20}
+                      color="#5f2446"
+                      style={styles.helpItemIcon}
+                    />
+                    <Text style={styles.helpItemText}>
+                      Email: support@ambieye.com
+                    </Text>
                   </TouchableOpacity>
 
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.helpItem}
-                    onPress={() => Linking.openURL('tel:+15551234567')}
+                    onPress={() => Linking.openURL("tel:+15551234567")}
                   >
-                    <Feather name="phone" size={20} color="#5f2446" style={styles.helpItemIcon} />
-                    <Text style={styles.helpItemText}>Phone: +1 (555) 123-4567</Text>
+                    <Feather
+                      name="phone"
+                      size={20}
+                      color="#5f2446"
+                      style={styles.helpItemIcon}
+                    />
+                    <Text style={styles.helpItemText}>
+                      Phone: +1 (555) 123-4567
+                    </Text>
                   </TouchableOpacity>
                 </View>
 
                 <View style={styles.helpSection}>
                   <Text style={styles.helpSectionTitle}>FAQ</Text>
                   <View style={styles.faqItem}>
-                    <Text style={styles.faqQuestion}>How do I use my doctor code?</Text>
+                    <Text style={styles.faqQuestion}>
+                      How do I use my doctor code?
+                    </Text>
                     <Text style={styles.faqAnswer}>
-                      Share your doctor code with patients who want to connect with you on AmbiEye.
+                      Share your doctor code with patients who want to connect
+                      with you on AmbiEye.
                     </Text>
                   </View>
 
                   <View style={styles.faqItem}>
-                    <Text style={styles.faqQuestion}>How do I respond to patient queries?</Text>
+                    <Text style={styles.faqQuestion}>
+                      How do I respond to patient queries?
+                    </Text>
                     <Text style={styles.faqAnswer}>
-                      Navigate to the "Queries" tab to view and respond to patient messages.
+                      Navigate to the &qout;Queries&qout; tab to view and
+                      respond to patient messages.
                     </Text>
                   </View>
                 </View>
               </ScrollView>
 
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.modalCloseButton}
                 onPress={() => setShowHelpModal(false)}
               >
@@ -327,38 +435,72 @@ export default function SettingsScreen() {
                 </View>
 
                 <Text style={styles.aboutDescription}>
-                  AmbiEye is a comprehensive digital health platform designed for treating amblyopia (lazy eye) through interactive games and exercises, while keeping doctors connected with their patients.
+                  AmbiEye is a comprehensive digital health platform designed
+                  for treating amblyopia (lazy eye) through interactive games
+                  and exercises, while keeping doctors connected with their
+                  patients.
                 </Text>
 
                 <View style={styles.aboutSection}>
                   <Text style={styles.aboutSectionTitle}>Key Features</Text>
                   <View style={styles.aboutFeatureItem}>
-                    <Feather name="check-circle" size={18} color="#5f2446" style={styles.aboutFeatureIcon} />
-                    <Text style={styles.aboutFeatureText}>Interactive vision therapy games</Text>
+                    <Feather
+                      name="check-circle"
+                      size={18}
+                      color="#5f2446"
+                      style={styles.aboutFeatureIcon}
+                    />
+                    <Text style={styles.aboutFeatureText}>
+                      Interactive vision therapy games
+                    </Text>
                   </View>
                   <View style={styles.aboutFeatureItem}>
-                    <Feather name="check-circle" size={18} color="#5f2446" style={styles.aboutFeatureIcon} />
-                    <Text style={styles.aboutFeatureText}>Direct communication with patients</Text>
+                    <Feather
+                      name="check-circle"
+                      size={18}
+                      color="#5f2446"
+                      style={styles.aboutFeatureIcon}
+                    />
+                    <Text style={styles.aboutFeatureText}>
+                      Direct communication with patients
+                    </Text>
                   </View>
                   <View style={styles.aboutFeatureItem}>
-                    <Feather name="check-circle" size={18} color="#5f2446" style={styles.aboutFeatureIcon} />
-                    <Text style={styles.aboutFeatureText}>Progress tracking and reports</Text>
+                    <Feather
+                      name="check-circle"
+                      size={18}
+                      color="#5f2446"
+                      style={styles.aboutFeatureIcon}
+                    />
+                    <Text style={styles.aboutFeatureText}>
+                      Progress tracking and reports
+                    </Text>
                   </View>
                 </View>
 
                 <View style={styles.aboutSection}>
                   <Text style={styles.aboutSectionTitle}>Legal</Text>
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.aboutLegalItem}
-                    onPress={() => Alert.alert("Terms of Service", "Terms of Service content would be displayed here.")}
+                    onPress={() =>
+                      showAlert(
+                        "Terms of Service",
+                        "Terms of Service content would be displayed here.",
+                      )
+                    }
                   >
                     <Text style={styles.aboutLegalText}>Terms of Service</Text>
                     <Feather name="chevron-right" size={18} color="#888" />
                   </TouchableOpacity>
 
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.aboutLegalItem}
-                    onPress={() => Alert.alert("Privacy Policy", "Privacy Policy content would be displayed here.")}
+                    onPress={() =>
+                      showAlert(
+                        "Privacy Policy",
+                        "Privacy Policy content would be displayed here.",
+                      )
+                    }
                   >
                     <Text style={styles.aboutLegalText}>Privacy Policy</Text>
                     <Feather name="chevron-right" size={18} color="#888" />
@@ -370,7 +512,7 @@ export default function SettingsScreen() {
                 </Text>
               </ScrollView>
 
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.modalCloseButton}
                 onPress={() => setShowAboutModal(false)}
               >

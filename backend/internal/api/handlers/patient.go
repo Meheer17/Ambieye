@@ -2,6 +2,7 @@ package handlers
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"strconv"
 	"time"
@@ -236,6 +237,7 @@ func (h *PatientHandler) GetProfile(c *gin.Context) {
 		return
 	}
 
+	patient.Password = "" // Exclude password from response
 	// Get query stats
 	totalQueries, err := h.queryCollection.CountDocuments(ctx, bson.M{"patientId": patientID})
 	if err != nil {
@@ -372,6 +374,7 @@ func (h *PatientHandler) GetPatientQueries(c *gin.Context) {
 		},
 	})
 }
+
 func (h *PatientHandler) UpdateProfile(c *gin.Context) {
 	// Get user ID from context (set by auth middleware)
 	patientID, exists := c.Get("userID")
@@ -428,7 +431,7 @@ func (h *PatientHandler) UpdateProfile(c *gin.Context) {
 	// Update the user document
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
-
+	fmt.Println(updateDoc)
 	result, err := h.userCollection.UpdateOne(
 		ctx,
 		bson.M{"_id": patientID},
@@ -480,4 +483,40 @@ func (h *PatientHandler) GetDoctorById(c *gin.Context) {
 
 	// Return the doctor information (as SafeUser to exclude sensitive fields)
 	c.JSON(http.StatusOK, gin.H{"doctor": doctor.ToSafeUser()})
+}
+
+func (h *PatientHandler) DeletePatient(c *gin.Context) {
+	patientID, exists := c.Get("userID")
+	if !exists {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "User ID not found"})
+		return
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	var patient models.User
+	err := h.userCollection.FindOne(ctx, bson.M{"_id": patientID, "role": "patient"}).Decode(&patient)
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Patient not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+		return
+	}
+
+	_, err = h.userCollection.DeleteOne(ctx, bson.M{"_id": patientID, "role": "patient"})
+	if err != nil {
+		if err == mongo.ErrNoDocuments {
+			c.JSON(http.StatusNotFound, gin.H{"error": "Patient not found"})
+			return
+		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Database error"})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"response": "Deleted",
+	})
 }

@@ -34,7 +34,7 @@ export default function SplashScreen() {
 
       return () => clearTimeout(timer);
     }
-  }, [isAuthenticated, userType, isLoading]);
+  }, [isAuthenticated, fadeAnim, userType, isLoading]);
 
   return (
     <View style={styles.container}>

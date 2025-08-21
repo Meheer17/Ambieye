@@ -1,7 +1,6 @@
 import React from "react";
 import { Stack } from "expo-router";
-import { TouchableOpacity, View, StyleSheet } from "react-native";
-import { Text } from "react-native";
+import { TouchableOpacity, View, StyleSheet, Text } from "react-native";
 import Feather from "@expo/vector-icons/Feather";
 
 export default function AuthLayout() {
@@ -20,7 +19,7 @@ export default function AuthLayout() {
                 <Feather name="arrow-left-circle" size={24} color="white" />
               </TouchableOpacity>
               <Text style={styles.headerText}>Login</Text>
-              <View style={{ width: 24 }} />{" "}
+              <View style={{ width: 24 }} />
               {/* Empty view for balanced layout */}
             </View>
           ),
@@ -39,7 +38,26 @@ export default function AuthLayout() {
                 <Feather name="arrow-left-circle" size={24} color="white" />
               </TouchableOpacity>
               <Text style={styles.headerText}>Sign Up</Text>
-              <View style={{ width: 24 }} />{" "}
+              <View style={{ width: 24 }} />
+              {/* Empty view for balanced layout */}
+            </View>
+          ),
+        })}
+      />
+      <Stack.Screen
+        name="privacy"
+        options={({ navigation }) => ({
+          headerShown: true,
+          header: () => (
+            <View style={styles.customHeader}>
+              <TouchableOpacity
+                onPress={() => navigation.goBack()}
+                style={styles.backButton}
+              >
+                <Feather name="arrow-left-circle" size={24} color="white" />
+              </TouchableOpacity>
+              <Text style={styles.headerText}>Privacy Policy</Text>
+              <View style={{ width: 24 }} />
               {/* Empty view for balanced layout */}
             </View>
           ),

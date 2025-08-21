@@ -17,7 +17,7 @@ export const saveGameResult = async (result: GameResult): Promise<void> => {
     const response = await apiClient.post("/games/results", result);
     console.log("Game result saved to backend:", response.data);
 
-    // Also save locally for offline access
+    // Also save locally for offline access (keeping existing logic)
     // Get existing history
     const historyJson = await AsyncStorage.getItem("gameHistory");
     const history = historyJson ? JSON.parse(historyJson) : [];
@@ -55,10 +55,33 @@ export const saveGameResult = async (result: GameResult): Promise<void> => {
 
     // Save updated history
     await AsyncStorage.setItem("gameHistory", JSON.stringify(history));
+
+    // NEW CODE: Save today's game data separately for progress tracking
+    const todayGameDataJson = await AsyncStorage.getItem("todayGameData");
+    let todayGameData = todayGameDataJson ? JSON.parse(todayGameDataJson) : { date: today, games: [] };
+    
+    // If the stored date is not today, clear the data (delete yesterday's data)
+    if (todayGameData.date !== today) {
+      todayGameData = { date: today, games: [] };
+    }
+    
+    // Add the new game result
+    todayGameData.games.push({
+      id: result.gameId,
+      game: getGameNameById(result.gameId),
+      score: result.score,
+      time: result.duration, // in seconds
+      details: result.details,
+      accuracy: Math.min(100, Math.round((result.score / 100) * 100)), // Simple accuracy calculation
+      date: today,
+    });
+    
+    // Save today's data
+    await AsyncStorage.setItem("todayGameData", JSON.stringify(todayGameData));
   } catch (error) {
     console.error("Error saving game result:", error);
 
-    // If API fails, at least save locally
+    // If API fails, at least save locally (keeping existing logic)
     try {
       const historyJson = await AsyncStorage.getItem("gameHistory");
       const history = historyJson ? JSON.parse(historyJson) : [];
@@ -90,7 +113,30 @@ export const saveGameResult = async (result: GameResult): Promise<void> => {
       }
 
       await AsyncStorage.setItem("gameHistory", JSON.stringify(history));
-      console.log("Game result saved to local storage only");
+
+      // NEW CODE: Save today's game data separately even if API fails
+      const todayGameDataJson = await AsyncStorage.getItem("todayGameData");
+      let todayGameData = todayGameDataJson ? JSON.parse(todayGameDataJson) : { date: today, games: [] };
+      
+      // If the stored date is not today, clear the data (delete yesterday's data)
+      if (todayGameData.date !== today) {
+        todayGameData = { date: today, games: [] };
+      }
+      
+      // Add the new game result
+      todayGameData.games.push({
+        id: result.gameId,
+        game: getGameNameById(result.gameId),
+        score: result.score,
+        time: result.duration,
+        details: result.details,
+        accuracy: Math.min(100, Math.round((result.score / 100) * 100)), // Simple accuracy calculation
+        date: today,
+      });
+      
+      // Save today's data
+      await AsyncStorage.setItem("todayGameData", JSON.stringify(todayGameData));
+      
     } catch (localError) {
       console.error("Failed to save even to local storage:", localError);
     }

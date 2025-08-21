@@ -35,6 +35,13 @@ func SetupRouter(client *mongo.Client, cfg *config.Config) *gin.Engine {
 	doctorMiddleware := middleware.RoleMiddleware("doctor")
 	patientMiddleware := middleware.RoleMiddleware("patient")
 
+	router.GET("/privacy-policy", func(c *gin.Context) {
+		c.File("./public/privacy.html")
+	})
+	router.GET("/delete-account", func(c *gin.Context) {
+		c.File("./public/delete.html")
+	})
+
 	// API routes
 	api := router.Group("/api")
 	{
@@ -57,6 +64,7 @@ func SetupRouter(client *mongo.Client, cfg *config.Config) *gin.Engine {
 			doctor.POST("/patients/visitrecord/:id", doctorHandler.AddPatientVisitRecord)
 			doctor.GET("/profile", doctorHandler.GetProfile)
 			doctor.GET("/queries", queryHandler.GetAllQueries)
+			doctor.POST("/delete", doctorHandler.DeleteDoctor)
 		}
 
 		// Patient routes - require auth and patient role
@@ -64,16 +72,17 @@ func SetupRouter(client *mongo.Client, cfg *config.Config) *gin.Engine {
 		{
 			patient.GET("/dashboard", patientHandler.GetDashboard)
 			patient.GET("/profile", patientHandler.GetProfile)
-			patient.GET("/doctors/:id", patientHandler.GetDoctorById, patientMiddleware)
+			patient.GET("/doctors/:id", patientMiddleware, patientHandler.GetDoctorById)
 			patient.PUT("/profile", patientHandler.UpdateProfile)
 			patient.GET("/queries", patientHandler.GetPatientQueries)
-			patient.POST("/queries", queryHandler.CreateQuery, patientMiddleware)
+			patient.POST("/queries", patientMiddleware, queryHandler.CreateQuery)
+			patient.POST("/delete", patientHandler.DeletePatient)
 		}
 
 		gameHandler := handlers.NewGameHandler(db)
 		games := api.Group("/games", authMiddleware)
 		{
-			games.POST("/results", gameHandler.SaveGameResult, patientMiddleware)
+			games.POST("/results", patientMiddleware, gameHandler.SaveGameResult)
 			games.GET("/today", gameHandler.GetTodayGameResults)
 			games.GET("/history", gameHandler.GetGameHistory)
 		}

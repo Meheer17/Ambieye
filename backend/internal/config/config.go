@@ -43,7 +43,7 @@ func Load() (*Config, error) {
 	cfg.Server.IdleTimeout = time.Duration(getEnvAsInt("IDLE_TIMEOUT", 60)) * time.Second
 
 	// MongoDB configuration
-	cfg.MongoDB.URI = getEnv("MONGODB_URI", "mongodb://localhost:27017")
+	cfg.MongoDB.URI = getEnv("MONGODB_URI", "")
 	cfg.MongoDB.Database = getEnv("MONGODB_DATABASE", "ambieye")
 
 	// JWT configuration

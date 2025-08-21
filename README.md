@@ -1,7 +1,7 @@
 # Ambieye - Ophthalmology Practice Management Solution
 
 <div align="center">
-  <img src="https://via.placeholder.com/200x200.png?text=Ambieye" alt="Ambieye Logo" width="200" />
+  <img src="https://github.com/Meheer17/Ambieye/blob/mahi/ambieye_app/assets/images/logo.png" alt="Ambieye Logo" width="200" />
   <p><em>Empowering eye care professionals with intelligent patient management</em></p>
 </div>
 
@@ -82,7 +82,7 @@ Ambieye follows a modular architecture with:
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-organization/ambieye.git
+git clone https://github.com/Meheer17/Ambieye.git
 cd ambieye/mobile_client
 
 # Install dependencies
@@ -92,8 +92,19 @@ yarn install
 
 # Start the development server
 npx expo start
+
+# Apk Build
+eas build --platform android --profile apk --local
 ```
 
+# Start the backend
+```
+cd backend/
+go run main.go 
+# or 
+go build main.go 
+./main
+```
 ### Running on Device
 
 - **iOS**: Press 'i' in the terminal or scan the QR code using the Camera app

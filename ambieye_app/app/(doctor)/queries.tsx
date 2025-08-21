@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import {
   StyleSheet,
   View,
@@ -17,7 +17,6 @@ import {
   KeyboardAvoidingView,
   RefreshControl,
 } from "react-native";
-import { useRouter } from "expo-router";
 import Feather from "@expo/vector-icons/Feather";
 import { doctorQueryService, DoctorQuery } from "@/services/api/doctorQueryService";
 
@@ -43,47 +42,48 @@ function QueryDetailsModal({
   const slideAnim = useRef(new Animated.Value(30)).current;
 
   useEffect(() => {
+    // Define fetchQueryDetails inside the useEffect to avoid dependency issues
+    const fetchQueryDetails = async () => {
+      if (!queryId) return;
+
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const response = await doctorQueryService.getQueryById(queryId);
+
+        if (response.success) {
+          setQuery(response.query);
+          setPatient(response.patient);
+
+          // Start animations
+          Animated.parallel([
+            Animated.timing(fadeAnim, {
+              toValue: 1,
+              duration: 500,
+              useNativeDriver: true,
+            }),
+            Animated.timing(slideAnim, {
+              toValue: 0,
+              duration: 500,
+              useNativeDriver: true,
+            }),
+          ]).start();
+        } else {
+          setError(response.message || "Failed to load query details");
+        }
+      } catch (err) {
+        setError("An error occurred while loading the query");
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
     if (queryId) {
       fetchQueryDetails();
     }
-  }, [queryId]);
-
-  const fetchQueryDetails = async () => {
-    if (!queryId) return;
-    
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      const response = await doctorQueryService.getQueryById(queryId);
-      
-      if (response.success) {
-        setQuery(response.query);
-        setPatient(response.patient);
-        
-        // Start animations
-        Animated.parallel([
-          Animated.timing(fadeAnim, {
-            toValue: 1,
-            duration: 500,
-            useNativeDriver: true,
-          }),
-          Animated.timing(slideAnim, {
-            toValue: 0,
-            duration: 500,
-            useNativeDriver: true,
-          }),
-        ]).start();
-      } else {
-        setError(response.message || "Failed to load query details");
-      }
-    } catch (err) {
-      setError("An error occurred while loading the query");
-      console.error(err);
-    } finally {
-      setIsLoading(false);
-    }
-  };
+  }, [queryId, fadeAnim, slideAnim]);
 
   const handleSubmitResponse = async () => {
     if (!query || !queryId) return;
@@ -305,7 +305,7 @@ function QueryItem({
       delay: 300 + index * 100,
       useNativeDriver: true,
     }).start();
-  }, [index]);
+  }, [index, itemAnimValue]);
 
   // Format the date for display
   const formattedDate = new Date(item.createdAt).toLocaleDateString();
@@ -405,35 +405,25 @@ const QueriesScreen = () => {
     totalItems: 0,
     totalPages: 1
   });
-
+  
   // Animation refs
   const slideAnim = useRef(new Animated.Value(30)).current;
   const opacityAnim = useRef(new Animated.Value(0)).current;
   const headerAnim = useRef(new Animated.Value(0)).current;
 
-  useEffect(() => {
-    // Animate header
-    Animated.timing(headerAnim, {
-      toValue: 1,
-      duration: 400,
-      useNativeDriver: true,
-    }).start();
-    
-    fetchQueries();
-  }, [filter, includeAll]);
-
-  const fetchQueries = async (page = 1) => {
+  // Define fetchQueries with useCallback to prevent re-creation on each render
+  const fetchQueries = useCallback(async () => {
     setIsLoading(true);
     setError(null);
-    
+
     try {
       const status = filter === "all" ? undefined : filter;
       const response = await doctorQueryService.getAllQueries(status, includeAll);
-      
+
       if (response.success) {
         setQueries(response.queries);
         setPagination(response.pagination);
-        
+
         Animated.parallel([
           Animated.timing(slideAnim, {
             toValue: 0,
@@ -456,7 +446,18 @@ const QueriesScreen = () => {
       setIsLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [filter, includeAll, slideAnim, opacityAnim]);
+
+  useEffect(() => {
+    // Animate header
+    Animated.timing(headerAnim, {
+      toValue: 1,
+      duration: 400,
+      useNativeDriver: true,
+    }).start();
+
+    fetchQueries();
+  }, [fetchQueries, headerAnim]);
 
   const handleRefresh = () => {
     setRefreshing(true);
@@ -501,7 +502,7 @@ const QueriesScreen = () => {
     <View style={styles.emptyContainer}>
       <Feather name="inbox" size={50} color="#5f2446" />
       <Text style={styles.emptyText}>No queries found</Text>
-      
+
       {filter !== "all" && (
         <TouchableOpacity 
           style={styles.emptyViewAllButton} 
@@ -510,7 +511,7 @@ const QueriesScreen = () => {
           <Text style={styles.emptyViewAllButtonText}>View all queries</Text>
         </TouchableOpacity>
       )}
-      
+
       {!includeAll && (
         <TouchableOpacity 
           style={styles.emptyIncludeAllButton} 
@@ -615,7 +616,7 @@ const QueriesScreen = () => {
                 Answered
               </Text>
             </TouchableOpacity>
-            
+
             <TouchableOpacity
               style={styles.includeAllButton}
               onPress={() => setIncludeAll(!includeAll)}

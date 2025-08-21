@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
@@ -13,10 +13,9 @@ import {
   Platform,
   ScrollView,
 } from "react-native";
-import { Stack, useRouter } from "expo-router";
+import { useRouter } from "expo-router";
 import { patientService } from "@/services/api/patientService";
 import Feather from "@expo/vector-icons/Feather";
-import FontAwesome from "@expo/vector-icons/FontAwesome";
 
 interface Query {
   id: string;
@@ -38,11 +37,7 @@ export default function QueryListScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [urgency, setUrgency] = useState<string>("medium"); // 'low', 'medium', 'high'
 
-  useEffect(() => {
-    fetchQueries();
-  }, [filter]);
-
-  const fetchQueries = async () => {
+  const fetchQueries = useCallback(async () => {
     setIsLoading(true);
     try {
       const response = await patientService.getQueries(filter || undefined);
@@ -58,7 +53,11 @@ export default function QueryListScreen() {
       setIsLoading(false);
       setRefreshing(false);
     }
-  };
+  }, [filter]);
+
+  useEffect(() => {
+    fetchQueries();
+  }, [fetchQueries]);
 
   const handleRefresh = () => {
     setRefreshing(true);

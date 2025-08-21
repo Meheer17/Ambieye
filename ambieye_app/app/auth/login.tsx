@@ -1,66 +1,74 @@
-import React, { useState, useEffect } from 'react';
-import { 
-  StyleSheet, View, Text, TextInput, 
-  TouchableOpacity, Image, KeyboardAvoidingView, Platform,
-  ActivityIndicator, Alert
-} from 'react-native';
-import { Link, router, Stack, useNavigation } from 'expo-router';
-import { useAuth } from '@/hooks/useAuth';
+import React, { useState, useEffect } from "react";
+import {
+  StyleSheet,
+  View,
+  Text,
+  TextInput,
+  TouchableOpacity,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  ActivityIndicator,
+  Alert,
+} from "react-native";
+import { Link, router } from "expo-router";
+import { useAuth } from "@/hooks/useAuth";
 
 export default function LoginScreen() {
-  const navigation = useNavigation();
   const { login, userType, isLoading, error, clearError } = useAuth();
-  const [username, setUsername] = useState('mahi');
-  const [password, setPassword] = useState('pass123');
-  const [validationError, setValidationError] = useState('');
+  const [username, setUsername] = useState(
+    userType === "doctor" ? "tester" : "usertester",
+  );
+  const [password, setPassword] = useState("Pass123");
+  const [validationError, setValidationError] = useState("");
 
   // Show API error as alert
   useEffect(() => {
     if (error) {
-      Alert.alert('Login Failed', error, [
-        { text: 'OK', onPress: clearError }
-      ]); 
+      Alert.alert("Login Failed", error, [{ text: "OK", onPress: clearError }]);
     }
-  }, [error]);
+  }, [error, clearError]);
 
   const handleLogin = async () => {
     // Validation
-    // 
+    //
     if (!username || !password) {
-      setValidationError('Please fill in all fields');
+      setValidationError("Please fill in all fields");
       return;
     }
 
-    setValidationError('');
+    setValidationError("");
 
     // Attempt login
     const success = await login(username, password);
     if (success) {
       // Navigate to appropriate screen based on user type
-      if (userType === 'doctor') {
-        router.replace('/(doctor)/');
+      if (userType === "doctor") {
+        router.replace("/(doctor)/");
       } else {
-        router.replace('/(patient)/');
+        router.replace("/(patient)/");
       }
     }
   };
 
   return (
     <>
-      <KeyboardAvoidingView 
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.container}
       >
         <Image
-          source={require('../../assets/images/logo.png')}
+          source={require("../../assets/images/logo.png")}
           style={styles.logo}
         />
 
         <Text style={styles.title}>
-          Login as {userType === 'doctor' ? 'Doctor' : 'Patient'}
+          Login as {userType === "doctor" ? "Doctor" : "Patient"}
         </Text>
 
-        {validationError ? <Text style={styles.error}>{validationError}</Text> : null}
+        {validationError ? (
+          <Text style={styles.error}>{validationError}</Text>
+        ) : null}
 
         <View style={styles.inputContainer}>
           <TextInput
@@ -84,8 +92,8 @@ export default function LoginScreen() {
           />
         </View>
 
-        <TouchableOpacity 
-          style={[styles.button, isLoading && styles.buttonDisabled]} 
+        <TouchableOpacity
+          style={[styles.button, isLoading && styles.buttonDisabled]}
           onPress={handleLogin}
           disabled={isLoading}
         >
@@ -96,7 +104,7 @@ export default function LoginScreen() {
           )}
         </TouchableOpacity>
         <View style={styles.footer}>
-          <Text style={styles.footerText}>Don't have an account? </Text>
+          <Text style={styles.footerText}>Don&apos;t have an account? </Text>
           <Link href="/auth/signup" asChild>
             <TouchableOpacity disabled={isLoading}>
               <Text style={styles.link}>Sign up</Text>
@@ -111,67 +119,67 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0D0145',
+    backgroundColor: "#0D0145",
     padding: 20,
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
   },
   logo: {
     width: 120,
     height: 120,
     marginBottom: 30,
-    resizeMode: 'contain',
+    resizeMode: "contain",
   },
   title: {
     fontSize: 24,
-    fontWeight: 'bold',
-    color: 'white',
+    fontWeight: "bold",
+    color: "white",
     marginBottom: 30,
   },
   error: {
-    color: '#ff6b6b',
+    color: "#ff6b6b",
     marginBottom: 20,
   },
   inputContainer: {
-    width: '100%',
+    width: "100%",
     marginBottom: 20,
   },
   input: {
-    width: '100%',
+    width: "100%",
     height: 50,
-    backgroundColor: 'rgba(255,255,255,0.1)',
+    backgroundColor: "rgba(255,255,255,0.1)",
     borderRadius: 10,
     marginBottom: 15,
     paddingHorizontal: 15,
-    color: 'white',
+    color: "white",
   },
   button: {
-    width: '100%',
+    width: "100%",
     height: 50,
-    backgroundColor: '#5f2446',
+    backgroundColor: "#5f2446",
     borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginTop: 10,
   },
   buttonDisabled: {
-    backgroundColor: '#3a1529',
+    backgroundColor: "#3a1529",
     opacity: 0.7,
   },
   buttonText: {
-    color: 'white',
+    color: "white",
     fontSize: 16,
-    fontWeight: 'bold',
+    fontWeight: "bold",
   },
   footer: {
-    flexDirection: 'row',
+    flexDirection: "row",
     marginTop: 30,
   },
   footerText: {
-    color: 'white',
+    color: "white",
   },
   link: {
-    color: '#5f2446',
-    fontWeight: 'bold',
+    color: "#5f2446",
+    fontWeight: "bold",
   },
 });

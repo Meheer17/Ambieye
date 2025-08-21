@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useRef } from "react";
 import {
   StyleSheet,
   View,
@@ -19,33 +19,41 @@ const ITEM_SIZE = width * 0.25;
 
 // Sample objects for each letter
 const alphabetObjects = {
-  A: { name: "Apple", image: require("@/assets/images/doctor.png") },
-  B: { name: "Ball", image: require("@/assets/images/doctor.png") },
-  C: { name: "Cat", image: require("@/assets/images/doctor.png") },
-  D: { name: "Dog", image: require("@/assets/images/doctor.png") },
-  E: { name: "Elephant", image: require("@/assets/images/doctor.png") },
-  F: { name: "Fish", image: require("@/assets/images/doctor.png") },
-  G: { name: "Girl", image: require("@/assets/images/doctor.png") },
-  H: { name: "Hat", image: require("@/assets/images/doctor.png") },
-  I: { name: "Ice Cream", image: require("@/assets/images/doctor.png") },
-  J: { name: "Juice", image: require("@/assets/images/doctor.png") },
-  K: { name: "Kite", image: require("@/assets/images/doctor.png") },
-  L: { name: "Lion", image: require("@/assets/images/doctor.png") },
-  M: { name: "Monkey", image: require("@/assets/images/doctor.png") },
-  N: { name: "Nest", image: require("@/assets/images/doctor.png") },
-  O: { name: "Orange", image: require("@/assets/images/doctor.png") },
-  P: { name: "Pen", image: require("@/assets/images/doctor.png") },
-  Q: { name: "Queen", image: require("@/assets/images/doctor.png") },
-  R: { name: "Rabbit", image: require("@/assets/images/doctor.png") },
-  S: { name: "Sun", image: require("@/assets/images/doctor.png") },
-  T: { name: "Tiger", image: require("@/assets/images/doctor.png") },
-  U: { name: "Umbrella", image: require("@/assets/images/doctor.png") },
-  V: { name: "Violin", image: require("@/assets/images/doctor.png") },
-  W: { name: "Watch", image: require("@/assets/images/doctor.png") },
-  X: { name: "Xylophone", image: require("@/assets/images/doctor.png") },
-  Y: { name: "Yoyo", image: require("@/assets/images/doctor.png") },
-  Z: { name: "Zebra", image: require("@/assets/images/doctor.png") },
-  // Add more objects for other letters
+  A: { name: "Apple", image: require("@/assets/images/objects/apple.png") },
+  B: { name: "Ball", image: require("@/assets/images/objects/ball.png") },
+  C: { name: "Cat", image: require("@/assets/images/objects/cat.png") },
+  D: { name: "Dog", image: require("@/assets/images/objects/dog.png") },
+  E: {
+    name: "Elephant",
+    image: require("@/assets/images/objects/elephant.png"),
+  },
+  F: { name: "Fish", image: require("@/assets/images/objects/fish.png") },
+  G: { name: "Giraffe", image: require("@/assets/images/objects/gira.png") },
+  H: { name: "Hat", image: require("@/assets/images/objects/hat.png") },
+  I: { name: "Ice Cream", image: require("@/assets/images/objects/ice.png") },
+  J: { name: "Juice", image: require("@/assets/images/objects/juice.png") },
+  K: { name: "Kite", image: require("@/assets/images/objects/kite.png") },
+  L: { name: "Lion", image: require("@/assets/images/objects/lion.png") },
+  M: { name: "Monkey", image: require("@/assets/images/objects/monkey.png") },
+  N: { name: "Nest", image: require("@/assets/images/objects/nest.png") },
+  O: { name: "Orange", image: require("@/assets/images/objects/orange.png") },
+  P: { name: "Pen", image: require("@/assets/images/objects/pen.png") },
+  Q: { name: "Queen", image: require("@/assets/images/objects/queen.png") },
+  R: { name: "RCB", image: require("@/assets/images/objects/rcb.png") },
+  S: { name: "Sun", image: require("@/assets/images/objects/sun.png") },
+  T: { name: "Tiger", image: require("@/assets/images/objects/tiger.png") },
+  U: {
+    name: "Umbrella",
+    image: require("@/assets/images/objects/umbrella.png"),
+  },
+  V: { name: "Violin", image: require("@/assets/images/objects/vio.png") },
+  W: { name: "Watch", image: require("@/assets/images/objects/watch.png") },
+  X: {
+    name: "Xylophone",
+    image: require("@/assets/images/objects/Xylophone.png"),
+  },
+  Y: { name: "Yoyo", image: require("@/assets/images/objects/yoyo.png") },
+  Z: { name: "Zebra", image: require("@/assets/images/objects/zebra.png") },
 };
 
 export default function AlphabetObjectsGame() {
@@ -53,12 +61,12 @@ export default function AlphabetObjectsGame() {
   const [gameActive, setGameActive] = useState(false);
   const [targetLetter, setTargetLetter] = useState("");
   const [objects, setObjects] = useState<
-    Array<{
+    {
       name: string;
       image: any;
       id: number;
       isCorrect: boolean;
-    }>
+    }[]
   >([]);
   const [score, setScore] = useState(0);
   const [round, setRound] = useState(0);
@@ -70,9 +78,9 @@ export default function AlphabetObjectsGame() {
   const animationRef = useRef<Animated.CompositeAnimation | null>(null);
 
   // Define explicit keys for type safety
-  const availableLetters = Object.keys(alphabetObjects) as Array<
-    keyof typeof alphabetObjects
-  >;
+  const availableLetters = Object.keys(
+    alphabetObjects,
+  ) as (keyof typeof alphabetObjects)[];
 
   const setupRound = () => {
     setRound((prevRound) => prevRound + 1);
