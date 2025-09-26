@@ -1,0 +1,15 @@
+name: Ping Endpoint Every 45 Minutes
+
+on:
+  schedule:
+    # Runs every 45 minutes
+    - cron: '*/45 * * * *'
+  workflow_dispatch: # allows manual trigger if needed
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping the URL
+        run: |
+          curl -s -o /dev/null -w "%{http_code}" https://p01--ambieye--6s9l5yxyj7q6.code.run/api
