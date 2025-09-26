@@ -1,9 +1,9 @@
-name: Ping Endpoint Every 45 Minutes
+name: Ping Endpoint Every 90 Minutes
 
 on:
   schedule:
-    # Runs every 45 minutes
-    - cron: '*/45 * * * *'
+    # Runs every 90 minutes
+    - cron: '*/90 * * * *'
   workflow_dispatch: # allows manual trigger if needed
 
 jobs:
