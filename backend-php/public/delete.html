@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Delete Account</title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 40px; }
+        .container { max-width: 400px; margin: auto; }
+        label, input { display: block; margin-bottom: 10px; }
+        button { margin-top: 10px; }
+        #deleteSection { display: none; margin-top: 20px; }
+        #message { margin-top: 20px; color: red; }
+    </style>
+</head>
+<body>
+<div class="container">
+    <h2>Login to Delete Account</h2>
+    <form id="loginForm">
+        <label for="username">Username or Email:</label>
+        <input type="text" id="username" name="username" required>
+        <label for="password">Password:</label>
+        <input type="password" id="password" name="password" required>
+        <button type="submit">Login</button>
+    </form>
+    <div id="deleteSection">
+        <p>Logged in as <span id="userInfo"></span></p>
+        <button id="deleteBtn">Delete My Account</button>
+    </div>
+    <div id="message"></div>
+</div>
+<script>
+let accessToken = '';
+let userRole = '';
+
+document.getElementById('loginForm').onsubmit = async function(e) {
+    e.preventDefault();
+    document.getElementById('message').textContent = '';
+    const username = document.getElementById('username').value;
+    const password = document.getElementById('password').value;
+
+    try {
+        const res = await fetch('/api/auth/login', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({username, password})
+        });
+        if (!res.ok) throw new Error('Login failed');
+        const data = await res.json();
+        accessToken = data.access_token;
+        userRole = data.user.Role || data.user.role;
+        document.getElementById('userInfo').textContent = data.user.Username || data.user.username;
+        document.getElementById('loginForm').style.display = 'none';
+        document.getElementById('deleteSection').style.display = 'block';
+    } catch (err) {
+        document.getElementById('message').textContent = 'Login failed: ' + err.message;
+    }
+};
+
+document.getElementById('deleteBtn').onclick = async function() {
+    if (!confirm('Are you sure you want to delete your account? This action cannot be undone.')) return;
+    document.getElementById('message').textContent = '';
+    try {
+        const res = await fetch(`/api/${userRole}/delete`, {
+            method: 'POST',
+            headers: {
+                'Authorization': 'Bearer ' + accessToken,
+                'Content-Type': 'application/json'
+            }
+        });
+        if (!res.ok) throw new Error('Delete failed');
+        document.getElementById('message').textContent = 'Account deleted successfully.';
+        document.getElementById('deleteBtn').disabled = true;
+    } catch (err) {
+        document.getElementById('message').textContent = 'Delete failed: ' + err.message;
+    }
+};
+</script>
+</body>
+</html>

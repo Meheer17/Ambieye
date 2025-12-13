@@ -1,0 +1,26 @@
+# Dependencies
+vendor/
+composer.lock
+
+# Environment files
+.env
+.env.local
+.env.*.local
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*.swn
+.DS_Store
+
+# PHP
+*.php~
+*.phar
+
+# Logs
+*.log
+
+# OS
+Thumbs.db
