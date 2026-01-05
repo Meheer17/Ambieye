@@ -35,8 +35,16 @@ class Router {
     }
 
     public function route() {
-        // Remove base path and trailing slash
+        // Extract the path from REQUEST_URI
+        $this->path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+        
+        // Remove base paths - handle various server configurations
         $this->path = preg_replace('#^/Ambieye/backend-php/public#', '', $this->path);
+        $this->path = preg_replace('#^/public#', '', $this->path);
+        
+        // Ensure path starts with /
+        $this->path = '/' . ltrim($this->path, '/');
+        // Remove trailing slash but keep root as /
         $this->path = rtrim($this->path, '/') ?: '/';
 
         // Set CORS headers
@@ -56,6 +64,14 @@ class Router {
 
         // Route requests
         switch (true) {
+            // Health check
+            case $this->path === '/health' && $this->method === 'GET':
+                $this->response([
+                    'status' => 200,
+                    'response' => ['message' => 'API is healthy', 'timestamp' => date('Y-m-d H:i:s')]
+                ]);
+                break;
+
             // Static pages
             case $this->path === '/privacy-policy' && $this->method === 'GET':
                 $this->serveFile(__DIR__ . '/../../public/privacy.html');

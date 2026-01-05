@@ -1,0 +1,832 @@
+{
+    "info": {
+        "name": "Ambieye API",
+        "description": "Complete API collection for Ambieye Backend",
+        "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+    },
+    "auth": {
+        "type": "bearer",
+        "bearer": [
+            {
+                "key": "token",
+                "value": "{{access_token}}",
+                "type": "string"
+            }
+        ]
+    },
+    "item": [
+        {
+            "name": "Health Check",
+            "item": [
+                {
+                    "name": "Health Status",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/health",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "health"
+                            ]
+                        },
+                        "description": "Check if API is healthy and running"
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Authentication",
+            "item": [
+                {
+                    "name": "Login",
+                    "event": [
+                        {
+                            "listen": "test",
+                            "script": {
+                                "exec": [
+                                    "if (pm.response.code === 200) {",
+                                    "    var jsonData = pm.response.json();",
+                                    "    if (jsonData.accessToken) {",
+                                    "        pm.environment.set('access_token', jsonData.accessToken);",
+                                    "    }",
+                                    "    if (jsonData.refreshToken) {",
+                                    "        pm.environment.set('refresh_token', jsonData.refreshToken);",
+                                    "    }",
+                                    "}"
+                                ]
+                            }
+                        }
+                    ],
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"username\": \"doctor_user\",\n  \"password\": \"password123\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/auth/login",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "auth",
+                                "login"
+                            ]
+                        },
+                        "description": "Login with username and password"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Signup (Patient)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"fullName\": \"John Doe\",\n  \"username\": \"johndoe\",\n  \"email\": \"john@example.com\",\n  \"password\": \"password123\",\n  \"role\": \"patient\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/auth/signup",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "auth",
+                                "signup"
+                            ]
+                        },
+                        "description": "Register a new patient"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Signup (Doctor)",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"fullName\": \"Dr. Jane Smith\",\n  \"username\": \"drjane\",\n  \"email\": \"jane@example.com\",\n  \"password\": \"password123\",\n  \"role\": \"doctor\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/auth/signup",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "auth",
+                                "signup"
+                            ]
+                        },
+                        "description": "Register a new doctor"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Verify Token",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/auth/verify",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "auth",
+                                "verify"
+                            ]
+                        },
+                        "description": "Verify if the token is valid"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Logout",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/auth/logout",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "auth",
+                                "logout"
+                            ]
+                        },
+                        "description": "Logout the user"
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Doctor Routes",
+            "item": [
+                {
+                    "name": "Get Dashboard",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/doctor/dashboard",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "doctor",
+                                "dashboard"
+                            ]
+                        },
+                        "description": "Get doctor's dashboard information"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Doctor Profile",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/doctor/profile",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "doctor",
+                                "profile"
+                            ]
+                        },
+                        "description": "Get doctor's profile"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get All Patients",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/doctor/patients",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "doctor",
+                                "patients"
+                            ]
+                        },
+                        "description": "Get all patients assigned to the doctor"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Patient by ID",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/doctor/patients/1",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "doctor",
+                                "patients",
+                                "1"
+                            ]
+                        },
+                        "description": "Get specific patient details by ID"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update Patient Medical Info",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"allergies\": [\"Penicillin\", \"Aspirin\"],\n  \"bloodType\": \"O+\",\n  \"medications\": [\"Metformin\"],\n  \"conditions\": [\"Diabetes\"]\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/doctor/patients/medicalinfo/1",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "doctor",
+                                "patients",
+                                "medicalinfo",
+                                "1"
+                            ]
+                        },
+                        "description": "Update a patient's medical information"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Add Patient Visit Record",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"visitDate\": \"2025-12-21\",\n  \"symptoms\": \"Fever, cough\",\n  \"diagnosis\": \"Common cold\",\n  \"treatment\": \"Rest and fluids\",\n  \"notes\": \"Follow up in 3 days\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/doctor/patients/visitrecord/1",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "doctor",
+                                "patients",
+                                "visitrecord",
+                                "1"
+                            ]
+                        },
+                        "description": "Add a visit record for a patient"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get All Queries",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/doctor/queries",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "doctor",
+                                "queries"
+                            ]
+                        },
+                        "description": "Get all queries for the doctor"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Delete Doctor Account",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/doctor/delete",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "doctor",
+                                "delete"
+                            ]
+                        },
+                        "description": "Delete doctor's account"
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Patient Routes",
+            "item": [
+                {
+                    "name": "Get Dashboard",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patient/dashboard",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patient",
+                                "dashboard"
+                            ]
+                        },
+                        "description": "Get patient's dashboard"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Patient Profile",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patient/profile",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patient",
+                                "profile"
+                            ]
+                        },
+                        "description": "Get patient's profile"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Update Patient Profile",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"fullName\": \"John Doe\",\n  \"phone\": \"555-1234\",\n  \"age\": \"30\",\n  \"gender\": \"Male\",\n  \"address\": \"123 Main St, City\",\n  \"dateOfBirth\": \"1995-01-15\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/patient/profile",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patient",
+                                "profile"
+                            ]
+                        },
+                        "description": "Update patient's profile"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Doctor by ID",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patient/doctors/1",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patient",
+                                "doctors",
+                                "1"
+                            ]
+                        },
+                        "description": "Get a specific doctor's details"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Patient Queries",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patient/queries",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patient",
+                                "queries"
+                            ]
+                        },
+                        "description": "Get all queries created by the patient"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Delete Patient Account",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/patient/delete",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "patient",
+                                "delete"
+                            ]
+                        },
+                        "description": "Delete patient's account"
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Queries",
+            "item": [
+                {
+                    "name": "Create Query",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"question\": \"I have been experiencing persistent headaches for the past week\",\n  \"urgency\": \"medium\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/queries",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "queries"
+                            ]
+                        },
+                        "description": "Create a new query (patient only)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Query by ID",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/queries/1",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "queries",
+                                "1"
+                            ]
+                        },
+                        "description": "Get a specific query by ID"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Answer Query",
+                    "request": {
+                        "method": "PUT",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"response\": \"Headaches can have various causes. I recommend: 1) Get adequate sleep, 2) Stay hydrated, 3) Avoid stress. If it persists, please schedule a visit.\",\n  \"status\": \"answered\"\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/queries/1/answer",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "queries",
+                                "1",
+                                "answer"
+                            ]
+                        },
+                        "description": "Answer a query (doctor only)"
+                    },
+                    "response": []
+                }
+            ]
+        },
+        {
+            "name": "Games",
+            "item": [
+                {
+                    "name": "Save Game Result",
+                    "request": {
+                        "method": "POST",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}",
+                                "type": "text"
+                            },
+                            {
+                                "key": "Content-Type",
+                                "value": "application/json"
+                            }
+                        ],
+                        "body": {
+                            "mode": "raw",
+                            "raw": "{\n  \"gameId\": 1,\n  \"score\": 850,\n  \"duration\": 245.5,\n  \"details\": {\n    \"level\": 5,\n    \"accuracy\": 92.5,\n    \"completionTime\": \"245.5 seconds\"\n  }\n}"
+                        },
+                        "url": {
+                            "raw": "{{base_url}}/api/games/results",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "games",
+                                "results"
+                            ]
+                        },
+                        "description": "Save a game result (patient only)"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Today's Game Results",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/games/today",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "games",
+                                "today"
+                            ]
+                        },
+                        "description": "Get game results from today"
+                    },
+                    "response": []
+                },
+                {
+                    "name": "Get Game History",
+                    "request": {
+                        "method": "GET",
+                        "header": [
+                            {
+                                "key": "Authorization",
+                                "value": "Bearer {{access_token}}",
+                                "type": "text"
+                            }
+                        ],
+                        "url": {
+                            "raw": "{{base_url}}/api/games/history",
+                            "host": [
+                                "{{base_url}}"
+                            ],
+                            "path": [
+                                "api",
+                                "games",
+                                "history"
+                            ]
+                        },
+                        "description": "Get complete game history"
+                    },
+                    "response": []
+                }
+            ]
+        }
+    ],
+    "variable": [
+        {
+            "key": "base_url",
+            "value": "http://localhost/Ambieye/backend-php/public",
+            "type": "string"
+        },
+        {
+            "key": "access_token",
+            "value": "",
+            "type": "string"
+        },
+        {
+            "key": "refresh_token",
+            "value": "",
+            "type": "string"
+        }
+    ]
+}
