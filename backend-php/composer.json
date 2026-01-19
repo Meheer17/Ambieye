@@ -14,7 +14,8 @@
             "Config\\": "src/config/",
             "Db\\": "src/db/",
             "Auth\\": "src/auth/",
-            "Api\\": "src/api/"
+            "Api\\": "src/api/",
+            "Models\\": "src/models/"
         }
     }
 }

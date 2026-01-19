@@ -37,7 +37,9 @@
           "imageWidth": 320,
           "imageResizeMode": "contain"
         }
-      ]
+      ],
+      "@react-native-community/datetimepicker",
+      "expo-web-browser"
     ],
     "splash": {
       "image": "./assets/images/logowithbg.png",

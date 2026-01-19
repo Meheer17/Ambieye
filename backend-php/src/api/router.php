@@ -96,6 +96,22 @@ class Router {
                 $this->response($this->handlers['auth']->verify());
                 break;
 
+            // Unified profile endpoint (works for both doctor and patient)
+            case preg_match('#^/api/profile$#', $this->path) && $this->method === 'GET':
+                $authMiddleware = new AuthMiddleware($this->config->jwt['secret']);
+                $authMiddleware->verify();
+                $userRole = $_SERVER['role'] ?? null;
+                if ($userRole === 'doctor') {
+                    $this->response($this->handlers['doctor']->getProfile());
+                } elseif ($userRole === 'patient') {
+                    $this->response($this->handlers['patient']->getProfile());
+                } else {
+                    http_response_code(403);
+                    echo json_encode(['error' => 'Invalid user role']);
+                    exit;
+                }
+                break;
+
             // Doctor routes
             case preg_match('#^/api/doctor/dashboard$#', $this->path) && $this->method === 'GET':
                 $authMiddleware = new AuthMiddleware($this->config->jwt['secret']);
@@ -150,8 +166,17 @@ class Router {
             case preg_match('#^/api/patient/profile$#', $this->path) && $this->method === 'GET':
                 $authMiddleware = new AuthMiddleware($this->config->jwt['secret']);
                 $authMiddleware->verify();
-                RoleMiddleware::checkRole('patient');
-                $this->response($this->handlers['patient']->getProfile());
+                // Allow both patients and doctors to access their own profile
+                $userRole = $_SERVER['role'] ?? null;
+                if ($userRole === 'patient') {
+                    $this->response($this->handlers['patient']->getProfile());
+                } elseif ($userRole === 'doctor') {
+                    $this->response($this->handlers['doctor']->getProfile());
+                } else {
+                    http_response_code(403);
+                    echo json_encode(['error' => 'Invalid user role']);
+                    exit;
+                }
                 break;
             case preg_match('#^/api/patient/profile$#', $this->path) && $this->method === 'PUT':
                 $authMiddleware = new AuthMiddleware($this->config->jwt['secret']);
@@ -179,7 +204,7 @@ class Router {
                 break;
 
             // Query routes
-            case preg_match('#^/api/queries$#', $this->path) && $this->method === 'POST':
+            case preg_match('#^/api/patient/queries$#', $this->path) && $this->method === 'POST':
                 $authMiddleware = new AuthMiddleware($this->config->jwt['secret']);
                 $authMiddleware->verify();
                 RoleMiddleware::checkRole('patient');

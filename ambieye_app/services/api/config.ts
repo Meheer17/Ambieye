@@ -1,7 +1,7 @@
 export const API_CONFIG = {
   // Change this to your actual API domain in production
   BASE_URL: "https://p01--ambieye--6s9l5yxyj7q6.code.run/api",
-  // BASE_URL: "http://180.235.121.245:2327/api",
+  // BASE_URL: "http://192.168.0.110:5000/api",
 
   ENDPOINTS: {
     AUTH: {

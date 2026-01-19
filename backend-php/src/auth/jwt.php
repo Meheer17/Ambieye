@@ -62,8 +62,18 @@ class JWTHandler {
      * Extract token from Authorization header
      */
     public static function getTokenFromHeader() {
-        $headers = getallheaders();
-        $authHeader = $headers['Authorization'] ?? '';
+        // Try to get the Authorization header from different sources
+        $authHeader = null;
+
+        // Check $_SERVER['HTTP_AUTHORIZATION'] first (most reliable)
+        if (!empty($_SERVER['HTTP_AUTHORIZATION'])) {
+            $authHeader = $_SERVER['HTTP_AUTHORIZATION'];
+        }
+        // Try getallheaders() as fallback
+        elseif (function_exists('getallheaders')) {
+            $headers = getallheaders();
+            $authHeader = $headers['Authorization'] ?? '';
+        }
 
         if (empty($authHeader)) {
             throw new \Exception('Missing Authorization header');

@@ -226,7 +226,7 @@ class AuthHandler {
             if (!$userId) {
                 return [
                     'status' => 401,
-                    'response' => ['error' => 'Unauthorized']
+                    'response' => ['error' => 'User ID not found in token']
                 ];
             }
 
@@ -243,12 +243,14 @@ class AuthHandler {
 
             return [
                 'status' => 200,
-                'response' => $user
+                'response' => [
+                    'user' => $user
+                ]
             ];
         } catch (\Exception $e) {
             return [
                 'status' => 500,
-                'response' => ['error' => 'Error verifying token']
+                'response' => ['error' => 'Database error']
             ];
         }
     }
@@ -259,7 +261,7 @@ class AuthHandler {
     public function logout() {
         return [
             'status' => 200,
-            'response' => ['message' => 'Logged out successfully']
+            'response' => ['message' => 'Successfully logged out']
         ];
     }
 }

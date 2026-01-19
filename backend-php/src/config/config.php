@@ -20,8 +20,8 @@ class Config {
         // Database configuration
         $this->database['host'] = getenv('DB_HOST') ?: 'localhost';
         $this->database['port'] = getenv('DB_PORT') ?: '3306';
-        $this->database['user'] = getenv('DB_USER') ?: 'root';
-        $this->database['password'] = getenv('DB_PASSWORD') ?: '';
+        $this->database['user'] = getenv('DB_USER') ?: 'ambieye';
+        $this->database['password'] = getenv('DB_PASSWORD') ?: 'ambieye123';
         $this->database['database'] = getenv('DB_NAME') ?: 'ambieye';
 
         // JWT configuration

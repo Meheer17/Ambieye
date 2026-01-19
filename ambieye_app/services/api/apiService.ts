@@ -68,7 +68,7 @@ export const authService = {
       // Save tokens and user data
       await AsyncStorage.setItem("access_token", access_token);
       await AsyncStorage.setItem("refresh_token", refresh_token || "");
-      await AsyncStorage.setItem("userId", user.id);
+      await AsyncStorage.setItem("userId", String(user.id));
       await AsyncStorage.setItem("username", user.username);
       await AsyncStorage.setItem("userType", user.role); // 'doctor' or 'patient'
 
@@ -109,7 +109,7 @@ export const authService = {
       // Save tokens and user data
       await AsyncStorage.setItem("access_token", access_token);
       await AsyncStorage.setItem("refresh_token", refresh_token || "");
-      await AsyncStorage.setItem("userId", user.id);
+      await AsyncStorage.setItem("userId", String(user.id));
       await AsyncStorage.setItem("username", user.username);
       await AsyncStorage.setItem("userType", user.role); // 'doctor' or 'patient'
 

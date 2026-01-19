@@ -3,6 +3,8 @@
 namespace Api\Handlers;
 
 use Db\Database;
+use Db\Models\MedicalInfo;
+use Db\Models\VisitRecord;
 
 class PatientHandler {
     private $pdo;
@@ -20,28 +22,52 @@ class PatientHandler {
             if (!$patientId) {
                 return [
                     'status' => 401,
-                    'response' => ['error' => 'Unauthorized']
+                    'response' => ['error' => 'User ID not found']
                 ];
             }
 
-            // Get query counts
-            $stmt = $this->pdo->prepare('SELECT status, COUNT(*) as count FROM queries WHERE patientId = ? GROUP BY status');
-            $stmt->execute([$patientId]);
-            $queryCounts = $stmt->fetchAll(\PDO::FETCH_KEY_PAIR);
+            // Get pending queries count
+            $stmt = $this->pdo->prepare('SELECT COUNT(*) as count FROM queries WHERE patientId = ? AND status = ?');
+            $stmt->execute([$patientId, 'pending']);
+            $pendingCount = (int) ($stmt->fetch(\PDO::FETCH_ASSOC)['count'] ?? 0);
 
-            // Get game results count
-            $stmt = $this->pdo->prepare('SELECT COUNT(*) as count FROM gameResults WHERE userId = ?');
+            // Get answered queries count
+            $stmt = $this->pdo->prepare('SELECT COUNT(*) as count FROM queries WHERE patientId = ? AND status = ?');
+            $stmt->execute([$patientId, 'answered']);
+            $answeredCount = (int) ($stmt->fetch(\PDO::FETCH_ASSOC)['count'] ?? 0);
+
+            // Get recent queries (last 5)
+            $stmt = $this->pdo->prepare('
+                SELECT q.*, u.fullName as doctorName
+                FROM queries q
+                LEFT JOIN users u ON q.doctorId = u.id
+                WHERE q.patientId = ?
+                ORDER BY q.updatedAt DESC
+                LIMIT 5
+            ');
             $stmt->execute([$patientId]);
-            $result = $stmt->fetch(\PDO::FETCH_ASSOC);
-            $gamesPlayedCount = $result['count'] ?? 0;
+            $recentQueries = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Get available doctors
+            $stmt = $this->pdo->prepare('SELECT id, fullName, username, email, phone, role FROM users WHERE role = ?');
+            $stmt->execute(['doctor']);
+            $doctors = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            // Remove password from doctors array
+            foreach ($doctors as &$doctor) {
+                unset($doctor['password']);
+            }
 
             return [
                 'status' => 200,
                 'response' => [
-                    'pendingQueries' => (int) ($queryCounts['pending'] ?? 0),
-                    'answeredQueries' => (int) ($queryCounts['answered'] ?? 0),
-                    'closedQueries' => (int) ($queryCounts['closed'] ?? 0),
-                    'gamesPlayed' => $gamesPlayedCount,
+                    'stats' => [
+                        'pendingQueries' => $pendingCount,
+                        'answeredQueries' => $answeredCount,
+                        'totalQueries' => $pendingCount + $answeredCount,
+                    ],
+                    'recentQueries' => $recentQueries,
+                    'doctors' => $doctors,
                 ]
             ];
         } catch (\Exception $e) {
@@ -61,12 +87,12 @@ class PatientHandler {
             if (!$patientId) {
                 return [
                     'status' => 401,
-                    'response' => ['error' => 'Unauthorized']
+                    'response' => ['error' => 'User ID not found']
                 ];
             }
 
-            $stmt = $this->pdo->prepare('SELECT * FROM users WHERE id = ? AND role = "patient"');
-            $stmt->execute([$patientId]);
+            $stmt = $this->pdo->prepare('SELECT * FROM users WHERE id = ? AND role = ?');
+            $stmt->execute([$patientId, 'patient']);
             $patient = $stmt->fetch(\PDO::FETCH_ASSOC);
 
             if (!$patient) {
@@ -76,12 +102,36 @@ class PatientHandler {
                 ];
             }
 
-            $patient['medicalInfo'] = json_decode($patient['medicalInfo'] ?? '{}', true);
-            $patient['visitRecords'] = json_decode($patient['visitRecords'] ?? '[]', true);
+            // Remove password
+            unset($patient['password']);
+
+            // Parse JSON fields using model classes
+            $medicalInfoData = json_decode($patient['medicalInfo'] ?? '{}', true);
+            $patient['medicalInfo'] = MedicalInfo::fromArray($medicalInfoData)->toArray();
+            
+            $visitRecordsData = json_decode($patient['visitRecords'] ?? '[]', true);
+            $patient['visitRecords'] = array_map(function($record) {
+                return VisitRecord::fromArray($record)->toArray();
+            }, $visitRecordsData);
+
+            // Get query stats
+            $stmt = $this->pdo->prepare('SELECT COUNT(*) as count FROM queries WHERE patientId = ?');
+            $stmt->execute([$patientId]);
+            $totalQueries = (int) ($stmt->fetch(\PDO::FETCH_ASSOC)['count'] ?? 0);
+
+            $stmt = $this->pdo->prepare('SELECT COUNT(*) as count FROM queries WHERE patientId = ? AND status = ?');
+            $stmt->execute([$patientId, 'answered']);
+            $answeredQueries = (int) ($stmt->fetch(\PDO::FETCH_ASSOC)['count'] ?? 0);
 
             return [
                 'status' => 200,
-                'response' => $patient
+                'response' => [
+                    'profile' => $patient,
+                    'stats' => [
+                        'totalQueries' => $totalQueries,
+                        'answeredQueries' => $answeredQueries,
+                    ]
+                ]
             ];
         } catch (\Exception $e) {
             return [
@@ -100,6 +150,8 @@ class PatientHandler {
             $stmt->execute([$doctorId]);
             $doctor = $stmt->fetch(\PDO::FETCH_ASSOC);
 
+            error_log('getDoctorById - Doctor ID: ' . $doctorId . ', Result: ' . json_encode($doctor));
+
             if (!$doctor) {
                 return [
                     'status' => 404,
@@ -109,9 +161,10 @@ class PatientHandler {
 
             return [
                 'status' => 200,
-                'response' => $doctor
+                'response' => ['doctor' => $doctor]
             ];
         } catch (\Exception $e) {
+            error_log('getDoctorById error: ' . $e->getMessage());
             return [
                 'status' => 500,
                 'response' => ['error' => 'Database error']
@@ -128,31 +181,37 @@ class PatientHandler {
             if (!$patientId) {
                 return [
                     'status' => 401,
-                    'response' => ['error' => 'Unauthorized']
+                    'response' => ['error' => 'User ID not found']
                 ];
             }
 
             $now = date('Y-m-d H:i:s');
-            $stmt = $this->pdo->prepare('
-                UPDATE users 
-                SET fullName = ?, email = ?, phone = ?, age = ?, gender = ?, 
-                    fatherName = ?, motherName = ?, address = ?, dateOfBirth = ?, updatedAt = ?
-                WHERE id = ? AND role = "patient"
-            ');
+            $updates = [];
+            $params = [];
+            $allowedFields = ['fullName', 'email', 'phone', 'age', 'gender', 'fatherName', 'motherName', 'address', 'dateOfBirth', 'doctor_id'];
 
-            $stmt->execute([
-                $data['fullName'] ?? null,
-                $data['email'] ?? null,
-                $data['phone'] ?? null,
-                $data['age'] ?? null,
-                $data['gender'] ?? null,
-                $data['fatherName'] ?? null,
-                $data['motherName'] ?? null,
-                $data['address'] ?? null,
-                $data['dateOfBirth'] ?? null,
-                $now,
-                $patientId,
-            ]);
+            foreach ($allowedFields as $field) {
+                if (isset($data[$field]) && $data[$field] !== null && $data[$field] !== '') {
+                    $updates[] = "$field = ?";
+                    $params[] = $data[$field];
+                }
+            }
+
+            if (empty($updates)) {
+                return [
+                    'status' => 400,
+                    'response' => ['error' => 'No valid fields to update']
+                ];
+            }
+
+            $updates[] = 'updatedAt = ?';
+            $params[] = $now;
+            $params[] = $patientId;
+            $params[] = 'patient';
+
+            $sql = 'UPDATE users SET ' . implode(', ', $updates) . ' WHERE id = ? AND role = ?';
+            $stmt = $this->pdo->prepare($sql);
+            $stmt->execute($params);
 
             if ($stmt->rowCount() === 0) {
                 return [
@@ -166,9 +225,10 @@ class PatientHandler {
                 'response' => ['message' => 'Profile updated successfully']
             ];
         } catch (\Exception $e) {
+            error_log('Patient updateProfile error: ' . $e->getMessage());
             return [
                 'status' => 500,
-                'response' => ['error' => 'Database error']
+                'response' => ['error' => 'Failed to update profile']
             ];
         }
     }
@@ -182,25 +242,62 @@ class PatientHandler {
             if (!$patientId) {
                 return [
                     'status' => 401,
-                    'response' => ['error' => 'Unauthorized']
+                    'response' => ['error' => 'User ID not found']
                 ];
             }
 
-            $stmt = $this->pdo->prepare('
+            // Get pagination parameters
+            $page = isset($_GET['page']) ? (int) $_GET['page'] : 1;
+            $perPage = isset($_GET['perPage']) ? (int) $_GET['perPage'] : 10;
+            $page = max(1, $page);
+            $perPage = min(max(1, $perPage), 100);
+
+            // Get status filter if provided
+            $status = isset($_GET['status']) ? $_GET['status'] : null;
+            
+            // Build query
+            $whereClause = 'q.patientId = ?';
+            $params = [$patientId];
+            
+            if ($status) {
+                $whereClause .= ' AND q.status = ?';
+                $params[] = $status;
+            }
+
+            // Get total count
+            $stmt = $this->pdo->prepare("SELECT COUNT(*) as count FROM queries q WHERE $whereClause");
+            $stmt->execute($params);
+            $totalCount = (int) $stmt->fetch(\PDO::FETCH_ASSOC)['count'];
+
+            // Get queries with pagination
+            $offset = ($page - 1) * $perPage;
+            $stmt = $this->pdo->prepare("
                 SELECT q.*, u.fullName as doctorName
                 FROM queries q
                 LEFT JOIN users u ON q.doctorId = u.id
-                WHERE q.patientId = ?
+                WHERE $whereClause
                 ORDER BY q.createdAt DESC
-            ');
-            $stmt->execute([$patientId]);
+                LIMIT $perPage OFFSET $offset
+            ");
+            $stmt->execute($params);
             $queries = $stmt->fetchAll(\PDO::FETCH_ASSOC);
+
+            $totalPages = ceil($totalCount / $perPage);
 
             return [
                 'status' => 200,
-                'response' => $queries
+                'response' => [
+                    'queries' => $queries,
+                    'pagination' => [
+                        'page' => $page,
+                        'perPage' => $perPage,
+                        'totalItems' => $totalCount,
+                        'totalPages' => $totalPages,
+                    ]
+                ]
             ];
         } catch (\Exception $e) {
+            error_log('Patient updateProfile error: ' . $e->getMessage());
             return [
                 'status' => 500,
                 'response' => ['error' => 'Database error']
