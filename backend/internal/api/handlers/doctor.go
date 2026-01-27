@@ -582,7 +582,7 @@ func (h *DoctorHandler) AddPatientVisitRecord(c *gin.Context) {
 	)
 
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add visit record"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to add visit record" + err.Error()})
 		return
 	}
 

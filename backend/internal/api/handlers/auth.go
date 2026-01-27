@@ -153,6 +153,8 @@ func (h *AuthHandler) Signup(c *gin.Context) {
 		Address:     userData.Address,
 		DateOfBirth: userData.DateOfBirth,
 
+		VisitRecords: []models.VisitRecord{},
+
 		Uuid:      uuid.NewString()[0:7],
 		Email:     userData.Email,
 		Password:  string(hashedPassword),
