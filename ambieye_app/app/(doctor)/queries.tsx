@@ -7,7 +7,6 @@ import {
   TouchableOpacity,
   ActivityIndicator,
   Animated,
-  SafeAreaView,
   StatusBar,
   Platform,
   Modal,
@@ -17,6 +16,7 @@ import {
   KeyboardAvoidingView,
   RefreshControl,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import Feather from "@expo/vector-icons/Feather";
 import { doctorQueryService, DoctorQuery } from "@/services/api/doctorQueryService";
 
@@ -129,7 +129,7 @@ function QueryDetailsModal({
   if (isLoading) {
     return (
       <View style={modalStyles.loadingContainer}>
-        <ActivityIndicator size="large" color="#5f2446" />
+        <ActivityIndicator size="large" color="#0284C7" />
       </View>
     );
   }
@@ -500,7 +500,7 @@ const QueriesScreen = () => {
 
   const renderEmptyList = () => (
     <View style={styles.emptyContainer}>
-      <Feather name="inbox" size={50} color="#5f2446" />
+      <Feather name="inbox" size={50} color="#0284C7" />
       <Text style={styles.emptyText}>No queries found</Text>
 
       {filter !== "all" && (
@@ -527,7 +527,7 @@ const QueriesScreen = () => {
 
   return (
     <View style={{ flex: 1 }}>
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView style={styles.safeArea} edges={["top"]}>
         {/* Header */}
         <Animated.View
           style={[
@@ -551,7 +551,7 @@ const QueriesScreen = () => {
               style={styles.refreshButton}
               onPress={handleRefresh}
             >
-              <Feather name="refresh-cw" size={20} color="#5f2446" />
+              <Feather name="refresh-cw" size={20} color="#0284C7" />
             </TouchableOpacity>
           </View>
         </Animated.View>
@@ -624,7 +624,7 @@ const QueriesScreen = () => {
               <Feather 
                 name={includeAll ? "check-square" : "square"} 
                 size={18} 
-                color={includeAll ? "#5f2446" : "#666"} 
+                color={includeAll ? "#0284C7" : "#666"} 
               />
               <Text style={styles.includeAllText}>All patients</Text>
             </TouchableOpacity>
@@ -632,7 +632,7 @@ const QueriesScreen = () => {
 
           {isLoading && !refreshing ? (
             <View style={styles.loadingContainer}>
-              <ActivityIndicator size="large" color="#5f2446" />
+              <ActivityIndicator size="large" color="#0284C7" />
             </View>
           ) : error ? (
             <View style={styles.errorContainer}>
@@ -681,68 +681,73 @@ export default QueriesScreen;
 const modalStyles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#5f2446",
+    backgroundColor: "#0F172A",
   },
   header: {
-    height: 60,
-    backgroundColor: "#5f2446",
+    height: 64,
+    backgroundColor: "#0F172A",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 15,
+    paddingHorizontal: 20,
   },
   headerTitle: {
-    color: "white",
-    fontSize: 18,
-    fontWeight: "bold",
+    color: "#FFFFFF",
+    fontSize: 17,
+    fontWeight: "700",
   },
   backButton: {
-    padding: 5,
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "#F3F4F6",
   },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "#F3F4F6",
   },
   errorContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 20,
+    padding: 24,
   },
   errorText: {
-    fontSize: 16,
-    color: "#666",
+    fontSize: 15,
+    color: "#6B7280",
     textAlign: "center",
-    marginTop: 10,
+    marginTop: 12,
     marginBottom: 20,
   },
   errorButton: {
-    backgroundColor: "#5f2446",
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
+    backgroundColor: "#0EA5E9",
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 14,
   },
   errorButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "500",
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "600",
   },
   queryCard: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 16,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 20,
     margin: 16,
-    elevation: 2,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.5,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
+    elevation: 3,
   },
   patientSection: {
     flexDirection: "row",
@@ -750,126 +755,126 @@ const modalStyles = StyleSheet.create({
     marginBottom: 16,
   },
   patientAvatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#0D0145",
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    backgroundColor: "#0F172A",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 12,
+    marginRight: 14,
   },
   avatarText: {
-    color: "#fff",
+    color: "#FFFFFF",
     fontSize: 16,
-    fontWeight: "bold",
+    fontWeight: "700",
   },
   patientName: {
     fontSize: 16,
-    fontWeight: "bold",
-    color: "#333",
+    fontWeight: "700",
+    color: "#111827",
     marginBottom: 2,
   },
   queryDate: {
     fontSize: 12,
-    color: "#888",
+    color: "#9CA3AF",
   },
   urgencyBadge: {
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 12,
+    paddingHorizontal: 12,
+    borderRadius: 20,
     alignSelf: "flex-start",
     marginBottom: 16,
+    gap: 6,
   },
   urgencyDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    marginRight: 6,
   },
   urgencyText: {
     fontSize: 13,
-    fontWeight: "500",
+    fontWeight: "600",
   },
   queryTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#333",
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#111827",
     marginBottom: 10,
   },
   queryMessage: {
     fontSize: 15,
     lineHeight: 22,
-    color: "#555",
+    color: "#374151",
   },
   responseHistoryContainer: {
     marginHorizontal: 16,
     marginBottom: 16,
   },
   sectionTitle: {
-    fontSize: 17,
-    fontWeight: "bold",
-    color: "#333",
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#111827",
     marginBottom: 12,
   },
   previousResponse: {
-    backgroundColor: "#e8d5e1",
-    borderRadius: 12,
+    backgroundColor: "#EDE9FE",
+    borderRadius: 16,
     padding: 16,
     marginBottom: 12,
   },
   responseText: {
     fontSize: 15,
     lineHeight: 22,
-    color: "#333",
+    color: "#374151",
     marginBottom: 8,
   },
   responseDate: {
     fontSize: 12,
-    color: "#5f2446",
+    color: "#7C3AED",
     textAlign: "right",
+    fontWeight: "500",
   },
   responseContainer: {
     marginHorizontal: 16,
     marginBottom: 24,
   },
   responseInput: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
     padding: 16,
-    minHeight: 150,
+    minHeight: 140,
     fontSize: 15,
-    color: "#333",
+    color: "#111827",
     textAlignVertical: "top",
     marginBottom: 16,
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.5,
+    borderWidth: 1.5,
+    borderColor: "#E5E7EB",
   },
   submitButton: {
-    backgroundColor: "#5f2446",
-    borderRadius: 10,
+    backgroundColor: "#0EA5E9",
+    borderRadius: 14,
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     paddingVertical: 14,
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.5,
+    gap: 8,
+    shadowColor: "#0EA5E9",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   disabledButton: {
-    backgroundColor: "#9e7a8c",
+    backgroundColor: "#F9A8C9",
+    shadowOpacity: 0,
+    elevation: 0,
   },
   submitButtonText: {
-    color: "#fff",
-    fontWeight: "bold",
-    fontSize: 16,
-    marginLeft: 8,
+    color: "#FFFFFF",
+    fontWeight: "700",
+    fontSize: 15,
   },
 });
 
@@ -877,71 +882,76 @@ const modalStyles = StyleSheet.create({
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#5f2446",
-    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
+    backgroundColor: "#0F172A",
   },
   header: {
-    height: 60,
-    backgroundColor: "#5f2446",
-    paddingHorizontal: 16,
+    height: 64,
+    backgroundColor: "#0F172A",
+    paddingHorizontal: 20,
   },
   headerContent: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    height: "100%",
   },
   headerTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "white",
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#FFFFFF",
   },
   refreshButton: {
-    padding: 8,
-    borderRadius: 20,
-    backgroundColor: "#f0f0f0",
+    width: 36,
+    height: 36,
+    borderRadius: 11,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "#F3F4F6",
   },
   filterContainer: {
     flexDirection: "row",
     padding: 16,
     alignItems: "center",
     flexWrap: "wrap",
+    gap: 8,
   },
   filterButton: {
     paddingVertical: 8,
-    paddingHorizontal: 16,
+    paddingHorizontal: 18,
     borderRadius: 20,
-    backgroundColor: "#fff",
-    marginRight: 10,
-    marginBottom: 8,
-    elevation: 2,
+    backgroundColor: "#FFFFFF",
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.5,
+    shadowOpacity: 0.06,
+    shadowRadius: 4,
+    elevation: 1,
   },
   activeFilter: {
-    backgroundColor: "#5f2446",
+    backgroundColor: "#0EA5E9",
   },
   filterText: {
-    color: "#666",
-    fontWeight: "500",
+    color: "#6B7280",
+    fontWeight: "600",
+    fontSize: 13,
   },
   activeFilterText: {
-    color: "#fff",
+    color: "#FFFFFF",
   },
   includeAllButton: {
     flexDirection: "row",
     alignItems: "center",
     marginLeft: "auto",
+    gap: 4,
   },
   includeAllText: {
-    marginLeft: 4,
+    marginLeft: 2,
     fontSize: 12,
-    color: "#666",
+    color: "#6B7280",
+    fontWeight: "500",
   },
   loadingContainer: {
     flex: 1,
@@ -952,25 +962,25 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 20,
+    padding: 24,
   },
   errorText: {
-    fontSize: 16,
-    color: "#666",
+    fontSize: 15,
+    color: "#6B7280",
     textAlign: "center",
-    marginTop: 10,
+    marginTop: 12,
     marginBottom: 20,
   },
   retryButton: {
-    backgroundColor: "#5f2446",
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
+    backgroundColor: "#0EA5E9",
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 14,
   },
   retryButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "500",
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "600",
   },
   listContainer: {
     padding: 16,
@@ -978,51 +988,52 @@ const styles = StyleSheet.create({
     paddingBottom: 80,
   },
   queryCard: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
     padding: 16,
-    marginBottom: 16,
-    elevation: 2,
+    marginBottom: 10,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.5,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
   queryHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 10,
   },
   patientInfo: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 8,
   },
   patientName: {
     fontSize: 14,
-    color: "#555",
-    fontWeight: "500",
+    color: "#374151",
+    fontWeight: "600",
   },
   statusIndicator: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    marginLeft: 8,
   },
   queryDate: {
-    fontSize: 12,
-    color: "#888",
+    fontSize: 11,
+    color: "#9CA3AF",
   },
   queryTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#333",
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#111827",
     marginBottom: 8,
+    lineHeight: 21,
   },
   queryMessage: {
-    fontSize: 14,
-    color: "#666",
-    lineHeight: 20,
+    fontSize: 13,
+    color: "#6B7280",
+    lineHeight: 19,
     marginBottom: 12,
   },
   queryFooter: {
@@ -1030,69 +1041,77 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     flexWrap: "wrap",
+    gap: 6,
   },
   urgencyBadge: {
     flexDirection: "row",
     alignItems: "center",
     paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 12,
-    marginBottom: 4,
+    paddingHorizontal: 10,
+    borderRadius: 20,
+    gap: 5,
   },
   urgencyDot: {
-    width: 8,
-    height: 8,
+    width: 7,
+    height: 7,
     borderRadius: 4,
-    marginRight: 6,
   },
   urgencyText: {
     fontSize: 12,
-    fontWeight: "500",
+    fontWeight: "600",
   },
   statusBadge: {
     paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 12,
-    backgroundColor: "#f0f0f0",
+    paddingHorizontal: 10,
+    borderRadius: 20,
+    backgroundColor: "#F3F4F6",
   },
   statusText: {
     fontSize: 12,
-    color: "#666",
+    color: "#6B7280",
+    fontWeight: "500",
   },
   emptyContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     paddingBottom: 80,
+    paddingTop: 40,
   },
   emptyText: {
-    marginTop: 10,
-    fontSize: 16,
-    color: "#5f2446",
-    marginBottom: 20,
+    marginTop: 12,
+    fontSize: 17,
+    color: "#111827",
+    fontWeight: "700",
+    marginBottom: 6,
   },
   emptyViewAllButton: {
-    backgroundColor: "#5f2446",
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    marginBottom: 16,
+    backgroundColor: "#0EA5E9",
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 14,
+    marginBottom: 12,
+    shadowColor: "#0EA5E9",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   emptyViewAllButtonText: {
-    color: "#fff",
+    color: "#FFFFFF",
     fontSize: 14,
-    fontWeight: "500",
+    fontWeight: "700",
   },
   emptyIncludeAllButton: {
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#5f2446",
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: "#0EA5E9",
   },
   emptyIncludeAllButtonText: {
-    color: "#5f2446",
+    color: "#0EA5E9",
     fontSize: 14,
-    fontWeight: "500",
+    fontWeight: "600",
   },
 });

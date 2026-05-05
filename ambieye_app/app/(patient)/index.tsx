@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   StyleSheet,
   View,
@@ -10,18 +10,22 @@ import {
   Platform,
   TouchableWithoutFeedback,
   ActivityIndicator,
+  StatusBar,
+  BackHandler,
+  RefreshControl,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@/hooks/useAuth";
 import Feather from "@expo/vector-icons/Feather";
-import FontAwesome from "@expo/vector-icons/FontAwesome";
 import AntDesign from "@expo/vector-icons/AntDesign";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { router } from "expo-router";
-import { patientService } from "@/services/api/patientService";
+import { patientService, Query } from "@/services/api/patientService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { VisitRecord } from "@/services/api/doctorService";
+import { useFocusEffect } from "@react-navigation/native";
 
 export default function PatientHome() {
   const { username } = useAuth();
@@ -32,6 +36,16 @@ export default function PatientHome() {
   // History tab state
   const [gameHistory, setGameHistory] = useState<any[]>([]);
   const [historyIsLoading, setHistoryIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Queries state
+  const [queryStats, setQueryStats] = useState({
+    pending: 0,
+    answered: 0,
+    total: 0,
+  });
+  const [recentQueries, setRecentQueries] = useState<Query[]>([]);
+  const [queriesLoading, setQueriesLoading] = useState(true);
 
   // Reminder form state
   const [showReminderForm, setShowReminderForm] = useState(false);
@@ -52,81 +66,175 @@ export default function PatientHome() {
   const [selectedVisitRecord, setSelectedVisitRecord] = useState<any>(null);
   const [showVisitDetailsModal, setShowVisitDetailsModal] = useState(false);
 
-  // Fetch dashboard data
-  useEffect(() => {
-    // Load reminders from AsyncStorage
-    const loadReminders = async () => {
-      try {
-        const savedReminders = await AsyncStorage.getItem("reminders");
-        if (savedReminders) {
-          setReminders(JSON.parse(savedReminders));
-        } else {
-          setReminders([]);
-        }
-      } catch (error) {
-        console.error("Error loading reminders:", error);
+  const loadReminders = useCallback(async () => {
+    try {
+      const savedReminders = await AsyncStorage.getItem("reminders");
+      if (savedReminders) {
+        setReminders(JSON.parse(savedReminders));
+      } else {
         setReminders([]);
       }
-    };
-
-    loadReminders();
-
-    // Fetch profile data for visit history
-    const fetchProfileData = async () => {
-      setVisitHistoryLoading(true);
-      try {
-        const profileResponse = await patientService.getProfile();
-        if (profileResponse.success) {
-          setProfileData(profileResponse.profile);
-          if (profileResponse.profile.visitRecords) {
-            setVisitHistory(profileResponse.profile.visitRecords);
-          }
-
-          // Check doctor_id and redirect if missing
-          if (profileResponse.profile && !profileResponse.profile.doctor_id) {
-            router.replace("/settings");
-          }
-
-        } else {
-          console.error(
-            "Error fetching profile data:",
-            profileResponse.message,
-          );
-        }
-      } catch (error) {
-        console.error("Error fetching profile data:", error);
-      } finally {
-        setVisitHistoryLoading(false);
-      }
-    };
-
-    fetchProfileData();
+    } catch (error) {
+      console.error("Error loading reminders:", error);
+      setReminders([]);
+    }
   }, []);
 
-  // Fetch game history for both history and progress sections
-  useEffect(() => {
-    if (activeSection === "progress" || activeSection === "history") {
-      const fetchGameHistory = async () => {
-        setHistoryIsLoading(true);
-        try {
-          const response = await patientService.getGameHistory();
-          if (response.success) {
-            setGameHistory(response.history || []);
-          } else {
-            setGameHistory([]);
-            console.error("Failed to fetch game history:", response.message);
-          }
-        } catch (error) {
-          console.error("Error fetching game history:", error);
-          setGameHistory([]);
-        } finally {
-          setHistoryIsLoading(false);
+  const fetchProfileData = useCallback(async () => {
+    setVisitHistoryLoading(true);
+    try {
+      const profileResponse = await patientService.getProfile();
+      if (profileResponse.success) {
+        setProfileData(profileResponse.profile);
+        if (profileResponse.profile.visitRecords) {
+          setVisitHistory(profileResponse.profile.visitRecords);
         }
+
+        // Check doctor_id and redirect if missing
+        if (profileResponse.profile && !profileResponse.profile.doctor_id) {
+          router.replace("/settings");
+        }
+
+      } else {
+        console.error(
+          "Error fetching profile data:",
+          profileResponse.message,
+        );
+      }
+    } catch (error) {
+      console.error("Error fetching profile data:", error);
+    } finally {
+      setVisitHistoryLoading(false);
+    }
+  }, [router]);
+
+  // Fetch dashboard data
+  useEffect(() => {
+    loadReminders();
+    fetchProfileData();
+  }, [loadReminders, fetchProfileData]);
+
+  const fetchDashboardQueries = useCallback(async () => {
+    setQueriesLoading(true);
+    try {
+      const dashboardResponse = await patientService.getDashboard();
+      if (dashboardResponse.success) {
+        const stats = dashboardResponse.stats || {
+          pendingQueries: 0,
+          answeredQueries: 0,
+          totalQueries: 0,
+        };
+        setQueryStats({
+          pending: stats.pendingQueries || 0,
+          answered: stats.answeredQueries || 0,
+          total: stats.totalQueries || 0,
+        });
+        const recent = Array.isArray(dashboardResponse.recentQueries)
+          ? dashboardResponse.recentQueries.slice(0, 3)
+          : [];
+        setRecentQueries(recent);
+        return;
+      }
+
+      const queriesResponse = await patientService.getQueries();
+      if (queriesResponse.success) {
+        const sorted = [...queriesResponse.queries].sort(
+          (a: Query, b: Query) =>
+            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+        );
+        const pendingCount = queriesResponse.queries.filter(
+          (query: Query) => query.status === "pending",
+        ).length;
+        const answeredCount = queriesResponse.queries.filter(
+          (query: Query) =>
+            query.status === "answered" || query.status === "closed",
+        ).length;
+        setQueryStats({
+          pending: pendingCount,
+          answered: answeredCount,
+          total: queriesResponse.queries.length,
+        });
+        setRecentQueries(sorted.slice(0, 3));
+      } else {
+        setQueryStats({ pending: 0, answered: 0, total: 0 });
+        setRecentQueries([]);
+      }
+    } catch (error) {
+      console.error("Error fetching queries:", error);
+      setQueryStats({ pending: 0, answered: 0, total: 0 });
+      setRecentQueries([]);
+    } finally {
+      setQueriesLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchDashboardQueries();
+  }, [fetchDashboardQueries]);
+
+  useFocusEffect(
+    useCallback(() => {
+      const onBackPress = () => {
+        if (showVisitDetailsModal) {
+          setShowVisitDetailsModal(false);
+          return true;
+        }
+        if (showReminderForm) {
+          setShowReminderForm(false);
+          return true;
+        }
+        if (activeSection) {
+          setActiveSection(null);
+          return true;
+        }
+        return false;
       };
 
-      fetchGameHistory();
+      const subscription = BackHandler.addEventListener(
+        "hardwareBackPress",
+        onBackPress,
+      );
+      return () => subscription.remove();
+    }, [activeSection, showReminderForm, showVisitDetailsModal]),
+  );
+
+  const fetchGameHistory = useCallback(async () => {
+    setHistoryIsLoading(true);
+    try {
+      const response = await patientService.getGameHistory();
+      if (response.success) {
+        setGameHistory(response.history || []);
+      } else {
+        setGameHistory([]);
+        console.error("Failed to fetch game history:", response.message);
+      }
+    } catch (error) {
+      console.error("Error fetching game history:", error);
+      setGameHistory([]);
+    } finally {
+      setHistoryIsLoading(false);
     }
-  }, [activeSection]);
+  }, []);
+
+  useEffect(() => {
+    fetchGameHistory();
+  }, [fetchGameHistory]);
+
+  const handleRefresh = useCallback(async () => {
+    setIsRefreshing(true);
+    await Promise.all([
+      loadReminders(),
+      fetchProfileData(),
+      fetchGameHistory(),
+      fetchDashboardQueries(),
+    ]);
+    setIsRefreshing(false);
+  }, [
+    loadReminders,
+    fetchProfileData,
+    fetchGameHistory,
+    fetchDashboardQueries,
+  ]);
 
   // Save reminders to storage
   const saveReminders = async (updatedReminders: any[]) => {
@@ -253,11 +361,232 @@ export default function PatientHome() {
       minute: "2-digit",
     });
   };
+
+  const getAccuracyFromGame = (game: any) => {
+    const accuracyValue = game?.details?.accuracy ?? game?.accuracy;
+    if (accuracyValue !== undefined && accuracyValue !== null) {
+      const parsed =
+        typeof accuracyValue === "string"
+          ? parseFloat(accuracyValue)
+          : accuracyValue;
+      if (!Number.isNaN(parsed)) {
+        return Math.min(Math.max(parsed, 0), 100);
+      }
+    }
+
+    const scoreValue = parseFloat(game?.score?.toString() || "0");
+    if (!Number.isNaN(scoreValue)) {
+      return Math.min(Math.max((scoreValue / 10) * 100, 0), 100);
+    }
+
+    return 0;
+  };
+
+  const calculateAverageAccuracy = (games: any[]) => {
+    if (!games || games.length === 0) return 0;
+    const total = games.reduce(
+      (sum: number, game: any) => sum + getAccuracyFromGame(game),
+      0,
+    );
+    return Math.round(total / games.length);
+  };
+
+  const sortedGameHistory = useMemo(() => {
+    return [...gameHistory].sort(
+      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+    );
+  }, [gameHistory]);
+
+  const playedGameHistory = useMemo(() => {
+    return sortedGameHistory.filter((day: any) => {
+      const totalGames = day?.summary?.totalGames ?? day?.games?.length ?? 0;
+      return totalGames > 0;
+    });
+  }, [sortedGameHistory]);
+
+  const chartDays = useMemo(() => {
+    if (playedGameHistory.length <= 7) return playedGameHistory;
+    return playedGameHistory.slice(playedGameHistory.length - 7);
+  }, [playedGameHistory]);
+
+  const progressChartData = useMemo(
+    () =>
+      chartDays.map((day: any) => ({
+        label: new Date(day.date).toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        }),
+        value: day?.summary?.totalGames ?? day?.games?.length ?? 0,
+      })),
+    [chartDays],
+  );
+
+  const accuracyChartData = useMemo(
+    () =>
+      chartDays.map((day: any) => ({
+        label: new Date(day.date).toLocaleDateString("en-US", {
+          month: "short",
+          day: "numeric",
+        }),
+        value: Math.round(
+          day?.summary?.averageAccuracy ??
+          calculateAverageAccuracy(day?.games || []),
+        ),
+      })),
+    [chartDays],
+  );
+
+  const latestDayStats = useMemo(() => {
+    if (playedGameHistory.length === 0) {
+      return {
+        dateLabel: "No recent activity",
+        gamesPlayed: 0,
+        averageScore: 0,
+        averageAccuracy: 0,
+        minutesPlayed: 0,
+      };
+    }
+
+    const latestDay = playedGameHistory[playedGameHistory.length - 1];
+    const latestGames = latestDay?.games || [];
+    const totalGames = latestDay?.summary?.totalGames ?? latestGames.length;
+    const averageScore = Math.round(
+      latestDay?.summary?.averageScore ??
+      (latestGames.length
+        ? latestGames.reduce(
+          (sum: number, game: any) =>
+            sum + parseFloat(game?.score?.toString() || "0"),
+          0,
+        ) / latestGames.length
+        : 0),
+    );
+    const averageAccuracy = Math.round(
+      latestDay?.summary?.averageAccuracy ??
+      calculateAverageAccuracy(latestGames),
+    );
+    const totalPlayTimeSeconds =
+      latestDay?.summary?.totalPlayTime ??
+      latestGames.reduce(
+        (sum: number, game: any) => sum + (game?.time || 0),
+        0,
+      );
+
+    return {
+      dateLabel: new Date(latestDay.date).toLocaleDateString("en-US", {
+        month: "short",
+        day: "numeric",
+      }),
+      gamesPlayed: totalGames || 0,
+      averageScore: Number.isFinite(averageScore) ? averageScore : 0,
+      averageAccuracy: Number.isFinite(averageAccuracy) ? averageAccuracy : 0,
+      minutesPlayed: Math.round(totalPlayTimeSeconds / 60),
+    };
+  }, [playedGameHistory]);
+
+  const sortedVisitHistory = useMemo(() => {
+    return [...visitHistory].sort(
+      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+    );
+  }, [visitHistory]);
+
+  const progressChartMax = Math.max(
+    ...progressChartData.map((item) => item.value),
+    1,
+  );
+  const accuracyChartMax = 100;
+  const weeklyGamesTotal = progressChartData.reduce(
+    (sum, item) => sum + item.value,
+    0,
+  );
+  const weeklyAccuracyAverage = accuracyChartData.length
+    ? Math.round(
+      accuracyChartData.reduce((sum, item) => sum + item.value, 0) /
+      accuracyChartData.length,
+    )
+    : 0;
+
+  const renderChartBars = (
+    data: { label: string; value: number }[],
+    color: string,
+    maxValue: number,
+  ) => {
+    if (!data || data.length === 0) return null;
+
+    // Use flex-start with gap when few bars, space-between when many
+    const useSpaceBetween = data.length >= 4;
+
+    return (
+      <View style={[chartStyles.chartBars, !useSpaceBetween && { justifyContent: "flex-start", gap: 16 }]}>
+        {data.map((item, index) => {
+          const barHeight = Math.max(
+            8,
+            Math.round((item.value / maxValue) * 90),
+          );
+          return (
+            <View
+              key={`${item.label}-${index}`}
+              style={[chartStyles.chartBarItem, !useSpaceBetween && { flex: 0, width: 40 }]}
+            >
+              <Text style={chartStyles.chartValue}>{item.value}</Text>
+              <View
+                style={[
+                  chartStyles.chartBar,
+                  {
+                    height: barHeight,
+                    backgroundColor: color,
+                    opacity: item.value === 0 ? 0.35 : 1,
+                  },
+                ]}
+              />
+              <Text style={chartStyles.chartLabel}>{item.label}</Text>
+            </View>
+          );
+        })}
+      </View>
+    );
+  };
+
+  const gameCategories = [
+    {
+      key: "identification",
+      title: "Identify",
+      description: "Colors and symbols",
+      count: 5,
+      color: "#0EA5E9",
+      softColor: "rgba(14, 165, 233, 0.12)",
+      icon: "visibility" as const,
+    },
+    {
+      key: "movement",
+      title: "Movement",
+      description: "Tracking and motion",
+      count: 4,
+      color: "#8B5CF6",
+      softColor: "rgba(139, 92, 246, 0.12)",
+      icon: "track-changes" as const,
+    },
+    {
+      key: "cognitive",
+      title: "Cognitive",
+      description: "Memory and focus",
+      count: 3,
+      color: "#10B981",
+      softColor: "rgba(16, 185, 129, 0.12)",
+      icon: "psychology" as const,
+    },
+  ];
+
+  const handleCategoryPress = (categoryKey: string) => {
+    router.push({
+      pathname: "/games",
+      params: { category: categoryKey },
+    });
+  };
   const renderProgressSection = () => {
     if (historyIsLoading) {
       return (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#5f2446" />
+          <ActivityIndicator size="large" color="#0284C7" />
           <Text style={dashboardStyles.loadingText}>
             Loading your progress...
           </Text>
@@ -271,7 +600,7 @@ export default function PatientHome() {
           <MaterialIcons
             name="trending-up"
             size={60}
-            color="#5f2446"
+            color="#0284C7"
             style={{ opacity: 0.6 }}
           />
           <Text style={dashboardStyles.emptyStateTitle}>
@@ -295,7 +624,7 @@ export default function PatientHome() {
             <Feather
               name="arrow-left"
               size={18}
-              color="#5f2446"
+              color="#0284C7"
               style={{ marginRight: 5 }}
             />
             <Text style={dashboardStyles.backLink}>Back</Text>
@@ -336,7 +665,17 @@ export default function PatientHome() {
     //   : `${totalPlayTimeMinutes}m`;
 
     return (
-      <ScrollView style={styles.sectionContent}>
+      <ScrollView
+        style={styles.sectionContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            colors={["#0EA5E9"]}
+            tintColor="#0EA5E9"
+          />
+        }
+      >
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Progress</Text>
           <TouchableOpacity
@@ -346,7 +685,7 @@ export default function PatientHome() {
             <Feather
               name="arrow-left"
               size={18}
-              color="#5f2446"
+              color="#0284C7"
               style={{ marginRight: 5 }}
             />
             <Text style={dashboardStyles.backLink}>Back</Text>
@@ -490,7 +829,7 @@ export default function PatientHome() {
                 <Feather
                   name="arrow-left"
                   size={18}
-                  color="#5f2446"
+                  color="#0284C7"
                   style={{ marginRight: 5 }}
                 />
                 <Text style={dashboardStyles.backLink}>Back to Dashboard</Text>
@@ -556,7 +895,7 @@ export default function PatientHome() {
     if (historyIsLoading) {
       return (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#5f2446" />
+          <ActivityIndicator size="large" color="#0284C7" />
           <Text style={dashboardStyles.loadingText}>
             Loading your history...
           </Text>
@@ -570,7 +909,7 @@ export default function PatientHome() {
           <MaterialIcons
             name="history"
             size={60}
-            color="#5f2446"
+            color="#0284C7"
             style={{ opacity: 0.6 }}
           />
           <Text style={dashboardStyles.emptyStateTitle}>No History Yet</Text>
@@ -592,7 +931,7 @@ export default function PatientHome() {
             <Feather
               name="arrow-left"
               size={18}
-              color="#5f2446"
+              color="#0284C7"
               style={{ marginRight: 5 }}
             />
             <Text style={dashboardStyles.backLink}>Back</Text>
@@ -602,7 +941,17 @@ export default function PatientHome() {
     }
 
     return (
-      <ScrollView style={styles.sectionContent}>
+      <ScrollView
+        style={styles.sectionContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            colors={["#0EA5E9"]}
+            tintColor="#0EA5E9"
+          />
+        }
+      >
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Game History</Text>
           <TouchableOpacity
@@ -612,7 +961,7 @@ export default function PatientHome() {
             <Feather
               name="arrow-left"
               size={18}
-              color="#5f2446"
+              color="#0284C7"
               style={{ marginRight: 5 }}
             />
             <Text style={dashboardStyles.backLink}>Back</Text>
@@ -695,7 +1044,7 @@ export default function PatientHome() {
                             <Feather
                               name="clock"
                               size={14}
-                              color="#5f2446"
+                              color="#0284C7"
                               style={historyStyles.historyDetailIcon}
                             />
                             <Text style={historyStyles.historyTimeText}>
@@ -704,7 +1053,7 @@ export default function PatientHome() {
                             <Feather
                               name="award"
                               size={14}
-                              color="#5f2446"
+                              color="#0284C7"
                               style={historyStyles.historyDetailIcon}
                             />
                             <Text style={historyStyles.historyScoreText}>
@@ -747,7 +1096,17 @@ export default function PatientHome() {
   };
 
   const renderReminderSection = () => (
-    <ScrollView style={styles.sectionContent}>
+    <ScrollView
+      style={styles.sectionContent}
+      refreshControl={
+        <RefreshControl
+          refreshing={isRefreshing}
+          onRefresh={handleRefresh}
+          colors={["#0EA5E9"]}
+          tintColor="#0EA5E9"
+        />
+      }
+    >
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Reminders</Text>
         <View style={styles.headerActions}>
@@ -758,7 +1117,7 @@ export default function PatientHome() {
             <Feather
               name="plus"
               size={18}
-              color="#5f2446"
+              color="#0284C7"
               style={{ marginRight: 5 }}
             />
             <Text style={styles.addLink}>Add New</Text>
@@ -770,7 +1129,7 @@ export default function PatientHome() {
             <Feather
               name="arrow-left"
               size={18}
-              color="#5f2446"
+              color="#0284C7"
               style={{ marginRight: 5 }}
             />
             <Text style={dashboardStyles.backLink}>Back</Text>
@@ -781,8 +1140,8 @@ export default function PatientHome() {
       <View style={styles.remindersList}>
         {reminders.map((reminder) => (
           <View key={reminder.id} style={styles.reminderCard}>
-            <View style={[styles.reminderIcon, { backgroundColor: "#0D0145" }]}>
-              <AntDesign name="clockcircle" size={24} color="#fff" />
+            <View style={[styles.reminderIcon, { backgroundColor: "#0F172A" }]}>
+              <AntDesign name="clock-circle" size={24} color="#fff" />
             </View>
             <View style={styles.reminderContent}>
               <Text style={styles.reminderTitle}>{reminder.title}</Text>
@@ -790,14 +1149,14 @@ export default function PatientHome() {
                 <Feather
                   name="calendar"
                   size={14}
-                  color="#5f2446"
+                  color="#0284C7"
                   style={styles.reminderTimeIcon}
                 />
                 <Text style={styles.reminderDate}>{reminder.date}</Text>
                 <Feather
                   name="clock"
                   size={14}
-                  color="#5f2446"
+                  color="#0284C7"
                   style={styles.reminderTimeIcon}
                 />
                 <Text style={styles.reminderTime}>{reminder.time}</Text>
@@ -808,13 +1167,13 @@ export default function PatientHome() {
                 onPress={() => handleEditReminder(reminder)}
                 style={styles.reminderActionButton}
               >
-                <Feather name="edit" size={20} color="#5f2446" />
+                <Feather name="edit" size={20} color="#0284C7" />
               </TouchableOpacity>
               <TouchableOpacity
                 onPress={() => handleDeleteReminder(reminder.id)}
                 style={styles.reminderActionButton}
               >
-                <Feather name="trash-2" size={20} color="#5f2446" />
+                <Feather name="trash-2" size={20} color="#0284C7" />
               </TouchableOpacity>
             </View>
           </View>
@@ -871,7 +1230,7 @@ export default function PatientHome() {
               <Feather
                 name="calendar"
                 size={20}
-                color="#5f2446"
+                color="#0284C7"
                 style={{ marginRight: 10 }}
               />
               <Text style={styles.dateTimeText}>
@@ -891,7 +1250,7 @@ export default function PatientHome() {
               <Feather
                 name="clock"
                 size={20}
-                color="#5f2446"
+                color="#0284C7"
                 style={{ marginRight: 10 }}
               />
               <Text style={styles.dateTimeText}>
@@ -955,7 +1314,7 @@ export default function PatientHome() {
     if (visitHistoryLoading) {
       return (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#5f2446" />
+          <ActivityIndicator size="large" color="#0284C7" />
           <Text style={dashboardStyles.loadingText}>
             Loading visit history...
           </Text>
@@ -963,12 +1322,18 @@ export default function PatientHome() {
       );
     }
 
-    const sortedVisitHistory = [...visitHistory].sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-    );
-
     return (
-      <ScrollView style={styles.sectionContent}>
+      <ScrollView
+        style={styles.sectionContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            colors={["#0EA5E9"]}
+            tintColor="#0EA5E9"
+          />
+        }
+      >
         <View style={styles.sectionHeader}>
           <Text style={styles.sectionTitle}>Review Dates</Text>
           <TouchableOpacity
@@ -978,7 +1343,7 @@ export default function PatientHome() {
             <Feather
               name="arrow-left"
               size={18}
-              color="#5f2446"
+              color="#0284C7"
               style={{ marginRight: 5 }}
             />
             <Text style={dashboardStyles.backLink}>Back</Text>
@@ -994,7 +1359,7 @@ export default function PatientHome() {
             >
               <View style={dashboardStyles.visitRecordHeader}>
                 <View style={dashboardStyles.visitDateContainer}>
-                  <Feather name="calendar" size={16} color="#5f2446" />
+                  <Feather name="calendar" size={16} color="#0284C7" />
                   <Text style={dashboardStyles.visitDate}>
                     {formatDate(visit.date)}
                   </Text>
@@ -1045,424 +1410,827 @@ export default function PatientHome() {
           </View>
         )}
 
-        {/* Visit Details Modal */}
-        <Modal
-          visible={showVisitDetailsModal}
-          transparent={true}
-          animationType="fade"
-          onRequestClose={() => setShowVisitDetailsModal(false)}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
-              <View style={dashboardStyles.modalHeader}>
-                <Text style={styles.modalTitle}>Visit Details</Text>
-                <TouchableOpacity
-                  onPress={() => setShowVisitDetailsModal(false)}
-                >
-                  <Feather name="x" size={24} color="#333" />
-                </TouchableOpacity>
-              </View>
-
-              <ScrollView style={dashboardStyles.modalScrollContent}>
-                {selectedVisitRecord && (
-                  <>
-                    <View style={dashboardStyles.visitDetailHeader}>
-                      <Feather name="calendar" size={18} color="#5f2446" />
-                      <Text style={dashboardStyles.visitDetailDate}>
-                        {formatDate(selectedVisitRecord.date)}
-                      </Text>
-                    </View>
-
-                    {/* Vision Assessment Section */}
-                    <View style={dashboardStyles.visitDetailSection}>
-                      <Text style={dashboardStyles.visitDetailSectionTitle}>
-                        Vision Assessment
-                      </Text>
-
-                      {selectedVisitRecord.visiondistant && (
-                        <View style={dashboardStyles.visitDetailItem}>
-                          <Text style={dashboardStyles.visitDetailLabel}>
-                            Distant Vision:
-                          </Text>
-                          <Text style={dashboardStyles.visitDetailValue}>
-                            {selectedVisitRecord.visiondistant}
-                          </Text>
-                        </View>
-                      )}
-
-                      {selectedVisitRecord.visionnear && (
-                        <View style={dashboardStyles.visitDetailItem}>
-                          <Text style={dashboardStyles.visitDetailLabel}>
-                            Near Vision:
-                          </Text>
-                          <Text style={dashboardStyles.visitDetailValue}>
-                            {selectedVisitRecord.visionnear}
-                          </Text>
-                        </View>
-                      )}
-
-                      {selectedVisitRecord.bcvadistant && (
-                        <View style={dashboardStyles.visitDetailItem}>
-                          <Text style={dashboardStyles.visitDetailLabel}>
-                            BCVA Distant:
-                          </Text>
-                          <Text style={dashboardStyles.visitDetailValue}>
-                            {selectedVisitRecord.bcvadistant}
-                          </Text>
-                        </View>
-                      )}
-
-                      {selectedVisitRecord.bcvanear && (
-                        <View style={dashboardStyles.visitDetailItem}>
-                          <Text style={dashboardStyles.visitDetailLabel}>
-                            BCVA Near:
-                          </Text>
-                          <Text style={dashboardStyles.visitDetailValue}>
-                            {selectedVisitRecord.bcvanear}
-                          </Text>
-                        </View>
-                      )}
-
-                      {selectedVisitRecord.colorvision && (
-                        <View style={dashboardStyles.visitDetailItem}>
-                          <Text style={dashboardStyles.visitDetailLabel}>
-                            Color Vision:
-                          </Text>
-                          <Text style={dashboardStyles.visitDetailValue}>
-                            {selectedVisitRecord.colorvision}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-
-                    {/* Retinoscopy Section */}
-                    {(selectedVisitRecord.dryretinoscopy ||
-                      selectedVisitRecord.wetretinoscopy) && (
-                        <View style={dashboardStyles.visitDetailSection}>
-                          <Text style={dashboardStyles.visitDetailSectionTitle}>
-                            Retinoscopy
-                          </Text>
-
-                          {selectedVisitRecord.dryretinoscopy && (
-                            <View style={dashboardStyles.visitDetailItem}>
-                              <Text style={dashboardStyles.visitDetailLabel}>
-                                Dry Retinoscopy:
-                              </Text>
-                              <Text style={dashboardStyles.visitDetailValue}>
-                                {selectedVisitRecord.dryretinoscopy}
-                              </Text>
-                            </View>
-                          )}
-
-                          {selectedVisitRecord.wetretinoscopy && (
-                            <View style={dashboardStyles.visitDetailItem}>
-                              <Text style={dashboardStyles.visitDetailLabel}>
-                                Wet Retinoscopy:
-                              </Text>
-                              <Text style={dashboardStyles.visitDetailValue}>
-                                {selectedVisitRecord.wetretinoscopy}
-                              </Text>
-                            </View>
-                          )}
-                        </View>
-                      )}
-
-                    {/* Other Measurements Section */}
-                    {(selectedVisitRecord.pmtvisiontpg ||
-                      selectedVisitRecord.pgpower ||
-                      selectedVisitRecord.pmt ||
-                      selectedVisitRecord.pda ||
-                      selectedVisitRecord.adar ||
-                      selectedVisitRecord.ar ||
-                      selectedVisitRecord.nct) && (
-                        <View style={dashboardStyles.visitDetailSection}>
-                          <Text style={dashboardStyles.visitDetailSectionTitle}>
-                            Other Measurements
-                          </Text>
-
-                          {selectedVisitRecord.pmtvisiontpg && (
-                            <View style={dashboardStyles.visitDetailItem}>
-                              <Text style={dashboardStyles.visitDetailLabel}>
-                                PMT Vision TPG:
-                              </Text>
-                              <Text style={dashboardStyles.visitDetailValue}>
-                                {selectedVisitRecord.pmtvisiontpg}
-                              </Text>
-                            </View>
-                          )}
-
-                          {selectedVisitRecord.pgpower && (
-                            <View style={dashboardStyles.visitDetailItem}>
-                              <Text style={dashboardStyles.visitDetailLabel}>
-                                PG Power:
-                              </Text>
-                              <Text style={dashboardStyles.visitDetailValue}>
-                                {selectedVisitRecord.pgpower}
-                              </Text>
-                            </View>
-                          )}
-
-                          {selectedVisitRecord.pmt && (
-                            <View style={dashboardStyles.visitDetailItem}>
-                              <Text style={dashboardStyles.visitDetailLabel}>
-                                PMT:
-                              </Text>
-                              <Text style={dashboardStyles.visitDetailValue}>
-                                {selectedVisitRecord.pmt}
-                              </Text>
-                            </View>
-                          )}
-
-                          {selectedVisitRecord.pda && (
-                            <View style={dashboardStyles.visitDetailItem}>
-                              <Text style={dashboardStyles.visitDetailLabel}>
-                                PDA:
-                              </Text>
-                              <Text style={dashboardStyles.visitDetailValue}>
-                                {selectedVisitRecord.pda}
-                              </Text>
-                            </View>
-                          )}
-
-                          {selectedVisitRecord.adar && (
-                            <View style={dashboardStyles.visitDetailItem}>
-                              <Text style={dashboardStyles.visitDetailLabel}>
-                                ADAR:
-                              </Text>
-                              <Text style={dashboardStyles.visitDetailValue}>
-                                {selectedVisitRecord.adar}
-                              </Text>
-                            </View>
-                          )}
-
-                          {selectedVisitRecord.ar && (
-                            <View style={dashboardStyles.visitDetailItem}>
-                              <Text style={dashboardStyles.visitDetailLabel}>
-                                AR:
-                              </Text>
-                              <Text style={dashboardStyles.visitDetailValue}>
-                                {selectedVisitRecord.ar}
-                              </Text>
-                            </View>
-                          )}
-
-                          {selectedVisitRecord.nct && (
-                            <View style={dashboardStyles.visitDetailItem}>
-                              <Text style={dashboardStyles.visitDetailLabel}>
-                                NCT:
-                              </Text>
-                              <Text style={dashboardStyles.visitDetailValue}>
-                                {selectedVisitRecord.nct}
-                              </Text>
-                            </View>
-                          )}
-                        </View>
-                      )}
-
-                    {/* Prescription Section */}
-                    {selectedVisitRecord.glassPrescription && (
-                      <View style={dashboardStyles.visitDetailSection}>
-                        <Text style={dashboardStyles.visitDetailSectionTitle}>
-                          Prescription
-                        </Text>
-                        <View style={dashboardStyles.visitDetailItem}>
-                          <Text style={dashboardStyles.visitDetailLabel}>
-                            Glass Prescription:
-                          </Text>
-                          <Text style={dashboardStyles.visitDetailValue}>
-                            {selectedVisitRecord.glassPrescription}
-                          </Text>
-                        </View>
-                      </View>
-                    )}
-
-                    {/* Notes Section */}
-                    {selectedVisitRecord.notes && (
-                      <View style={dashboardStyles.visitDetailSection}>
-                        <Text style={dashboardStyles.visitDetailSectionTitle}>
-                          Notes
-                        </Text>
-                        <View style={dashboardStyles.visitDetailItem}>
-                          <Text style={dashboardStyles.visitDetailValue}>
-                            {selectedVisitRecord.notes}
-                          </Text>
-                        </View>
-                      </View>
-                    )}
-                  </>
-                )}
-              </ScrollView>
-
-              <TouchableOpacity
-                style={dashboardStyles.modalCloseButton}
-                onPress={() => setShowVisitDetailsModal(false)}
-              >
-                <Text style={dashboardStyles.modalCloseButtonText}>Close</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </Modal>
+        {/* Visit Details Modal is rendered at the top level */}
       </ScrollView>
     );
   };
 
-  return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      <View
-        style={[
-          styles.welcomeSection,
-          {
-            flexDirection: "row",
-            alignItems: "center",
-            justifyContent: "space-between",
-          },
-        ]}
-      >
-        <View>
-          <Text style={styles.welcomeText}>Hello,</Text>
-          <Text style={styles.patientName}>{username}</Text>
+  // Shared Visit Details Modal (accessible from both dashboard and reviewDates section)
+  const renderVisitDetailsModal = () => (
+    <Modal
+      visible={showVisitDetailsModal}
+      transparent={true}
+      animationType="fade"
+      onRequestClose={() => setShowVisitDetailsModal(false)}
+    >
+      <View style={styles.modalOverlay}>
+        <View style={styles.modalContent}>
+          <View style={dashboardStyles.modalHeader}>
+            <Text style={styles.modalTitle}>Visit Details</Text>
+            <TouchableOpacity
+              onPress={() => setShowVisitDetailsModal(false)}
+            >
+              <Feather name="x" size={24} color="#333" />
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView style={dashboardStyles.modalScrollContent}>
+            {selectedVisitRecord && (
+              <>
+                <View style={dashboardStyles.visitDetailHeader}>
+                  <Feather name="calendar" size={18} color="#0284C7" />
+                  <Text style={dashboardStyles.visitDetailDate}>
+                    {formatDate(selectedVisitRecord.date)}
+                  </Text>
+                </View>
+
+                {/* Vision Assessment Section */}
+                <View style={dashboardStyles.visitDetailSection}>
+                  <Text style={dashboardStyles.visitDetailSectionTitle}>
+                    Vision Assessment
+                  </Text>
+
+                  {selectedVisitRecord.visiondistant && (
+                    <View style={dashboardStyles.visitDetailItem}>
+                      <Text style={dashboardStyles.visitDetailLabel}>
+                        Distant Vision:
+                      </Text>
+                      <Text style={dashboardStyles.visitDetailValue}>
+                        {selectedVisitRecord.visiondistant}
+                      </Text>
+                    </View>
+                  )}
+
+                  {selectedVisitRecord.visionnear && (
+                    <View style={dashboardStyles.visitDetailItem}>
+                      <Text style={dashboardStyles.visitDetailLabel}>
+                        Near Vision:
+                      </Text>
+                      <Text style={dashboardStyles.visitDetailValue}>
+                        {selectedVisitRecord.visionnear}
+                      </Text>
+                    </View>
+                  )}
+
+                  {selectedVisitRecord.bcvadistant && (
+                    <View style={dashboardStyles.visitDetailItem}>
+                      <Text style={dashboardStyles.visitDetailLabel}>
+                        BCVA Distant:
+                      </Text>
+                      <Text style={dashboardStyles.visitDetailValue}>
+                        {selectedVisitRecord.bcvadistant}
+                      </Text>
+                    </View>
+                  )}
+
+                  {selectedVisitRecord.bcvanear && (
+                    <View style={dashboardStyles.visitDetailItem}>
+                      <Text style={dashboardStyles.visitDetailLabel}>
+                        BCVA Near:
+                      </Text>
+                      <Text style={dashboardStyles.visitDetailValue}>
+                        {selectedVisitRecord.bcvanear}
+                      </Text>
+                    </View>
+                  )}
+
+                  {selectedVisitRecord.colorvision && (
+                    <View style={dashboardStyles.visitDetailItem}>
+                      <Text style={dashboardStyles.visitDetailLabel}>
+                        Color Vision:
+                      </Text>
+                      <Text style={dashboardStyles.visitDetailValue}>
+                        {selectedVisitRecord.colorvision}
+                      </Text>
+                    </View>
+                  )}
+                </View>
+
+                {/* Retinoscopy Section */}
+                {(selectedVisitRecord.dryretinoscopy ||
+                  selectedVisitRecord.wetretinoscopy) && (
+                    <View style={dashboardStyles.visitDetailSection}>
+                      <Text style={dashboardStyles.visitDetailSectionTitle}>
+                        Retinoscopy
+                      </Text>
+
+                      {selectedVisitRecord.dryretinoscopy && (
+                        <View style={dashboardStyles.visitDetailItem}>
+                          <Text style={dashboardStyles.visitDetailLabel}>
+                            Dry Retinoscopy:
+                          </Text>
+                          <Text style={dashboardStyles.visitDetailValue}>
+                            {selectedVisitRecord.dryretinoscopy}
+                          </Text>
+                        </View>
+                      )}
+
+                      {selectedVisitRecord.wetretinoscopy && (
+                        <View style={dashboardStyles.visitDetailItem}>
+                          <Text style={dashboardStyles.visitDetailLabel}>
+                            Wet Retinoscopy:
+                          </Text>
+                          <Text style={dashboardStyles.visitDetailValue}>
+                            {selectedVisitRecord.wetretinoscopy}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  )}
+
+                {/* Other Measurements Section */}
+                {(selectedVisitRecord.pmtvisiontpg ||
+                  selectedVisitRecord.pgpower ||
+                  selectedVisitRecord.pmt ||
+                  selectedVisitRecord.pda ||
+                  selectedVisitRecord.adar ||
+                  selectedVisitRecord.ar ||
+                  selectedVisitRecord.nct) && (
+                    <View style={dashboardStyles.visitDetailSection}>
+                      <Text style={dashboardStyles.visitDetailSectionTitle}>
+                        Other Measurements
+                      </Text>
+
+                      {selectedVisitRecord.pmtvisiontpg && (
+                        <View style={dashboardStyles.visitDetailItem}>
+                          <Text style={dashboardStyles.visitDetailLabel}>
+                            PMT Vision TPG:
+                          </Text>
+                          <Text style={dashboardStyles.visitDetailValue}>
+                            {selectedVisitRecord.pmtvisiontpg}
+                          </Text>
+                        </View>
+                      )}
+
+                      {selectedVisitRecord.pgpower && (
+                        <View style={dashboardStyles.visitDetailItem}>
+                          <Text style={dashboardStyles.visitDetailLabel}>
+                            PG Power:
+                          </Text>
+                          <Text style={dashboardStyles.visitDetailValue}>
+                            {selectedVisitRecord.pgpower}
+                          </Text>
+                        </View>
+                      )}
+
+                      {selectedVisitRecord.pmt && (
+                        <View style={dashboardStyles.visitDetailItem}>
+                          <Text style={dashboardStyles.visitDetailLabel}>
+                            PMT:
+                          </Text>
+                          <Text style={dashboardStyles.visitDetailValue}>
+                            {selectedVisitRecord.pmt}
+                          </Text>
+                        </View>
+                      )}
+
+                      {selectedVisitRecord.pda && (
+                        <View style={dashboardStyles.visitDetailItem}>
+                          <Text style={dashboardStyles.visitDetailLabel}>
+                            PDA:
+                          </Text>
+                          <Text style={dashboardStyles.visitDetailValue}>
+                            {selectedVisitRecord.pda}
+                          </Text>
+                        </View>
+                      )}
+
+                      {selectedVisitRecord.adar && (
+                        <View style={dashboardStyles.visitDetailItem}>
+                          <Text style={dashboardStyles.visitDetailLabel}>
+                            ADAR:
+                          </Text>
+                          <Text style={dashboardStyles.visitDetailValue}>
+                            {selectedVisitRecord.adar}
+                          </Text>
+                        </View>
+                      )}
+
+                      {selectedVisitRecord.ar && (
+                        <View style={dashboardStyles.visitDetailItem}>
+                          <Text style={dashboardStyles.visitDetailLabel}>
+                            AR:
+                          </Text>
+                          <Text style={dashboardStyles.visitDetailValue}>
+                            {selectedVisitRecord.ar}
+                          </Text>
+                        </View>
+                      )}
+
+                      {selectedVisitRecord.nct && (
+                        <View style={dashboardStyles.visitDetailItem}>
+                          <Text style={dashboardStyles.visitDetailLabel}>
+                            NCT:
+                          </Text>
+                          <Text style={dashboardStyles.visitDetailValue}>
+                            {selectedVisitRecord.nct}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  )}
+
+                {/* Prescription Section */}
+                {selectedVisitRecord.glassPrescription && (
+                  <View style={dashboardStyles.visitDetailSection}>
+                    <Text style={dashboardStyles.visitDetailSectionTitle}>
+                      Prescription
+                    </Text>
+                    <View style={dashboardStyles.visitDetailItem}>
+                      <Text style={dashboardStyles.visitDetailLabel}>
+                        Glass Prescription:
+                      </Text>
+                      <Text style={dashboardStyles.visitDetailValue}>
+                        {selectedVisitRecord.glassPrescription}
+                      </Text>
+                    </View>
+                  </View>
+                )}
+
+                {/* Notes Section */}
+                {selectedVisitRecord.notes && (
+                  <View style={dashboardStyles.visitDetailSection}>
+                    <Text style={dashboardStyles.visitDetailSectionTitle}>
+                      Notes
+                    </Text>
+                    <View style={dashboardStyles.visitDetailItem}>
+                      <Text style={dashboardStyles.visitDetailValue}>
+                        {selectedVisitRecord.notes}
+                      </Text>
+                    </View>
+                  </View>
+                )}
+              </>
+            )}
+          </ScrollView>
+
+          <TouchableOpacity
+            style={dashboardStyles.modalCloseButton}
+            onPress={() => setShowVisitDetailsModal(false)}
+          >
+            <Text style={dashboardStyles.modalCloseButtonText}>Close</Text>
+          </TouchableOpacity>
         </View>
-        <TouchableOpacity
-          onPress={() => router.push("/settings")}
-          style={{
-            width: 40,
-            height: 40,
-            borderRadius: 20,
-            backgroundColor: "rgba(255,255,255,0.2)",
-            justifyContent: "center",
-            alignItems: "center",
-          }}
-        >
-          <Feather name="settings" size={22} color="#fff" />
-        </TouchableOpacity>
       </View>
+    </Modal>
+  );
 
-      {activeSection ? (
-        // Show active section content
-        <>
-          {activeSection === "progress" && renderProgressSection()}
-          {activeSection === "reminder" && renderReminderSection()}
-          {activeSection === "history" && renderHistorySection()}
-          {activeSection === "reviewDates" && renderVisitHistorySection()}
-        </>
-      ) : (
-        // Show dashboard grid
-        <View style={dashboardStyles.dashboardGrid}>
+  return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#0F172A' }} edges={["top"]}>
+      <StatusBar barStyle="light-content" backgroundColor="#0F172A" />
+      {renderVisitDetailsModal()}
+      <ScrollView
+        style={styles.container}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={isRefreshing}
+            onRefresh={handleRefresh}
+            colors={["#0EA5E9"]}
+            tintColor="#0EA5E9"
+          />
+        }
+      >
+        <View
+          style={[
+            styles.welcomeSection,
+            {
+              flexDirection: "row",
+              alignItems: "center",
+              justifyContent: "space-between",
+              paddingTop: 16,
+            },
+          ]}
+        >
+          <View>
+            <Text style={styles.welcomeText}>Hello,</Text>
+            <Text style={styles.patientName}>{username}</Text>
+          </View>
           <TouchableOpacity
-            style={dashboardStyles.dashboardItem}
-            onPress={() => router.push("/games")}
+            onPress={() => router.push("/settings")}
+            style={{
+              width: 44,
+              height: 44,
+              borderRadius: 14,
+              backgroundColor: "rgba(255,255,255,0.12)",
+              justifyContent: "center",
+              alignItems: "center",
+              borderWidth: 1,
+              borderColor: "rgba(255,255,255,0.2)",
+            }}
           >
-            <View
-              style={[dashboardStyles.itemIcon, { backgroundColor: "#3498db" }]}
-            >
-              <FontAwesome name="gamepad" size={32} color="#fff" />
-            </View>
-            <Text style={dashboardStyles.itemTitle}>Activities</Text>
-            <Text style={dashboardStyles.itemDescription}>
-              Eye training games
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={dashboardStyles.dashboardItem}
-            onPress={() => setActiveSection("progress")}
-          >
-            <View
-              style={[dashboardStyles.itemIcon, { backgroundColor: "#2ecc71" }]}
-            >
-              <Ionicons name="trending-up" size={32} color="#fff" />
-            </View>
-            <Text style={dashboardStyles.itemTitle}>Progress</Text>
-            <Text style={dashboardStyles.itemDescription}>
-              Track your improvement
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={dashboardStyles.dashboardItem}
-            onPress={() => setActiveSection("reminder")}
-          >
-            <View
-              style={[dashboardStyles.itemIcon, { backgroundColor: "#f39c12" }]}
-            >
-              <MaterialIcons name="notifications" size={32} color="#fff" />
-            </View>
-            <Text style={dashboardStyles.itemTitle}>Reminders</Text>
-            <Text style={dashboardStyles.itemDescription}>
-              Set your notifications
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={dashboardStyles.dashboardItem}
-            onPress={() => setActiveSection("reviewDates")}
-          >
-            <View
-              style={[dashboardStyles.itemIcon, { backgroundColor: "#9b59b6" }]}
-            >
-              <Feather name="calendar" size={32} color="#fff" />
-            </View>
-            <Text style={dashboardStyles.itemTitle}>Review Dates</Text>
-            <Text style={dashboardStyles.itemDescription}>Visit history</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={dashboardStyles.dashboardItem}
-            onPress={() => router.push("/queries")}
-          >
-            <View
-              style={[dashboardStyles.itemIcon, { backgroundColor: "#e74c3c" }]}
-            >
-              <Feather name="help-circle" size={32} color="#fff" />
-            </View>
-            <Text style={dashboardStyles.itemTitle}>Queries</Text>
-            <Text style={dashboardStyles.itemDescription}>Ask your doctor</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={dashboardStyles.dashboardItem}
-            onPress={() => setActiveSection("history")}
-          >
-            <View
-              style={[dashboardStyles.itemIcon, { backgroundColor: "#1abc9c" }]}
-            >
-              <Feather name="clock" size={32} color="#fff" />
-            </View>
-            <Text style={dashboardStyles.itemTitle}>History</Text>
-            <Text style={dashboardStyles.itemDescription}>
-              Game play history
-            </Text>
+            <Feather name="settings" size={20} color="#fff" />
           </TouchableOpacity>
         </View>
-      )}
-    </ScrollView>
+
+        {activeSection ? (
+          // Show active section content
+          <>
+            {activeSection === "progress" && renderProgressSection()}
+            {activeSection === "reminder" && renderReminderSection()}
+            {activeSection === "history" && renderHistorySection()}
+            {activeSection === "reviewDates" && renderVisitHistorySection()}
+          </>
+        ) : (
+          <View style={dashboardStyles.dashboardContent}>
+            <View style={dashboardStyles.sectionCard}>
+              <View style={dashboardStyles.sectionHeaderRow}>
+                <Text style={dashboardStyles.sectionHeaderTitle}>
+                  Game Categories
+                </Text>
+                <TouchableOpacity
+                  onPress={() => router.push("/games")}
+                  style={dashboardStyles.linkButton}
+                >
+                  <Text style={dashboardStyles.linkText}>View all</Text>
+                  <Feather name="chevron-right" size={16} color="#0EA5E9" />
+                </TouchableOpacity>
+              </View>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={dashboardStyles.categoryScroll}
+              >
+                {gameCategories.map((category) => (
+                  <TouchableOpacity
+                    key={category.key}
+                    style={dashboardStyles.categoryCard}
+                    onPress={() => handleCategoryPress(category.key)}
+                    activeOpacity={0.9}
+                  >
+                    <View
+                      style={[
+                        dashboardStyles.categoryIcon,
+                        { backgroundColor: category.softColor },
+                      ]}
+                    >
+                      <MaterialIcons
+                        name={category.icon}
+                        size={22}
+                        color={category.color}
+                      />
+                    </View>
+                    <Text style={dashboardStyles.categoryTitle}>
+                      {category.title}
+                    </Text>
+                    <Text style={dashboardStyles.categoryDescription}>
+                      {category.description}
+                    </Text>
+                    <View style={dashboardStyles.categoryMetaRow}>
+                      <Text
+                        style={[
+                          dashboardStyles.categoryCount,
+                          { color: category.color },
+                        ]}
+                      >
+                        {category.count} games
+                      </Text>
+                      <Feather
+                        name="arrow-right"
+                        size={14}
+                        color={category.color}
+                      />
+                    </View>
+                  </TouchableOpacity>
+                ))}
+              </ScrollView>
+            </View>
+
+            <View style={dashboardStyles.sectionCard}>
+              <View style={dashboardStyles.sectionHeaderRow}>
+                <Text style={dashboardStyles.sectionHeaderTitle}>Reminders</Text>
+                <TouchableOpacity
+                  onPress={() => setShowReminderForm(true)}
+                  style={dashboardStyles.linkButton}
+                >
+                  <Feather name="plus" size={16} color="#0EA5E9" />
+                  <Text style={dashboardStyles.linkText}>Add</Text>
+                </TouchableOpacity>
+              </View>
+              <View style={styles.remindersList}>
+                {reminders.map((reminder) => (
+                  <View key={reminder.id} style={styles.reminderCard}>
+                    <View
+                      style={[styles.reminderIcon, { backgroundColor: "#0F172A" }]}
+                    >
+                      <AntDesign name="clock-circle" size={24} color="#fff" />
+                    </View>
+                    <View style={styles.reminderContent}>
+                      <Text style={styles.reminderTitle}>{reminder.title}</Text>
+                      <View style={styles.reminderTimeContainer}>
+                        <Feather
+                          name="calendar"
+                          size={14}
+                          color="#0284C7"
+                          style={styles.reminderTimeIcon}
+                        />
+                        <Text style={styles.reminderDate}>{reminder.date}</Text>
+                        <Feather
+                          name="clock"
+                          size={14}
+                          color="#0284C7"
+                          style={styles.reminderTimeIcon}
+                        />
+                        <Text style={styles.reminderTime}>{reminder.time}</Text>
+                      </View>
+                    </View>
+                    <View style={styles.reminderActions}>
+                      <TouchableOpacity
+                        onPress={() => handleEditReminder(reminder)}
+                        style={styles.reminderActionButton}
+                      >
+                        <Feather name="edit" size={20} color="#0284C7" />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() => handleDeleteReminder(reminder.id)}
+                        style={styles.reminderActionButton}
+                      >
+                        <Feather name="trash-2" size={20} color="#0284C7" />
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                ))}
+
+                {reminders.length === 0 && (
+                  <View style={dashboardStyles.inlineEmptyCard}>
+                    <Text style={dashboardStyles.inlineEmptyTitle}>
+                      No reminders yet
+                    </Text>
+                    <Text style={dashboardStyles.inlineEmptyText}>
+                      Add a reminder to keep your routine on track.
+                    </Text>
+                    <TouchableOpacity
+                      style={dashboardStyles.inlineEmptyButton}
+                      onPress={() => setShowReminderForm(true)}
+                    >
+                      <Text style={dashboardStyles.inlineEmptyButtonText}>
+                        Set Reminder
+                      </Text>
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
+            </View>
+
+            <View style={dashboardStyles.sectionCard}>
+              <View style={dashboardStyles.sectionHeaderRow}>
+                <View>
+                  <Text style={dashboardStyles.sectionHeaderTitle}>
+                    Progress Overview
+                  </Text>
+                  <Text style={dashboardStyles.sectionSubtitle}>
+                    {playedGameHistory.length > 0 ? `Last ${Math.min(playedGameHistory.length, 7)} sessions` : "No sessions yet"}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => setActiveSection("progress")}
+                  style={dashboardStyles.linkButton}
+                >
+                  <Text style={dashboardStyles.linkText}>Details</Text>
+                  <Feather name="chevron-right" size={16} color="#0EA5E9" />
+                </TouchableOpacity>
+              </View>
+              <View style={dashboardStyles.metricsRow}>
+                <View style={dashboardStyles.metricCard}>
+                  <Text style={dashboardStyles.metricLabel}>Games</Text>
+                  <Text style={dashboardStyles.metricValue}>
+                    {latestDayStats.gamesPlayed}
+                  </Text>
+                </View>
+                <View style={dashboardStyles.metricCard}>
+                  <Text style={dashboardStyles.metricLabel}>Avg Score</Text>
+                  <Text style={dashboardStyles.metricValue}>
+                    {latestDayStats.averageScore}
+                  </Text>
+                </View>
+                <View style={dashboardStyles.metricCard}>
+                  <Text style={dashboardStyles.metricLabel}>Accuracy</Text>
+                  <Text style={[dashboardStyles.metricValue, dashboardStyles.metricValueSmall]}>
+                    {latestDayStats.averageAccuracy}%
+                  </Text>
+                </View>
+              </View>
+              {historyIsLoading ? (
+                <View style={dashboardStyles.inlineLoading}>
+                  <ActivityIndicator size="small" color="#0EA5E9" />
+                  <Text style={dashboardStyles.inlineLoadingText}>
+                    Loading progress...
+                  </Text>
+                </View>
+              ) : playedGameHistory.length === 0 ? (
+                <View style={dashboardStyles.inlineEmptyCard}>
+                  <Text style={dashboardStyles.inlineEmptyTitle}>
+                    No progress data yet
+                  </Text>
+                  <Text style={dashboardStyles.inlineEmptyText}>
+                    Play a game to start tracking your progress.
+                  </Text>
+                  <TouchableOpacity
+                    style={dashboardStyles.inlineEmptyButton}
+                    onPress={() => router.push("/games")}
+                  >
+                    <Text style={dashboardStyles.inlineEmptyButtonText}>
+                      Start Playing
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View style={chartStyles.chartCard}>
+                  <View style={chartStyles.chartHeader}>
+                    <Text style={chartStyles.chartTitle}>Games Played</Text>
+                    <Text style={chartStyles.chartMeta}>
+                      {weeklyGamesTotal} total
+                    </Text>
+                  </View>
+                  {renderChartBars(
+                    progressChartData,
+                    "#0EA5E9",
+                    progressChartMax,
+                  )}
+                </View>
+              )}
+            </View>
+
+            <View style={dashboardStyles.sectionCard}>
+              <View style={dashboardStyles.sectionHeaderRow}>
+                <View>
+                  <Text style={dashboardStyles.sectionHeaderTitle}>
+                    History Trends
+                  </Text>
+                  <Text style={dashboardStyles.sectionSubtitle}>
+                    {playedGameHistory.length > 0 ? `Last ${Math.min(playedGameHistory.length, 7)} sessions` : "No sessions yet"}
+                  </Text>
+                </View>
+                <TouchableOpacity
+                  onPress={() => setActiveSection("history")}
+                  style={dashboardStyles.linkButton}
+                >
+                  <Text style={dashboardStyles.linkText}>Details</Text>
+                  <Feather name="chevron-right" size={16} color="#0EA5E9" />
+                </TouchableOpacity>
+              </View>
+              {historyIsLoading ? (
+                <View style={dashboardStyles.inlineLoading}>
+                  <ActivityIndicator size="small" color="#0EA5E9" />
+                  <Text style={dashboardStyles.inlineLoadingText}>
+                    Loading history...
+                  </Text>
+                </View>
+              ) : playedGameHistory.length === 0 ? (
+                <View style={dashboardStyles.inlineEmptyCard}>
+                  <Text style={dashboardStyles.inlineEmptyTitle}>
+                    No history yet
+                  </Text>
+                  <Text style={dashboardStyles.inlineEmptyText}>
+                    Complete sessions to see trends here.
+                  </Text>
+                  <TouchableOpacity
+                    style={dashboardStyles.inlineEmptyButton}
+                    onPress={() => router.push("/games")}
+                  >
+                    <Text style={dashboardStyles.inlineEmptyButtonText}>
+                      Play Now
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              ) : (
+                <View style={chartStyles.chartCard}>
+                  <View style={chartStyles.chartHeader}>
+                    <Text style={chartStyles.chartTitle}>Avg Accuracy</Text>
+                    <Text style={chartStyles.chartMeta}>
+                      {weeklyAccuracyAverage}% avg
+                    </Text>
+                  </View>
+                  {renderChartBars(
+                    accuracyChartData,
+                    "#10B981",
+                    accuracyChartMax,
+                  )}
+                </View>
+              )}
+            </View>
+
+            <View style={dashboardStyles.sectionCard}>
+              <View style={dashboardStyles.sectionHeaderRow}>
+                <Text style={dashboardStyles.sectionHeaderTitle}>
+                  Review Dates
+                </Text>
+                <TouchableOpacity
+                  onPress={() => setActiveSection("reviewDates")}
+                  style={dashboardStyles.linkButton}
+                >
+                  <Text style={dashboardStyles.linkText}>Details</Text>
+                  <Feather name="chevron-right" size={16} color="#0EA5E9" />
+                </TouchableOpacity>
+              </View>
+              {visitHistoryLoading ? (
+                <View style={dashboardStyles.inlineLoading}>
+                  <ActivityIndicator size="small" color="#0EA5E9" />
+                  <Text style={dashboardStyles.inlineLoadingText}>
+                    Loading review dates...
+                  </Text>
+                </View>
+              ) : sortedVisitHistory.length > 0 ? (
+                sortedVisitHistory.map((visit, index) => (
+                  <TouchableOpacity
+                    key={index}
+                    style={[
+                      dashboardStyles.visitRecordCard,
+                      dashboardStyles.visitRecordCardInline,
+                    ]}
+                    onPress={() => {
+                      setSelectedVisitRecord(visit);
+                      setShowVisitDetailsModal(true);
+                    }}
+                  >
+                    <View style={dashboardStyles.visitRecordHeader}>
+                      <View style={dashboardStyles.visitDateContainer}>
+                        <Feather name="calendar" size={16} color="#0284C7" />
+                        <Text style={dashboardStyles.visitDate}>
+                          {formatDate(visit.date)}
+                        </Text>
+                      </View>
+                      <Feather name="chevron-right" size={20} color="#888" />
+                    </View>
+
+                    <View style={dashboardStyles.visitRecordDetails}>
+                      {visit.notes && (
+                        <View style={dashboardStyles.visitRecordItem}>
+                          <Text style={dashboardStyles.visitRecordLabel}>
+                            Notes:
+                          </Text>
+                          <Text style={dashboardStyles.visitRecordValue}>
+                            {visit.notes}
+                          </Text>
+                        </View>
+                      )}
+
+                      {visit.visiondistant && (
+                        <View style={dashboardStyles.visitRecordItem}>
+                          <Text style={dashboardStyles.visitRecordLabel}>
+                            Distant Vision:
+                          </Text>
+                          <Text style={dashboardStyles.visitRecordValue}>
+                            {visit.visiondistant}
+                          </Text>
+                        </View>
+                      )}
+
+                      {visit.visionnear && (
+                        <View style={dashboardStyles.visitRecordItem}>
+                          <Text style={dashboardStyles.visitRecordLabel}>
+                            Near Vision:
+                          </Text>
+                          <Text style={dashboardStyles.visitRecordValue}>
+                            {visit.visionnear}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                ))
+              ) : (
+                <View style={dashboardStyles.inlineEmptyCard}>
+                  <Text style={dashboardStyles.inlineEmptyTitle}>
+                    No review dates yet
+                  </Text>
+                  <Text style={dashboardStyles.inlineEmptyText}>
+                    Your visit records will appear here once available.
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            <View style={dashboardStyles.sectionCard}>
+              <View style={dashboardStyles.sectionHeaderRow}>
+                <Text style={dashboardStyles.sectionHeaderTitle}>Queries</Text>
+                <View style={dashboardStyles.sectionHeaderActions}>
+                  <TouchableOpacity
+                    onPress={() => router.push("/queries")}
+                    style={dashboardStyles.linkButton}
+                  >
+                    <Text style={dashboardStyles.linkText}>Ask</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => router.push("/queries")}
+                    style={dashboardStyles.linkButton}
+                  >
+                    <Text style={dashboardStyles.linkText}>View all</Text>
+                    <Feather name="chevron-right" size={16} color="#0EA5E9" />
+                  </TouchableOpacity>
+                </View>
+              </View>
+              <View style={dashboardStyles.queryStatsRow}>
+                <View style={dashboardStyles.queryStatCard}>
+                  <Text style={dashboardStyles.queryStatLabel}>Pending</Text>
+                  <Text style={dashboardStyles.queryStatValue}>
+                    {queryStats.pending}
+                  </Text>
+                </View>
+                <View style={dashboardStyles.queryStatCard}>
+                  <Text style={dashboardStyles.queryStatLabel}>Answered</Text>
+                  <Text style={dashboardStyles.queryStatValue}>
+                    {queryStats.answered}
+                  </Text>
+                </View>
+                <View style={dashboardStyles.queryStatCard}>
+                  <Text style={dashboardStyles.queryStatLabel}>Total</Text>
+                  <Text style={dashboardStyles.queryStatValue}>
+                    {queryStats.total}
+                  </Text>
+                </View>
+              </View>
+
+              {queriesLoading ? (
+                <View style={dashboardStyles.inlineLoading}>
+                  <ActivityIndicator size="small" color="#0EA5E9" />
+                  <Text style={dashboardStyles.inlineLoadingText}>
+                    Loading queries...
+                  </Text>
+                </View>
+              ) : recentQueries.length > 0 ? (
+                recentQueries.map((query) => (
+                  <TouchableOpacity
+                    key={query.id}
+                    style={dashboardStyles.queryItem}
+                    onPress={() => router.push(`/query/${query.id}`)}
+                  >
+                    <View
+                      style={[
+                        dashboardStyles.queryStatusDot,
+                        {
+                          backgroundColor:
+                            query.status === "pending" ? "#F59E0B" : "#10B981",
+                        },
+                      ]}
+                    />
+                    <View style={dashboardStyles.queryContent}>
+                      <View style={dashboardStyles.queryHeaderRow}>
+                        <Text style={dashboardStyles.queryStatusText}>
+                          {query.status === "pending" ? "Pending" : "Answered"}
+                        </Text>
+                        <Text style={dashboardStyles.queryDate}>
+                          {new Date(query.createdAt).toLocaleDateString()}
+                        </Text>
+                      </View>
+                      <Text style={dashboardStyles.queryQuestion} numberOfLines={2}>
+                        {query.question}
+                      </Text>
+                    </View>
+                    <Feather name="chevron-right" size={18} color="#94A3B8" />
+                  </TouchableOpacity>
+                ))
+              ) : (
+                <View style={dashboardStyles.inlineEmptyCard}>
+                  <Text style={dashboardStyles.inlineEmptyTitle}>
+                    No queries yet
+                  </Text>
+                  <Text style={dashboardStyles.inlineEmptyText}>
+                    Ask your doctor a question to get started.
+                  </Text>
+                  <TouchableOpacity
+                    style={dashboardStyles.inlineEmptyButton}
+                    onPress={() => router.push("/queries")}
+                  >
+                    <Text style={dashboardStyles.inlineEmptyButtonText}>
+                      Ask a Question
+                    </Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+          </View>
+        )}
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const progressStyles = StyleSheet.create({
   progressSummaryCard: {
-    backgroundColor: "#fff",
-    borderRadius: 15,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
     padding: 20,
-    marginBottom: 20,
+    marginBottom: 16,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
   progressSummaryDate: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 18,
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#111827",
+    marginBottom: 16,
     textAlign: "center",
   },
   progressSummaryStatsRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 24,
+    marginBottom: 20,
   },
   progressSummaryStatItem: {
     flex: 1,
@@ -1470,88 +2238,92 @@ const progressStyles = StyleSheet.create({
   },
   progressSummaryStatValue: {
     fontSize: 24,
-    fontWeight: "bold",
-    color: "#5f2446",
-    marginBottom: 6,
+    fontWeight: "800",
+    color: "#0EA5E9",
+    marginBottom: 4,
   },
   progressSummaryStatLabel: {
-    fontSize: 14,
-    color: "#666",
+    fontSize: 12,
+    color: "#6B7280",
     textAlign: "center",
+    fontWeight: "500",
   },
   progressSummaryStatDivider: {
-    height: 40,
+    height: 36,
     width: 1,
-    backgroundColor: "#e0e0e0",
+    backgroundColor: "#E5E7EB",
   },
   progressCompletionContainer: {
-    marginBottom: 24,
+    marginBottom: 20,
   },
   progressCompletionText: {
-    fontSize: 14,
-    color: "#666",
-    marginBottom: 10,
+    fontSize: 13,
+    color: "#6B7280",
+    marginBottom: 8,
+    fontWeight: "500",
   },
   progressCompletionBar: {
     height: 8,
-    backgroundColor: "#f0f0f0",
+    backgroundColor: "#E5E7EB",
     borderRadius: 4,
     overflow: "hidden",
   },
   progressCompletionFill: {
     height: 8,
-    backgroundColor: "#5f2446",
+    backgroundColor: "#0EA5E9",
     borderRadius: 4,
   },
   progressGamesListTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 16,
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#111827",
+    marginBottom: 12,
   },
   progressGameItem: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f9f9f9",
-    borderRadius: 12,
+    backgroundColor: "#F9FAFB",
+    borderRadius: 14,
     padding: 14,
-    marginBottom: 10,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "#F3F4F6",
   },
   progressGameIconContainer: {
     width: 42,
     height: 42,
-    borderRadius: 21,
-    backgroundColor: "#5f2446",
+    borderRadius: 13,
+    backgroundColor: "#0EA5E9",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 14,
+    marginRight: 12,
   },
   progressGameContent: {
     flex: 1,
   },
   progressGameName: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: 6,
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#111827",
+    marginBottom: 5,
   },
   progressGameStats: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: 6,
   },
   progressGameScore: {
-    fontSize: 14,
-    color: "#666",
+    fontSize: 12,
+    color: "#6B7280",
   },
   progressGameScoreValue: {
-    fontWeight: "bold",
-    color: "#5f2446",
+    fontWeight: "700",
+    color: "#0EA5E9",
   },
   progressGameTime: {
-    fontSize: 14,
-    color: "#666",
+    fontSize: 12,
+    color: "#6B7280",
   },
   progressGameAccuracyContainer: {
     flexDirection: "row",
@@ -1559,22 +2331,22 @@ const progressStyles = StyleSheet.create({
   },
   progressGameAccuracyBar: {
     flex: 1,
-    height: 6,
-    backgroundColor: "#f0f0f0",
+    height: 5,
+    backgroundColor: "#E5E7EB",
     borderRadius: 3,
     overflow: "hidden",
-    marginRight: 10,
+    marginRight: 8,
   },
   progressGameAccuracyFill: {
-    height: 6,
-    backgroundColor: "#5f2446",
+    height: 5,
+    backgroundColor: "#0EA5E9",
     borderRadius: 3,
   },
   progressGameAccuracyText: {
-    fontSize: 13,
-    fontWeight: "bold",
-    color: "#5f2446",
-    width: 40,
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#0EA5E9",
+    width: 38,
     textAlign: "right",
   },
   noGamesContainer: {
@@ -1582,313 +2354,548 @@ const progressStyles = StyleSheet.create({
     paddingVertical: 20,
   },
   noGamesText: {
-    fontSize: 16,
-    color: "#666",
+    fontSize: 14,
+    color: "#6B7280",
     textAlign: "center",
-    marginBottom: 20,
+    marginBottom: 16,
+    lineHeight: 20,
   },
   progressPastDayCard: {
-    backgroundColor: "#fff",
-    borderRadius: 15,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
     padding: 16,
-    marginBottom: 12,
+    marginBottom: 10,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
     elevation: 2,
   },
   progressPastDayHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 10,
   },
   progressPastDayBadge: {
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: "#5f2446",
+    borderRadius: 11,
+    backgroundColor: "#0F172A",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
   },
   progressPastDayBadgeText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "700",
   },
   progressPastDayInfo: {
     flex: 1,
   },
   progressPastDayDate: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: "#333",
-    marginBottom: 4,
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#111827",
+    marginBottom: 3,
   },
   progressPastDayStats: {
-    fontSize: 14,
-    color: "#666",
+    fontSize: 12,
+    color: "#6B7280",
   },
   progressPastDayCompletion: {
-    marginTop: 4,
+    marginTop: 6,
   },
   progressPastDayCompletionBar: {
-    height: 6,
-    backgroundColor: "#f0f0f0",
+    height: 5,
+    backgroundColor: "#E5E7EB",
     borderRadius: 3,
     overflow: "hidden",
   },
   progressPastDayCompletionFill: {
-    height: 6,
-    backgroundColor: "#5f2446",
+    height: 5,
+    backgroundColor: "#0EA5E9",
     borderRadius: 3,
   },
 });
 
 // New dashboard styles for the grid layout
 const dashboardStyles = StyleSheet.create({
+  dashboardContent: {
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 16,
+    gap: 16,
+  },
+  sectionCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 16,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  sectionHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  sectionHeaderTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#111827",
+  },
+  sectionSubtitle: {
+    fontSize: 12,
+    color: "#6B7280",
+    marginTop: 2,
+  },
+  sectionHeaderActions: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  linkButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 10,
+    borderRadius: 12,
+    backgroundColor: "#EFF6FF",
+  },
+  linkText: {
+    color: "#0EA5E9",
+    fontWeight: "600",
+    fontSize: 13,
+  },
+  categoryScroll: {
+    paddingVertical: 4,
+    paddingRight: 6,
+  },
+  categoryCard: {
+    width: 180,
+    padding: 14,
+    borderRadius: 16,
+    backgroundColor: "#F8FAFC",
+    marginRight: 12,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  categoryIcon: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  categoryTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#111827",
+  },
+  categoryDescription: {
+    fontSize: 12,
+    color: "#6B7280",
+    marginTop: 4,
+  },
+  categoryMetaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginTop: 10,
+  },
+  categoryCount: {
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  metricsRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 12,
+  },
+  metricCard: {
+    flex: 1,
+    backgroundColor: "#F8FAFC",
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    alignItems: "center",
+  },
+  metricLabel: {
+    fontSize: 11,
+    color: "#94A3B8",
+    fontWeight: "600",
+    textTransform: "uppercase",
+  },
+  metricValue: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#0F172A",
+    marginTop: 4,
+  },
+  metricValueSmall: {
+    fontSize: 13,
+  },
+  inlineEmptyCard: {
+    backgroundColor: "#F8FAFC",
+    borderRadius: 16,
+    padding: 16,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  inlineEmptyTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#111827",
+    marginBottom: 6,
+    textAlign: "center",
+  },
+  inlineEmptyText: {
+    fontSize: 12,
+    color: "#6B7280",
+    textAlign: "center",
+    marginBottom: 12,
+    lineHeight: 18,
+  },
+  inlineEmptyButton: {
+    backgroundColor: "#0EA5E9",
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: 12,
+  },
+  inlineEmptyButtonText: {
+    color: "#FFFFFF",
+    fontWeight: "700",
+    fontSize: 13,
+  },
+  inlineLoading: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    paddingVertical: 10,
+  },
+  inlineLoadingText: {
+    fontSize: 12,
+    color: "#6B7280",
+  },
+  queryStatsRow: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: 12,
+  },
+  queryStatCard: {
+    flex: 1,
+    backgroundColor: "#F8FAFC",
+    borderRadius: 14,
+    paddingVertical: 12,
+    paddingHorizontal: 10,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    alignItems: "center",
+  },
+  queryStatLabel: {
+    fontSize: 11,
+    color: "#94A3B8",
+    fontWeight: "600",
+    textTransform: "uppercase",
+  },
+  queryStatValue: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#0F172A",
+    marginTop: 4,
+  },
+  queryItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F8FAFC",
+    borderRadius: 14,
+    padding: 12,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  queryStatusDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    marginRight: 10,
+  },
+  queryContent: {
+    flex: 1,
+  },
+  queryHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 6,
+  },
+  queryStatusText: {
+    fontSize: 11,
+    color: "#64748B",
+    fontWeight: "600",
+    textTransform: "uppercase",
+  },
+  queryDate: {
+    fontSize: 11,
+    color: "#94A3B8",
+  },
+  queryQuestion: {
+    fontSize: 13,
+    color: "#0F172A",
+    fontWeight: "600",
+  },
+  visitRecordCardInline: {
+    marginHorizontal: 0,
+  },
   dashboardGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
     justifyContent: "space-between",
-    paddingHorizontal: 15,
-    paddingVertical: 20,
-    marginTop: 10,
+    paddingHorizontal: 16,
+    paddingVertical: 16,
+    gap: 12,
   },
   dashboardItem: {
-    width: "48%",
-    backgroundColor: "#fff",
-    borderRadius: 15,
+    width: "47%",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
     padding: 18,
-    marginBottom: 20,
+    marginBottom: 4,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
     display: "flex",
     flexDirection: "column",
     justifyContent: "space-between",
     alignItems: "center",
-    elevation: 3,
+    elevation: 2,
   },
   itemIcon: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+    width: 56,
+    height: 56,
+    borderRadius: 16,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 15,
+    marginBottom: 12,
   },
   itemTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 8,
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#111827",
+    marginBottom: 6,
+    textAlign: "center",
   },
   itemDescription: {
-    fontSize: 14,
-    color: "#666",
-    lineHeight: 20,
+    fontSize: 12,
+    color: "#6B7280",
+    lineHeight: 17,
+    textAlign: "center",
   },
   loadingText: {
-    fontSize: 16,
-    color: "#666",
-    marginTop: 15,
+    fontSize: 14,
+    color: "#6B7280",
+    marginTop: 12,
     textAlign: "center",
   },
   emptyStateContainer: {
-    padding: 35,
+    padding: 32,
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    margin: 20,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    margin: 16,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
     elevation: 2,
   },
   emptyStateTitle: {
-    fontSize: 22,
-    fontWeight: "bold",
-    color: "#333",
-    marginTop: 20,
-    marginBottom: 10,
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#111827",
+    marginTop: 16,
+    marginBottom: 8,
   },
   emptyStateMessage: {
-    fontSize: 16,
-    color: "#666",
+    fontSize: 14,
+    color: "#6B7280",
     textAlign: "center",
-    marginBottom: 25,
-    lineHeight: 22,
+    marginBottom: 20,
+    lineHeight: 20,
   },
   emptyStateButton: {
-    backgroundColor: "#5f2446",
-    paddingVertical: 14,
+    backgroundColor: "#0EA5E9",
+    paddingVertical: 13,
     paddingHorizontal: 24,
-    borderRadius: 25,
-    marginTop: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 2,
+    borderRadius: 14,
+    marginTop: 8,
+    shadowColor: "#0EA5E9",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   emptyStateButtonText: {
-    color: "#fff",
-    fontWeight: "bold",
-    fontSize: 16,
+    color: "#FFFFFF",
+    fontWeight: "700",
+    fontSize: 14,
   },
   backLink: {
-    color: "#5f2446",
-    fontWeight: "500",
-    fontSize: 16,
+    color: "#0EA5E9",
+    fontWeight: "600",
+    fontSize: 14,
   },
   progressDateGroup: {
-    marginBottom: 20,
-    paddingHorizontal: 15,
+    marginBottom: 16,
+    paddingHorizontal: 16,
   },
   progressDateHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 10,
   },
   progressDateBadge: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#5f2446",
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: "#0F172A",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1,
-    elevation: 2,
   },
   progressDateBadgeText: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#fff",
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#FFFFFF",
   },
   progressDateText: {
-    fontSize: 16,
-    color: "#333",
+    fontSize: 15,
+    color: "#111827",
     fontWeight: "600",
   },
   progressCard: {
-    backgroundColor: "#fff",
-    borderRadius: 15,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
     padding: 16,
-    marginBottom: 12,
+    marginBottom: 10,
     flexDirection: "row",
     alignItems: "center",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
     elevation: 2,
   },
   progressGameIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: "#5f2446",
+    width: 46,
+    height: 46,
+    borderRadius: 14,
+    backgroundColor: "#0EA5E9",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 16,
+    marginRight: 14,
   },
   progressCardContent: {
     flex: 1,
   },
   progressGameTitle: {
-    fontSize: 17,
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 8,
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#111827",
+    marginBottom: 6,
   },
   progressDetails: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: 6,
+    gap: 12,
   },
   progressTimeText: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: "500",
-    color: "#666",
-    marginLeft: 12,
+    color: "#6B7280",
   },
   progressScoreText: {
-    fontSize: 14,
-    color: "#666",
+    fontSize: 12,
+    color: "#6B7280",
   },
-  // Styles for visit history
   visitRecordCard: {
-    backgroundColor: "#fff",
-    borderRadius: 15,
-    marginBottom: 16,
-    padding: 18,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    marginBottom: 12,
+    padding: 16,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
     elevation: 2,
-    marginHorizontal: 15,
+    marginHorizontal: 16,
   },
   visitRecordHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 14,
+    marginBottom: 12,
   },
   visitDateContainer: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 8,
   },
   visitDate: {
-    fontSize: 16,
-    color: "#333",
-    fontWeight: "500",
-    marginLeft: 10,
+    fontSize: 14,
+    color: "#374151",
+    fontWeight: "600",
   },
   visitRecordDetails: {
     borderTopWidth: 1,
-    borderTopColor: "#f0f0f0",
-    paddingTop: 14,
+    borderTopColor: "#F3F4F6",
+    paddingTop: 12,
   },
   visitRecordItem: {
     marginBottom: 10,
   },
   visitRecordLabel: {
-    fontSize: 14,
-    color: "#666",
-    marginBottom: 4,
+    fontSize: 12,
+    color: "#9CA3AF",
+    marginBottom: 3,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   visitRecordValue: {
-    fontSize: 16,
-    color: "#333",
-    lineHeight: 22,
+    fontSize: 14,
+    color: "#374151",
+    lineHeight: 20,
   },
   noRecordsContainer: {
     alignItems: "center",
     justifyContent: "center",
-    padding: 35,
-    backgroundColor: "#fff",
-    borderRadius: 15,
-    margin: 15,
+    padding: 32,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    margin: 16,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
     elevation: 2,
   },
   noRecordsText: {
-    fontSize: 16,
-    color: "#666",
-    marginTop: 15,
+    fontSize: 14,
+    color: "#6B7280",
+    marginTop: 12,
     textAlign: "center",
   },
   modalHeader: {
@@ -1898,7 +2905,7 @@ const dashboardStyles = StyleSheet.create({
     marginBottom: 16,
     paddingBottom: 16,
     borderBottomWidth: 1,
-    borderBottomColor: "#eee",
+    borderBottomColor: "#F3F4F6",
   },
   modalScrollContent: {
     maxHeight: 400,
@@ -1907,211 +2914,267 @@ const dashboardStyles = StyleSheet.create({
   visitDetailHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 22,
+    marginBottom: 20,
+    gap: 10,
   },
   visitDetailDate: {
-    fontSize: 16,
-    color: "#333",
-    fontWeight: "500",
-    marginLeft: 10,
+    fontSize: 15,
+    color: "#374151",
+    fontWeight: "600",
   },
   visitDetailSection: {
-    marginBottom: 24,
+    marginBottom: 20,
   },
   visitDetailSectionTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#5f2446",
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#0F172A",
     marginBottom: 12,
   },
   visitDetailItem: {
-    marginBottom: 12,
+    marginBottom: 10,
   },
   visitDetailLabel: {
-    fontSize: 14,
-    color: "#666",
-    marginBottom: 5,
+    fontSize: 12,
+    color: "#9CA3AF",
+    marginBottom: 4,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
   },
   visitDetailValue: {
-    fontSize: 16,
-    color: "#333",
-    lineHeight: 22,
+    fontSize: 14,
+    color: "#374151",
+    lineHeight: 20,
   },
   modalCloseButton: {
-    backgroundColor: "#5f2446",
-    borderRadius: 10,
+    backgroundColor: "#0EA5E9",
+    borderRadius: 14,
     padding: 14,
     alignItems: "center",
-    marginTop: 18,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 2,
+    marginTop: 16,
+    shadowColor: "#0EA5E9",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   modalCloseButtonText: {
-    color: "#fff",
-    fontSize: 16,
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "700",
+  },
+});
+
+const chartStyles = StyleSheet.create({
+  chartCard: {
+    backgroundColor: "#F8FAFC",
+    borderRadius: 16,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  chartHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  chartTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#0F172A",
+  },
+  chartMeta: {
+    fontSize: 12,
+    color: "#64748B",
     fontWeight: "600",
+  },
+  chartBars: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    justifyContent: "space-between",
+    height: 120,
+    paddingHorizontal: 4,
+  },
+  chartBarItem: {
+    flex: 1,
+    alignItems: "center",
+  },
+  chartBar: {
+    width: 12,
+    borderRadius: 6,
+  },
+  chartLabel: {
+    fontSize: 10,
+    color: "#94A3B8",
+    marginTop: 6,
+  },
+  chartValue: {
+    fontSize: 10,
+    color: "#64748B",
+    fontWeight: "600",
+    marginBottom: 6,
   },
 });
 
 const historyStyles = StyleSheet.create({
   historyContainer: {
     marginBottom: 20,
-    paddingHorizontal: 15,
+    paddingHorizontal: 16,
   },
   historyDateGroup: {
-    marginBottom: 18,
+    marginBottom: 16,
   },
   historyDateHeader: {
     flexDirection: "row" as "row",
     alignItems: "center" as "center",
-    marginBottom: 12,
+    marginBottom: 10,
   },
   historyDateBadge: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#5f2446",
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: "#0F172A",
     justifyContent: "center" as "center",
     alignItems: "center" as "center",
     marginRight: 12,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1,
-    elevation: 2,
   },
   historyDateBadgeText: {
-    fontSize: 16,
+    fontSize: 14,
     fontWeight: "bold" as "bold",
-    color: "#fff",
+    color: "#FFFFFF",
   },
   historyDateText: {
-    fontSize: 16,
-    color: "#333",
+    fontSize: 15,
+    color: "#111827",
     fontWeight: "600" as "600",
   },
   historyCard: {
-    backgroundColor: "#fff",
-    borderRadius: 15,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
     padding: 16,
-    marginBottom: 12,
+    marginBottom: 10,
     flexDirection: "row" as "row",
     alignItems: "center" as "center",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
     elevation: 2,
   },
   historyGameIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: "#5f2446",
+    width: 46,
+    height: 46,
+    borderRadius: 14,
+    backgroundColor: "#0EA5E9",
     justifyContent: "center" as "center",
     alignItems: "center" as "center",
-    marginRight: 16,
+    marginRight: 14,
   },
   historyCardContent: {
     flex: 1,
   },
   historyGameTitle: {
-    fontSize: 17,
-    fontWeight: "bold" as "bold",
-    color: "#333",
-    marginBottom: 8,
+    fontSize: 14,
+    fontWeight: "700" as "bold",
+    color: "#111827",
+    marginBottom: 6,
   },
   historyDetails: {
     flexDirection: "row" as "row",
     alignItems: "center" as "center",
-    marginBottom: 8,
+    marginBottom: 6,
+    gap: 12,
   },
   historyDetailIcon: {
-    marginRight: 6,
-    color: "#5f2446",
+    marginRight: 4,
+    color: "#0EA5E9",
   },
   historyTimeText: {
-    fontSize: 14,
-    color: "#666",
-    marginRight: 16,
+    fontSize: 12,
+    color: "#6B7280",
   },
   historyScoreText: {
-    fontSize: 14,
-    color: "#666",
+    fontSize: 12,
+    color: "#6B7280",
   },
   historyScoreValue: {
     fontWeight: "bold" as "bold",
-    color: "#5f2446",
+    color: "#0EA5E9",
   },
   historyAccuracy: {
-    marginTop: 8,
+    marginTop: 6,
   },
   historyAccuracyLabel: {
-    fontSize: 13,
-    color: "#888",
-    marginBottom: 5,
+    fontSize: 11,
+    color: "#9CA3AF",
+    marginBottom: 4,
+    fontWeight: "600" as "600",
+    textTransform: "uppercase" as "uppercase",
+    letterSpacing: 0.5,
   },
   historyAccuracyBar: {
-    height: 8,
-    backgroundColor: "#f0f0f0",
-    borderRadius: 4,
+    height: 6,
+    backgroundColor: "#E5E7EB",
+    borderRadius: 3,
     overflow: "hidden" as "hidden",
     flex: 1,
   },
   historyAccuracyFill: {
-    height: 8,
-    backgroundColor: "#5f2446",
-    borderRadius: 4,
+    height: 6,
+    backgroundColor: "#0EA5E9",
+    borderRadius: 3,
   },
   historyAccuracyText: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "bold" as "bold",
-    color: "#5f2446",
-    marginLeft: 10,
+    color: "#0EA5E9",
+    marginLeft: 8,
   },
 });
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "#F3F4F6",
+  },
+  scrollContent: {
+    paddingBottom: 120,
   },
   welcomeSection: {
-    backgroundColor: "#5f2446",
-    paddingHorizontal: 20,
-    paddingBottom: 30,
-    borderBottomLeftRadius: 25,
-    borderBottomRightRadius: 25,
+    backgroundColor: "#0F172A",
+    paddingHorizontal: 24,
+    paddingBottom: 24,
+    borderBottomLeftRadius: 0,
+    borderBottomRightRadius: 0,
   },
   welcomeText: {
-    color: "rgba(255,255,255,0.8)",
-    fontSize: 18,
-    marginBottom: 5,
+    color: "rgba(255,255,255,0.6)",
+    fontSize: 15,
+    marginBottom: 4,
   },
   patientName: {
-    color: "#fff",
-    fontSize: 28,
-    fontWeight: "bold",
-    marginTop: 5,
+    color: "#FFFFFF",
+    fontSize: 26,
+    fontWeight: "800",
+    letterSpacing: 0.3,
   },
   sectionContent: {
-    padding: 15,
+    padding: 16,
   },
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginTop: 20,
-    marginBottom: 20,
-    paddingHorizontal: 5,
+    marginTop: 16,
+    marginBottom: 16,
+    paddingHorizontal: 4,
   },
   sectionTitle: {
-    fontSize: 22,
-    fontWeight: "bold",
-    color: "#333",
+    fontSize: 20,
+    fontWeight: "700",
+    color: "#111827",
   },
   backButton: {
     flexDirection: "row",
@@ -2119,7 +3182,8 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 20,
-    backgroundColor: "rgba(95, 36, 70, 0.1)",
+    backgroundColor: "#FEE2E2",
+    gap: 4,
   },
   backButtons: {
     flexDirection: "row",
@@ -2127,26 +3191,28 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 20,
-    backgroundColor: "rgba(95, 36, 70, 0.1)",
+    backgroundColor: "#FEE2E2",
     marginTop: 10,
+    gap: 4,
   },
   headerActions: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 8,
   },
   addButton: {
     flexDirection: "row",
     alignItems: "center",
-    marginRight: 15,
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 20,
-    backgroundColor: "rgba(95, 36, 70, 0.1)",
+    backgroundColor: "#D1FAE5",
+    gap: 4,
   },
   addLink: {
-    color: "#5f2446",
-    fontWeight: "500",
-    fontSize: 16,
+    color: "#059669",
+    fontWeight: "600",
+    fontSize: 14,
   },
   loadingContainer: {
     flex: 1,
@@ -2157,106 +3223,110 @@ const styles = StyleSheet.create({
   },
   progressBarContainer: {
     height: 8,
-    backgroundColor: "#f0f0f0",
+    backgroundColor: "#E5E7EB",
     borderRadius: 4,
     overflow: "hidden",
     flex: 1,
   },
   progressBar: {
     height: 8,
-    backgroundColor: "#5f2446",
+    backgroundColor: "#0EA5E9",
     borderRadius: 4,
   },
   remindersList: {
     marginBottom: 20,
   },
   reminderCard: {
-    backgroundColor: "#fff",
-    borderRadius: 15,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
     padding: 16,
-    marginBottom: 12,
+    marginBottom: 10,
     flexDirection: "row",
     alignItems: "center",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
     elevation: 2,
   },
   reminderIcon: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+    width: 48,
+    height: 48,
+    borderRadius: 14,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 16,
+    marginRight: 14,
   },
   reminderContent: {
     flex: 1,
   },
   reminderTitle: {
-    fontSize: 17,
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 6,
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#111827",
+    marginBottom: 5,
   },
   reminderTimeContainer: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 5,
+    gap: 6,
   },
   reminderTimeIcon: {
-    marginRight: 6,
+    marginRight: 4,
   },
   reminderDate: {
-    fontSize: 14,
-    color: "#666",
-    marginRight: 12,
+    fontSize: 12,
+    color: "#6B7280",
   },
   reminderTime: {
-    fontSize: 14,
-    color: "#666",
+    fontSize: 12,
+    color: "#6B7280",
   },
   reminderActions: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 4,
   },
   reminderActionButton: {
-    padding: 8,
-    marginLeft: 5,
+    width: 34,
+    height: 34,
+    borderRadius: 10,
+    backgroundColor: "#F3F4F6",
+    justifyContent: "center",
+    alignItems: "center",
   },
   noRemindersContainer: {
-    backgroundColor: "#fff",
-    borderRadius: 15,
-    padding: 25,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 28,
     alignItems: "center",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
     elevation: 2,
-    marginTop: 10,
+    marginTop: 8,
   },
   noRemindersText: {
-    fontSize: 16,
-    color: "#666",
-    marginBottom: 20,
+    fontSize: 15,
+    color: "#6B7280",
+    marginBottom: 16,
   },
   addReminderButton: {
-    backgroundColor: "#5f2446",
+    backgroundColor: "#0EA5E9",
     paddingVertical: 12,
     paddingHorizontal: 24,
-    borderRadius: 25,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 2,
+    borderRadius: 14,
+    shadowColor: "#0EA5E9",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   addReminderButtonText: {
-    color: "#fff",
-    fontWeight: "600",
-    fontSize: 16,
+    color: "#FFFFFF",
+    fontWeight: "700",
+    fontSize: 14,
   },
   modalOverlay: {
     flex: 1,
@@ -2273,81 +3343,84 @@ const styles = StyleSheet.create({
     height: "100%",
   },
   modalContent: {
-    backgroundColor: "#fff",
-    borderRadius: 15,
-    padding: 25,
-    width: "90%",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 24,
+    padding: 24,
+    width: "92%",
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.25,
-    shadowRadius: 5,
-    elevation: 5,
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.15,
+    shadowRadius: 24,
+    elevation: 8,
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: "bold",
-    color: "#333",
+    fontWeight: "700",
+    color: "#111827",
     marginBottom: 20,
     textAlign: "center",
   },
   reminderInput: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 10,
-    paddingVertical: 12,
-    paddingHorizontal: 15,
-    fontSize: 16,
-    backgroundColor: "#f9f9f9",
-    marginBottom: 15,
+    borderWidth: 1.5,
+    borderColor: "#E5E7EB",
+    borderRadius: 12,
+    paddingVertical: 13,
+    paddingHorizontal: 14,
+    fontSize: 15,
+    backgroundColor: "#F9FAFB",
+    marginBottom: 14,
+    color: "#111827",
   },
   dateTimeButton: {
     flexDirection: "row",
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 10,
-    paddingVertical: 14,
-    paddingHorizontal: 15,
-    backgroundColor: "#f9f9f9",
-    marginBottom: 15,
+    borderWidth: 1.5,
+    borderColor: "#E5E7EB",
+    borderRadius: 12,
+    paddingVertical: 13,
+    paddingHorizontal: 14,
+    backgroundColor: "#F9FAFB",
+    marginBottom: 14,
+    gap: 10,
   },
   dateTimeText: {
-    fontSize: 16,
-    color: "#333",
+    fontSize: 15,
+    color: "#374151",
   },
   modalButtons: {
     flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 15,
+    gap: 12,
+    marginTop: 8,
   },
   cancelButton: {
     flex: 1,
-    backgroundColor: "#f0f0f0",
+    backgroundColor: "#F3F4F6",
     padding: 14,
-    borderRadius: 10,
-    marginRight: 10,
+    borderRadius: 14,
     alignItems: "center",
+    borderWidth: 1.5,
+    borderColor: "#E5E7EB",
   },
   cancelButtonText: {
-    color: "#666",
-    fontWeight: "bold",
-    fontSize: 16,
+    color: "#6B7280",
+    fontWeight: "600",
+    fontSize: 15,
   },
   saveButton: {
     flex: 1,
-    backgroundColor: "#5f2446",
+    backgroundColor: "#0EA5E9",
     padding: 14,
-    borderRadius: 10,
+    borderRadius: 14,
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 2,
-    elevation: 2,
+    shadowColor: "#0EA5E9",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   saveButtonText: {
-    color: "#fff",
-    fontWeight: "bold",
-    fontSize: 16,
+    color: "#FFFFFF",
+    fontWeight: "700",
+    fontSize: 15,
   },
 });

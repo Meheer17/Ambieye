@@ -1,102 +1,110 @@
 import React from 'react';
-import { View, StyleSheet } from 'react-native';
+import { View, StyleSheet, Platform } from 'react-native';
 import Feather from '@expo/vector-icons/Feather';
 import FontAwesome from '@expo/vector-icons/FontAwesome';
 import { Tabs } from 'expo-router';
+import { Colors } from '@/constants/theme';
 
-const ICON_SIZE = 24;
+const ICON_SIZE = 22;
 
 export default function PatientTabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: "white",
-        tabBarInactiveTintColor: "grey",
+        tabBarActiveTintColor: Colors.primary,
+        tabBarInactiveTintColor: Colors.textLight,
         tabBarStyle: {
           position: "absolute",
           bottom: 0,
           width: "100%",
-          backgroundColor: "#0D0145",
+          backgroundColor: Colors.surface,
           borderTopWidth: 0,
-          height: 65,
-          paddingBottom: 10,
-          paddingTop: 10,
-          elevation: 10,
-          borderTopLeftRadius: 13,
-          borderTopRightRadius: 13,
+          height: Platform.OS === "ios" ? 88 : 68,
+          paddingBottom: Platform.OS === "ios" ? 28 : 12,
+          paddingTop: 12,
+          elevation: 20,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: -4 },
+          shadowOpacity: 0.1,
+          shadowRadius: 16,
+          borderTopLeftRadius: 24,
+          borderTopRightRadius: 24,
         },
-        headerShown: true,
-        header: () => {
-          return (
-            <View style={styles.customHeader}>
-            </View>
-          );
+        tabBarLabelStyle: {
+          fontSize: 11,
+          fontWeight: "600",
+          letterSpacing: 0.2,
         },
+        headerShown: false,
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
           title: "Home",
-          tabBarIcon: ({ color }) => (
-            <Feather name="home" size={ICON_SIZE} color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <View style={focused ? styles.activeIconBg : styles.iconBg}>
+              <Feather name="home" size={ICON_SIZE} color={color} />
+            </View>
           ),
-          tabBarStyle: { display: 'none' },
         }}
       />
       <Tabs.Screen
         name="games"
         options={{
           title: "Games",
-          tabBarIcon: ({ color }) => (
-            <FontAwesome name="gamepad" size={ICON_SIZE} color={color} />
+          tabBarIcon: ({ color, focused }) => (
+            <View style={focused ? styles.activeIconBg : styles.iconBg}>
+              <FontAwesome name="gamepad" size={ICON_SIZE} color={color} />
+            </View>
           ),
-          tabBarStyle: { display: 'none' },
         }}
       />
       <Tabs.Screen
         name="queries"
         options={{
-          title: "Query",
-          tabBarIcon: ({ color }) => (
-            <Feather name="help-circle" size={ICON_SIZE} color={color} />
+          title: "Queries",
+          tabBarIcon: ({ color, focused }) => (
+            <View style={focused ? styles.activeIconBg : styles.iconBg}>
+              <Feather name="message-circle" size={ICON_SIZE} color={color} />
+            </View>
           ),
         }}
       />
       <Tabs.Screen
         name="settings"
         options={{
-          title: "Settings",
-          tabBarIcon: ({ color }) => (
-            <Feather name="settings" size={ICON_SIZE} color={color} />
+          title: "Profile",
+          tabBarIcon: ({ color, focused }) => (
+            <View style={focused ? styles.activeIconBg : styles.iconBg}>
+              <Feather name="user" size={ICON_SIZE} color={color} />
+            </View>
           ),
         }}
       />
-      {/* Hide (stack) from tab bar */}
-      <Tabs.Screen 
+      <Tabs.Screen
         name="(stack)"
-        options={{ 
+        options={{
           href: null,
-        }} 
+        }}
       />
     </Tabs>
   );
 }
 
 const styles = StyleSheet.create({
-  customHeader: {
-    backgroundColor: "#5f2446",
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 15,
-    paddingTop: 50,
-    paddingBottom: 10,
-    height: 60,
+  iconBg: {
+    width: 40,
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
-  headerTitle: {
-    color: "white",
-    fontSize: 18,
-    fontWeight: "bold",
+  activeIconBg: {
+    backgroundColor: `${Colors.primary}18`,
+    borderRadius: 10,
+    width: 40,
+    height: 32,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

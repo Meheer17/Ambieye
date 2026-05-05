@@ -8,6 +8,7 @@ import {
   ScrollView,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { SafeAreaView } from "react-native-safe-area-context";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { saveGameResult } from "@/utils/gameUtils";
 
@@ -131,14 +132,14 @@ export default function ObjectColorGame() {
       Alert.alert(
         "Game Complete!",
         `Score: ${finalScore}%\nTime: ${Math.round(gameDuration)}s`,
-        [{ text: "OK", onPress: () => router.push("/games") }]
+        [{ text: "OK", onPress: () => router.back() }]
       );
     } catch (error) {
       console.error("Failed to save game result:", error);
       Alert.alert(
         "Game Complete!",
         `Score: ${finalScore}%\nTime: ${Math.round(gameDuration)}s\n(Failed to save results)`,
-        [{ text: "OK", onPress: () => router.push("/games") }]
+        [{ text: "OK", onPress: () => router.back() }]
       );
     }
   };
@@ -168,8 +169,8 @@ export default function ObjectColorGame() {
           justifyContent: "space-between",
         }}
       >
-        <TouchableOpacity onPress={() => router.push("/games")}>
-          <FontAwesome name="arrow-left" size={24} color="#5f2446" />
+        <TouchableOpacity onPress={() => router.back()}>
+          <FontAwesome name="arrow-left" size={24} color="#0EA5E9" />
         </TouchableOpacity>
         <Text style={styles.gameTitle}>Identify the Object&apos;s Color</Text>
       </View>
@@ -231,8 +232,9 @@ export default function ObjectColorGame() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "#F8FAFC",
     padding: 20,
+    paddingTop: 56,
   },
   backButton: {
     marginTop: 20,
@@ -241,7 +243,7 @@ const styles = StyleSheet.create({
   gameTitle: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#5f2446",
+    color: "#0EA5E9",
     marginBottom: 20,
     textAlign: "center",
   },
@@ -258,7 +260,7 @@ const styles = StyleSheet.create({
     lineHeight: 26,
   },
   startButton: {
-    backgroundColor: "#5f2446",
+    backgroundColor: "#0EA5E9",
     paddingHorizontal: 40,
     paddingVertical: 15,
     borderRadius: 30,
@@ -280,7 +282,7 @@ const styles = StyleSheet.create({
   scoreText: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#5f2446",
+    color: "#0EA5E9",
   },
   roundText: {
     fontSize: 18,
@@ -290,7 +292,7 @@ const styles = StyleSheet.create({
   timeText: {
     fontSize: 16,
     fontWeight: "bold",
-    color: "#5f2446",
+    color: "#0EA5E9",
     textAlign: "center",
     marginBottom: 15,
   },

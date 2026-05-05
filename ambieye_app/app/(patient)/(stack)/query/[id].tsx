@@ -93,7 +93,7 @@ export default function QueryDetailScreen() {
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#5f2446" />
+        <ActivityIndicator size="large" color="#0EA5E9" />
       </View>
     );
   }
@@ -121,8 +121,8 @@ export default function QueryDetailScreen() {
             justifyContent: "space-between",
           }}
         >
-          <TouchableOpacity onPress={() => router.push("/(patient)/queries")}>
-            <FontAwesome name="arrow-left" size={24} color="#5f2446" />
+          <TouchableOpacity onPress={() => router.back()}>
+            <FontAwesome name="arrow-left" size={24} color="#0EA5E9" />
           </TouchableOpacity>
           <Text style={styles.gameTitle}>Query Details</Text>
         </View>
@@ -219,26 +219,23 @@ export default function QueryDetailScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "#F3F4F6",
     padding: 16,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "#F3F4F6",
   },
   card: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
     padding: 20,
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 12,
     elevation: 3,
     marginBottom: 20,
   },
@@ -246,112 +243,124 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: 20,
   },
   statusBadge: {
-    paddingVertical: 4,
-    paddingHorizontal: 12,
+    paddingVertical: 5,
+    paddingHorizontal: 14,
     borderRadius: 20,
   },
   pendingBadge: {
-    backgroundColor: "#ffefd5",
+    backgroundColor: "#FEF3C7",
   },
   answeredBadge: {
-    backgroundColor: "#d4edda",
+    backgroundColor: "#D1FAE5",
   },
   statusText: {
     fontSize: 12,
-    fontWeight: "bold",
+    fontWeight: "700",
+    letterSpacing: 0.3,
   },
   date: {
     fontSize: 12,
-    color: "#888",
+    color: "#9CA3AF",
   },
   section: {
     marginBottom: 20,
   },
   label: {
     fontSize: 12,
-    color: "#888",
+    color: "#9CA3AF",
+    fontWeight: "600",
     marginBottom: 6,
+    letterSpacing: 0.5,
+    textTransform: "uppercase",
   },
   patientName: {
     fontSize: 16,
-    fontWeight: "600",
-    color: "#333",
+    fontWeight: "700",
+    color: "#111827",
   },
   doctorName: {
     fontSize: 16,
-    fontWeight: "600",
-    color: "#5f2446",
+    fontWeight: "700",
+    color: "#0F172A",
   },
   gameTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#5f2446",
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#111827",
     marginBottom: 20,
     textAlign: "center",
   },
   questionContainer: {
-    backgroundColor: "#f8f9fa",
-    borderRadius: 8,
-    padding: 12,
+    backgroundColor: "#F9FAFB",
+    borderRadius: 14,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#E5E7EB",
   },
   questionText: {
-    fontSize: 16,
+    fontSize: 15,
     lineHeight: 24,
-    color: "#333",
+    color: "#374151",
   },
   responseContainer: {
-    backgroundColor: "#f0f4ff",
-    borderRadius: 8,
-    padding: 12,
+    backgroundColor: "#EDE9FE",
+    borderRadius: 14,
+    padding: 16,
   },
   responseText: {
-    fontSize: 16,
+    fontSize: 15,
     lineHeight: 24,
-    color: "#333",
+    color: "#374151",
   },
   responseDate: {
     fontSize: 12,
-    color: "#888",
-    marginTop: 8,
+    color: "#7C3AED",
+    marginTop: 10,
     textAlign: "right",
+    fontWeight: "500",
   },
   responseForm: {
     marginTop: 20,
     borderTopWidth: 1,
-    borderTopColor: "#eee",
+    borderTopColor: "#F3F4F6",
     paddingTop: 20,
   },
   responseFormTitle: {
     fontSize: 16,
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: 12,
+    fontWeight: "700",
+    color: "#111827",
+    marginBottom: 14,
   },
   responseInput: {
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    color: "#333",
-    backgroundColor: "#f9f9f9",
-    height: 120,
+    borderWidth: 1.5,
+    borderColor: "#E5E7EB",
+    borderRadius: 14,
+    padding: 14,
+    fontSize: 15,
+    color: "#111827",
+    backgroundColor: "#F9FAFB",
+    height: 130,
     textAlignVertical: "top",
     marginBottom: 16,
   },
   submitButton: {
-    backgroundColor: "#5f2446",
-    paddingVertical: 12,
-    borderRadius: 8,
+    backgroundColor: "#0EA5E9",
+    paddingVertical: 14,
+    borderRadius: 14,
     alignItems: "center",
     justifyContent: "center",
+    shadowColor: "#0EA5E9",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   submitButtonText: {
-    color: "#fff",
-    fontWeight: "bold",
-    fontSize: 16,
+    color: "#FFFFFF",
+    fontWeight: "700",
+    fontSize: 15,
   },
 });

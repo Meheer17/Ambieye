@@ -10,6 +10,7 @@ import {
   Dimensions,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { SafeAreaView } from "react-native-safe-area-context";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { saveGameResult } from "@/utils/gameUtils";
 
@@ -250,14 +251,14 @@ export default function MatchingGame() {
       Alert.alert(
         "Game Complete!",
         `Score: ${finalScore}%\nTime: ${Math.round(gameDuration)}s`,
-        [{ text: "OK", onPress: () => router.push("/games") }]
+        [{ text: "OK", onPress: () => router.back() }]
       );
     } catch (error) {
       console.error("Failed to save game result:", error);
       Alert.alert(
         "Game Complete!",
         `Score: ${finalScore}%\nTime: ${Math.round(gameDuration)}s\n(Failed to save results)`,
-        [{ text: "OK", onPress: () => router.push("/games") }]
+        [{ text: "OK", onPress: () => router.back() }]
       );
     }
   };
@@ -276,8 +277,8 @@ export default function MatchingGame() {
           justifyContent: "space-between",
         }}
       >
-        <TouchableOpacity onPress={() => router.push("/games")}>
-          <FontAwesome name="arrow-left" size={24} color="#5f2446" />
+        <TouchableOpacity onPress={() => router.back()}>
+          <FontAwesome name="arrow-left" size={24} color="#0EA5E9" />
         </TouchableOpacity>
         <Text style={styles.gameTitle}>Match the Following</Text>
       </View>
@@ -310,7 +311,7 @@ export default function MatchingGame() {
                 inputRange: [0, 100],
                 outputRange: ['0%', '100%']
               }),
-              backgroundColor: '#5f2446',
+              backgroundColor: '#0EA5E9',
               borderRadius: 3,
               marginTop: 10
             }} />
@@ -329,7 +330,7 @@ export default function MatchingGame() {
                   onPress={() => handleSelect('left', index)}
                   disabled={isMatched(item.id)}
                 >
-                  <FontAwesome name={item.icon} size={24} color={isMatched(item.id) ? "#4CAF50" : "#5f2446"} />
+                  <FontAwesome name={item.icon} size={24} color={isMatched(item.id) ? "#4CAF50" : "#0EA5E9"} />
                   <Text style={[
                     styles.matchItemText,
                     isMatched(item.id) && styles.matchedItemText
@@ -352,7 +353,7 @@ export default function MatchingGame() {
                   onPress={() => handleSelect('right', index)}
                   disabled={isMatched(item.id)}
                 >
-                  <FontAwesome name={item.icon} size={24} color={isMatched(item.id) ? "#4CAF50" : "#5f2446"} />
+                  <FontAwesome name={item.icon} size={24} color={isMatched(item.id) ? "#4CAF50" : "#0EA5E9"} />
                   <Text style={[
                     styles.matchItemText,
                     isMatched(item.id) && styles.matchedItemText
@@ -385,7 +386,7 @@ const styles = StyleSheet.create({
   gameTitle: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#5f2446",
+    color: "#0EA5E9",
     marginBottom: 20,
     textAlign: "center",
   },
@@ -403,7 +404,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   startButton: {
-    backgroundColor: "#5f2446",
+    backgroundColor: "#0EA5E9",
     paddingHorizontal: 40,
     paddingVertical: 15,
     borderRadius: 30,
@@ -425,7 +426,7 @@ const styles = StyleSheet.create({
   scoreText: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#5f2446",
+    color: "#0EA5E9",
   },
   roundText: {
     fontSize: 18,
@@ -460,8 +461,8 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   selectedItem: {
-    backgroundColor: "#f0e6eb",
-    borderColor: "#5f2446",
+    backgroundColor: "#EFF6FF",
+    borderColor: "#0EA5E9",
     borderWidth: 2,
   },
   matchedItem: {

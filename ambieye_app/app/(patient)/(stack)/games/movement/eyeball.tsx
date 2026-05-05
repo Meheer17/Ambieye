@@ -9,6 +9,7 @@ import {
   Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
+import { SafeAreaView } from "react-native-safe-area-context";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { saveGameResult } from "@/utils/gameUtils";
 
@@ -201,14 +202,14 @@ export default function EyeballMovementGame() {
       Alert.alert(
         "Exercise Complete!",
         `Score: ${score}%\nTime: ${Math.round(gameDuration)}s`,
-        [{ text: "OK", onPress: () => router.push("/games") }],
+        [{ text: "OK", onPress: () => router.back() }],
       );
     } catch (error) {
       console.error("Failed to save game result:", error);
       Alert.alert(
         "Exercise Complete!",
         `Score: ${score}%\nTime: ${Math.round(gameDuration)}s\n(Failed to save results)`,
-        [{ text: "OK", onPress: () => router.push("/games") }],
+        [{ text: "OK", onPress: () => router.back() }],
       );
     }
   }, [gameStartTime, router, score, timeRemaining]);
@@ -320,8 +321,8 @@ export default function EyeballMovementGame() {
           justifyContent: "space-between",
         }}
       >
-        <TouchableOpacity onPress={() => router.push("/games")}>
-          <FontAwesome name="arrow-left" size={24} color="#5f2446" />
+        <TouchableOpacity onPress={() => router.back()}>
+          <FontAwesome name="arrow-left" size={24} color="#0EA5E9" />
         </TouchableOpacity>
         <Text style={styles.gameTitle}>Eyeball Movement</Text>
       </View>
@@ -377,8 +378,9 @@ export default function EyeballMovementGame() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "#F8FAFC",
     padding: 20,
+    paddingTop: 56,
   },
   backButton: {
     marginTop: 20,
@@ -387,7 +389,7 @@ const styles = StyleSheet.create({
   gameTitle: {
     fontSize: 24,
     fontWeight: "bold",
-    color: "#5f2446",
+    color: "#0EA5E9",
     marginBottom: 20,
     textAlign: "center",
   },
@@ -405,7 +407,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   startButton: {
-    backgroundColor: "#5f2446",
+    backgroundColor: "#0EA5E9",
     paddingHorizontal: 40,
     paddingVertical: 15,
     borderRadius: 30,
@@ -428,7 +430,7 @@ const styles = StyleSheet.create({
   scoreText: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#5f2446",
+    color: "#0EA5E9",
   },
   roundText: {
     fontSize: 18,
@@ -455,16 +457,16 @@ const styles = StyleSheet.create({
     width: BALL_SIZE,
     height: BALL_SIZE,
     borderRadius: BALL_SIZE / 2,
-    backgroundColor: "#5f2446",
+    backgroundColor: "#0EA5E9",
     position: "absolute",
   },
   patternGuide: {
     marginTop: 30,
     padding: 15,
-    backgroundColor: "#f0e6eb",
+    backgroundColor: "#EFF6FF",
     borderRadius: 10,
     borderLeftWidth: 4,
-    borderLeftColor: "#5f2446",
+    borderLeftColor: "#0EA5E9",
   },
   patternText: {
     color: "#333",

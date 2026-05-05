@@ -132,7 +132,7 @@ export default function PrivacyPolicyScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#0D0145",
+    backgroundColor: "#0F172A",
   },
   content: {
     flex: 1,

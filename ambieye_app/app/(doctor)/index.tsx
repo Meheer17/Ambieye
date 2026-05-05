@@ -9,8 +9,8 @@ import {
   RefreshControl,
   Platform,
   StatusBar,
-  Dimensions,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@/hooks/useAuth";
 import { useFocusEffect } from "@react-navigation/native";
 import { useRouter } from "expo-router";
@@ -22,6 +22,7 @@ import {
   doctorQueryService,
 } from "@/services/api/doctorQueryService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { Colors, Shadows, BorderRadius } from "@/constants/theme";
 
 export default function DoctorDashboard() {
   const { username } = useAuth();
@@ -33,9 +34,8 @@ export default function DoctorDashboard() {
   const [patientError, setPatientError] = useState("");
   const [queryError, setQueryError] = useState("");
 
-  // Cache control
   const lastFetchTimeRef = useRef<number>(0);
-  const CACHE_DURATION = 10 * 60 * 1000; // 10 minutes in milliseconds
+  const CACHE_DURATION = 10 * 60 * 1000;
   const CACHE_KEY_PATIENTS = "doctor_dashboard_patients";
   const CACHE_KEY_QUERIES = "doctor_dashboard_queries";
   const CACHE_KEY_TIMESTAMP = "doctor_dashboard_timestamp";
@@ -45,7 +45,6 @@ export default function DoctorDashboard() {
       const timestamp = await AsyncStorage.getItem(CACHE_KEY_TIMESTAMP);
       const cachedPatients = await AsyncStorage.getItem(CACHE_KEY_PATIENTS);
       const cachedQueries = await AsyncStorage.getItem(CACHE_KEY_QUERIES);
-
       if (timestamp && cachedPatients && cachedQueries) {
         lastFetchTimeRef.current = parseInt(timestamp, 10);
         setPatients(JSON.parse(cachedPatients));
@@ -54,7 +53,6 @@ export default function DoctorDashboard() {
       }
       return false;
     } catch (error) {
-      console.error("Error loading cached data:", error);
       return false;
     }
   };
@@ -66,9 +64,7 @@ export default function DoctorDashboard() {
       await AsyncStorage.setItem(CACHE_KEY_PATIENTS, JSON.stringify(patients));
       await AsyncStorage.setItem(CACHE_KEY_QUERIES, JSON.stringify(queries));
       lastFetchTimeRef.current = now;
-    } catch (error) {
-      console.error("Error caching data:", error);
-    }
+    } catch (error) {}
   };
 
   const fetchData = useCallback(
@@ -79,7 +75,6 @@ export default function DoctorDashboard() {
       };
       setLoading(true);
 
-      // Check if we can use cached data
       if (!forceRefresh) {
         const hasCachedData = await loadCachedData();
         if (hasCachedData && !shouldFetchFromServer()) {
@@ -90,7 +85,6 @@ export default function DoctorDashboard() {
       }
 
       try {
-        // Fetch patients
         const patientResponse = await doctorService.getPatients();
         if (patientResponse.success) {
           setPatients(patientResponse.patients);
@@ -99,16 +93,10 @@ export default function DoctorDashboard() {
           setPatientError(patientResponse.message);
         }
 
-        // Fetch queries
-        const queryResponse = await doctorQueryService.getAllQueries(
-          "pending",
-          false,
-        );
+        const queryResponse = await doctorQueryService.getAllQueries("pending", false);
         if (queryResponse.success) {
           setQueries(queryResponse.queries);
           setQueryError("");
-
-          // Cache the new data
           if (patientResponse.success && queryResponse.success) {
             cacheData(patientResponse.patients, queryResponse.queries);
           }
@@ -133,36 +121,14 @@ export default function DoctorDashboard() {
 
   const onRefresh = () => {
     setRefreshing(true);
-    fetchData(true); // Force refresh from server
-  };
-
-  const navigateToPatients = () => {
-    router.push("/patients");
-  };
-
-  const navigateToQueries = () => {
-    router.push("/queries");
-  };
-
-  const navigateToPatientDetails = (patientId: string) => {
-    router.push("/patients");
-  };
-
-  const navigateToQueryDetails = (queryId: string) => {
-    router.push({
-      pathname: "/query/[id]",
-      params: { id: queryId },
-    });
+    fetchData(true);
   };
 
   const getStatusColor = (urgency?: string) => {
     switch (urgency) {
-      case "high":
-        return "#FF4D4F";
-      case "medium":
-        return "#FAAD14";
-      default:
-        return "#52C41A";
+      case "high": return Colors.error;
+      case "medium": return Colors.warning;
+      default: return Colors.accent;
     }
   };
 
@@ -171,23 +137,23 @@ export default function DoctorDashboard() {
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-
     if (diffDays === 0) return "Today";
     if (diffDays === 1) return "Yesterday";
-    if (diffDays < 7) return `${diffDays} days ago`;
+    if (diffDays < 7) return `${diffDays}d ago`;
     return date.toLocaleDateString();
   };
 
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#5f2446" />
-        <Text style={styles.loadingText}>Loading your dashboard...</Text>
+        <ActivityIndicator size="large" color={Colors.primary} />
+        <Text style={styles.loadingText}>Loading dashboard...</Text>
       </View>
     );
   }
 
   return (
+    <SafeAreaView style={{ flex: 1, backgroundColor: '#0F172A' }} edges={["top"]}>
     <ScrollView
       style={styles.container}
       showsVerticalScrollIndicator={false}
@@ -195,69 +161,93 @@ export default function DoctorDashboard() {
         <RefreshControl
           refreshing={refreshing}
           onRefresh={onRefresh}
-          colors={["#5f2446"]}
+          colors={[Colors.primary]}
+          tintColor={Colors.primary}
         />
       }
     >
-      <StatusBar barStyle="light-content" backgroundColor="#5f2446" />
+      <StatusBar barStyle="light-content" backgroundColor="#0F172A" />
 
-      {/* Header Section */}
-      <View style={styles.welcomeSection}>
-        <View style={styles.welcomeContent}>
+      {/* Header */}
+      <View style={styles.header}>
+        <View style={styles.headerBg1} />
+        <View style={styles.headerBg2} />
+        <View style={styles.headerTop}>
           <View>
-            <Text style={styles.welcomeText}>Welcome back,</Text>
-            <Text style={styles.doctorName}>Dr. {username}</Text>
+            <Text style={styles.welcomeText}>Good day,</Text>
+            <Text style={styles.doctorName}>Dr. {username} 👋</Text>
           </View>
-          <TouchableOpacity style={styles.profileButton}>
-            <FontAwesome name="user-md" size={20} color="#fff" />
+          <TouchableOpacity
+            style={styles.avatarButton}
+            onPress={() => router.push("/settings")}
+          >
+            <View style={styles.avatarCircle}>
+              <Text style={styles.avatarText}>
+                {username?.toString().charAt(0).toUpperCase() || "D"}
+              </Text>
+            </View>
+          </TouchableOpacity>
+        </View>
+
+        {/* Stats */}
+        <View style={styles.statsRow}>
+          <TouchableOpacity style={styles.statCard} onPress={() => router.push("/patients")}>
+            <View style={[styles.statIconBg, { backgroundColor: 'rgba(14, 165, 233, 0.2)' }]}>
+              <FontAwesome name="users" size={18} color={Colors.primary} />
+            </View>
+            <Text style={styles.statNumber}>{patients.length}</Text>
+            <Text style={styles.statLabel}>Patients</Text>
+          </TouchableOpacity>
+
+          <View style={styles.statDivider} />
+
+          <TouchableOpacity style={styles.statCard} onPress={() => router.push("/queries")}>
+            <View style={[styles.statIconBg, { backgroundColor: 'rgba(239, 68, 68, 0.2)' }]}>
+              <Feather name="message-circle" size={18} color={Colors.error} />
+            </View>
+            <Text style={[styles.statNumber, { color: '#FCA5A5' }]}>{queries.length}</Text>
+            <Text style={styles.statLabel}>Pending Queries</Text>
           </TouchableOpacity>
         </View>
       </View>
 
-      {/* Stats Cards */}
-      <View style={styles.statsContainer}>
-        <TouchableOpacity
-          style={[styles.statCard, { width: "48%" }]}
-          onPress={navigateToPatients}
-        >
-          <View
-            style={[styles.statIconContainer, { backgroundColor: "#5f2446" }]}
-          >
-            <FontAwesome name="user" size={20} color="#fff" />
-          </View>
-          <View style={styles.statTextContainer}>
-            <Text style={styles.statNumber}>{patients.length}</Text>
-            <Text style={styles.statLabel}>Patients</Text>
-          </View>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.statCard, { width: "48%" }]}
-          onPress={navigateToQueries}
-        >
-          <View
-            style={[styles.statIconContainer, { backgroundColor: "#0D0145" }]}
-          >
-            <Feather name="help-circle" size={20} color="#fff" />
-          </View>
-          <View style={styles.statTextContainer}>
-            <Text style={styles.statNumber}>{queries.length}</Text>
-            <Text style={styles.statLabel}>Pending Queries</Text>
-          </View>
-        </TouchableOpacity>
+      {/* Quick Actions */}
+      <View style={styles.quickActionsSection}>
+        <Text style={styles.quickActionsTitle}>Quick Actions</Text>
+        <View style={styles.quickActions}>
+          <TouchableOpacity style={styles.quickActionBtn} onPress={() => router.push("/patients")}>
+            <View style={[styles.quickActionIcon, { backgroundColor: '#EFF6FF' }]}>
+              <FontAwesome name="users" size={20} color={Colors.primary} />
+            </View>
+            <Text style={styles.quickActionText}>Patients</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.quickActionBtn} onPress={() => router.push("/queries")}>
+            <View style={[styles.quickActionIcon, { backgroundColor: '#FEF2F2' }]}>
+              <Feather name="message-circle" size={20} color={Colors.error} />
+            </View>
+            <Text style={styles.quickActionText}>Queries</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.quickActionBtn} onPress={() => router.push("/settings")}>
+            <View style={[styles.quickActionIcon, { backgroundColor: '#F5F3FF' }]}>
+              <Feather name="settings" size={20} color={Colors.secondary} />
+            </View>
+            <Text style={styles.quickActionText}>Settings</Text>
+          </TouchableOpacity>
+        </View>
       </View>
 
       {/* Patients Section */}
       <View style={styles.sectionHeader}>
         <Text style={styles.sectionTitle}>Recent Patients</Text>
-        <TouchableOpacity onPress={navigateToPatients}>
+        <TouchableOpacity style={styles.seeAllBtn} onPress={() => router.push("/patients")}>
           <Text style={styles.seeAllLink}>See All</Text>
+          <Feather name="chevron-right" size={14} color={Colors.primary} />
         </TouchableOpacity>
       </View>
 
       {patientError ? (
         <View style={styles.errorContainer}>
-          <Feather name="alert-circle" size={24} color="#ff4d4f" />
+          <Feather name="alert-circle" size={16} color={Colors.error} />
           <Text style={styles.errorText}>{patientError}</Text>
         </View>
       ) : patients.length > 0 ? (
@@ -265,466 +255,446 @@ export default function DoctorDashboard() {
           <TouchableOpacity
             key={patient.id}
             style={styles.patientCard}
-            onPress={() => navigateToPatientDetails(patient.id)}
+            onPress={() => router.push("/patients")}
+            activeOpacity={0.85}
           >
-            <View style={styles.patientLeft}>
-              <View
-                style={[
-                  styles.patientAvatar,
-                  {
-                    backgroundColor:
-                      patient.gender === "Female" ? "#FF6B9C" : "#0D0145",
-                  },
-                ]}
-              >
-                <Text style={styles.avatarText}>
-                  {patient.fullName?.charAt(0) || "P"}
+            <View style={[
+              styles.patientAvatar,
+              { backgroundColor: patient.gender === "Female" ? Colors.secondary : Colors.primary },
+            ]}>
+              <Text style={styles.avatarInitial}>
+                {patient.fullName?.charAt(0) || "P"}
+              </Text>
+            </View>
+            <View style={styles.patientInfo}>
+              <Text style={styles.patientName}>{patient.fullName}</Text>
+              <View style={styles.patientMeta}>
+                <Text style={styles.patientMetaText}>
+                  {patient.age || "N/A"} yrs • {patient.gender || "N/A"}
                 </Text>
-              </View>
-              <View>
-                <Text style={styles.patientName}>{patient.fullName}</Text>
-                <View style={styles.patientInfoRow}>
-                  <View style={styles.patientInfo}>
-                    <Feather name="user" size={14} color="#888" />
-                    <Text style={styles.infoText}>
-                      {patient.age || "N/A"} • {patient.gender || "N/A"}
+                {patient.lastVisitDate && (
+                  <View style={styles.dateBadge}>
+                    <Text style={styles.dateBadgeText}>
+                      {getTimeAgo(patient.lastVisitDate)}
                     </Text>
                   </View>
-
-                  {patient.lastVisitDate && (
-                    <View style={styles.dateContainer}>
-                      <Feather name="calendar" size={12} color="#888" />
-                      <Text style={styles.dateText}>
-                        {getTimeAgo(patient.lastVisitDate)}
-                      </Text>
-                    </View>
-                  )}
-                </View>
+                )}
               </View>
             </View>
+            <Feather name="chevron-right" size={16} color={Colors.textLight} />
           </TouchableOpacity>
         ))
       ) : (
-        <View style={styles.emptyStateContainer}>
-          <Feather name="users" size={40} color="#5f2446" />
-          <Text style={styles.emptyStateText}>No patients found</Text>
-          <TouchableOpacity style={styles.emptyStateButton}>
-            <Text style={styles.emptyStateButtonText}>Add Patient</Text>
-          </TouchableOpacity>
+        <View style={styles.emptyCard}>
+          <View style={[styles.emptyIconBg, { backgroundColor: '#EFF6FF' }]}>
+            <Feather name="users" size={24} color={Colors.primary} />
+          </View>
+          <Text style={styles.emptyTitle}>No patients yet</Text>
+          <Text style={styles.emptySubText}>
+            Patients will appear here once they connect with you
+          </Text>
         </View>
       )}
 
       {/* Queries Section */}
       <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Recent Queries</Text>
-        <TouchableOpacity onPress={navigateToQueries}>
+        <Text style={styles.sectionTitle}>Pending Queries</Text>
+        <TouchableOpacity style={styles.seeAllBtn} onPress={() => router.push("/queries")}>
           <Text style={styles.seeAllLink}>See All</Text>
+          <Feather name="chevron-right" size={14} color={Colors.primary} />
         </TouchableOpacity>
       </View>
 
       {queryError ? (
         <View style={styles.errorContainer}>
-          <Feather name="alert-circle" size={24} color="#ff4d4f" />
+          <Feather name="alert-circle" size={16} color={Colors.error} />
           <Text style={styles.errorText}>{queryError}</Text>
         </View>
       ) : queries.length > 0 ? (
-        <View style={styles.queriesContainer}>
+        <View style={styles.queriesGrid}>
           {queries.slice(0, 4).map((query) => (
             <TouchableOpacity
               key={query.id}
               style={styles.queryCard}
-              onPress={() => navigateToQueryDetails(query.id)}
+              onPress={() => router.push({ pathname: "/query/[id]", params: { id: query.id } })}
+              activeOpacity={0.85}
             >
-              <View style={styles.queryHeader}>
-                <View style={styles.queryIcon}>
-                  <Feather name="help-circle" size={20} color="#5f2446" />
-                </View>
-                <View
-                  style={[
-                    styles.statusDot,
-                    { backgroundColor: getStatusColor(query.urgency) },
-                  ]}
-                />
+              <View style={styles.queryCardTop}>
+                <View style={[styles.urgencyDot, { backgroundColor: getStatusColor(query.urgency) }]} />
+                <Text style={styles.queryDate}>{getTimeAgo(query.createdAt)}</Text>
               </View>
-              <Text
-                style={styles.queryTitle}
-                numberOfLines={2}
-                ellipsizeMode="tail"
-              >
-                {query.question.length > 50
-                  ? query.question.substring(0, 50) + "..."
-                  : query.question}
+              <Text style={styles.queryTitle} numberOfLines={2}>
+                {query.question}
               </Text>
-              <View style={styles.queryFooter}>
-                <Text style={styles.patientName}>{query.patientName}</Text>
-                <Text style={styles.queryDate}>
-                  {getTimeAgo(query.createdAt)}
+              <View style={styles.queryPatientRow}>
+                <View style={styles.queryPatientAvatar}>
+                  <Text style={styles.queryPatientAvatarText}>
+                    {query.patientName?.charAt(0) || "P"}
+                  </Text>
+                </View>
+                <Text style={styles.queryPatientName} numberOfLines={1}>
+                  {query.patientName}
                 </Text>
               </View>
             </TouchableOpacity>
           ))}
         </View>
       ) : (
-        <View style={styles.emptyStateContainer}>
-          <Feather name="inbox" size={40} color="#5f2446" />
-          <Text style={styles.emptyStateText}>No pending queries</Text>
-          <Text style={styles.emptyStateSubText}>
-            You&apos;re all caught up!
-          </Text>
+        <View style={styles.emptyCard}>
+          <View style={[styles.emptyIconBg, { backgroundColor: '#ECFDF5' }]}>
+            <Feather name="check-circle" size={24} color={Colors.accent} />
+          </View>
+          <Text style={styles.emptyTitle}>All caught up!</Text>
+          <Text style={styles.emptySubText}>No pending queries right now</Text>
         </View>
       )}
 
       <View style={styles.footer}>
-        <Text style={styles.footerText}>
-          Ambieye © {new Date().getFullYear()}
-        </Text>
+        <Text style={styles.footerText}>AmbiEye © {new Date().getFullYear()}</Text>
       </View>
     </ScrollView>
+    </SafeAreaView>
   );
 }
-
-const windowWidth = Dimensions.get("window").width;
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f7f9fc",
+    backgroundColor: Colors.background,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#f7f9fc",
+    backgroundColor: Colors.background,
+    gap: 12,
   },
   loadingText: {
-    marginTop: 12,
-    fontSize: 16,
-    color: "#5f2446",
+    fontSize: 15,
+    color: Colors.textSecondary,
   },
-  welcomeSection: {
-    backgroundColor: "#5f2446",
-    paddingHorizontal: 20,
-    paddingTop: Platform.OS === "ios" ? 50 : 30,
-    paddingBottom: 30,
-    borderBottomLeftRadius: 30,
-    borderBottomRightRadius: 30,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 5 },
-    shadowOpacity: 0.3,
-    shadowRadius: 5,
-    elevation: 8,
+  header: {
+    backgroundColor: '#0F172A',
+    paddingHorizontal: 24,
+    paddingTop: 16,
+    paddingBottom: 24,
+    overflow: 'hidden',
   },
-  welcomeContent: {
+  headerBg1: {
+    position: 'absolute',
+    width: 250,
+    height: 250,
+    borderRadius: 125,
+    backgroundColor: Colors.primary,
+    opacity: 0.08,
+    top: -80,
+    right: -60,
+  },
+  headerBg2: {
+    position: 'absolute',
+    width: 150,
+    height: 150,
+    borderRadius: 75,
+    backgroundColor: Colors.secondary,
+    opacity: 0.06,
+    bottom: -40,
+    left: -30,
+  },
+  headerTop: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
-  },
-  profileButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "rgba(255,255,255,0.2)",
-    justifyContent: "center",
-    alignItems: "center",
+    alignItems: "flex-start",
+    marginBottom: 20,
   },
   welcomeText: {
-    color: "rgba(255,255,255,0.8)",
-    fontSize: 16,
+    color: "rgba(255,255,255,0.5)",
+    fontSize: 13,
+    marginBottom: 4,
   },
   doctorName: {
-    color: "#fff",
-    fontSize: 26,
-    fontWeight: "bold",
-    marginTop: 5,
+    color: "#FFFFFF",
+    fontSize: 24,
+    fontWeight: "800",
+    letterSpacing: 0.3,
   },
-  statsContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginHorizontal: 20,
-    marginTop: -25,
-  },
-  statCard: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    padding: 18,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 4,
-  },
-  statIconContainer: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
+  avatarButton: {},
+  avatarCircle: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: Colors.primary,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 12,
   },
-  statTextContainer: {
+  avatarText: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  statsRow: {
+    flexDirection: "row",
+    backgroundColor: "rgba(255,255,255,0.07)",
+    borderRadius: 18,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+  },
+  statCard: {
+    flex: 1,
     alignItems: "center",
+    gap: 6,
+  },
+  statIconBg: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 4,
   },
   statNumber: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#333",
+    fontSize: 26,
+    fontWeight: "800",
+    color: "#FFFFFF",
   },
   statLabel: {
-    fontSize: 13,
-    color: "#888",
-    textAlign: "center",
-    marginTop: 5,
-  },
-  activitySummary: {
-    marginTop: 24,
-    marginHorizontal: 20,
-  },
-  activityIndicator: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "rgba(95, 36, 70, 0.1)",
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-    alignSelf: "flex-start",
-  },
-  activityText: {
-    marginLeft: 6,
-    color: "#5f2446",
+    fontSize: 11,
+    color: "rgba(255,255,255,0.5)",
     fontWeight: "500",
-    fontSize: 14,
+  },
+  statDivider: {
+    width: 1,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    marginHorizontal: 16,
+  },
+  quickActionsSection: {
+    paddingHorizontal: 20,
+    paddingTop: 20,
+    paddingBottom: 4,
+  },
+  quickActionsTitle: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: Colors.textSecondary,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    marginBottom: 12,
+  },
+  quickActions: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  quickActionBtn: {
+    flex: 1,
+    alignItems: "center",
+    backgroundColor: Colors.surface,
+    borderRadius: 16,
+    paddingVertical: 16,
+    ...Shadows.sm,
+  },
+  quickActionIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  quickActionText: {
+    fontSize: 12,
+    color: Colors.text,
+    fontWeight: "600",
   },
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     paddingHorizontal: 20,
-    marginTop: 25,
-    marginBottom: 15,
+    marginTop: 20,
+    marginBottom: 12,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#333",
+    fontSize: 17,
+    fontWeight: "700",
+    color: Colors.text,
+  },
+  seeAllBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
   },
   seeAllLink: {
-    color: "#5f2446",
+    color: Colors.primary,
     fontWeight: "600",
+    fontSize: 13,
   },
   errorContainer: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "rgba(255, 77, 79, 0.1)",
-    padding: 15,
-    borderRadius: 12,
+    backgroundColor: "#FEF2F2",
+    padding: 14,
+    borderRadius: 14,
     marginHorizontal: 20,
-    marginBottom: 15,
+    marginBottom: 12,
+    gap: 8,
   },
   errorText: {
-    color: "#ff4d4f",
-    marginLeft: 10,
-    fontSize: 14,
-  },
-  patientCard: {
-    backgroundColor: "#fff",
-    borderRadius: 16,
-    marginHorizontal: 20,
-    marginBottom: 15,
-    padding: 16,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
-  },
-  patientLeft: {
-    flexDirection: "row",
-    alignItems: "center",
+    color: Colors.error,
+    fontSize: 13,
     flex: 1,
   },
-  patientAvatar: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 15,
-  },
-  avatarText: {
-    color: "#fff",
-    fontSize: 20,
-    fontWeight: "bold",
-  },
-  patientName: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: 5,
-  },
-  patientInfoRow: {
+  patientCard: {
+    backgroundColor: Colors.surface,
+    borderRadius: 16,
+    marginHorizontal: 20,
+    marginBottom: 10,
+    padding: 16,
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    width: windowWidth - 140, // Adjust as needed
+    gap: 14,
+    ...Shadows.sm,
+  },
+  patientAvatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    justifyContent: "center",
+    alignItems: "center",
+    flexShrink: 0,
+  },
+  avatarInitial: {
+    color: "#fff",
+    fontSize: 18,
+    fontWeight: "700",
   },
   patientInfo: {
+    flex: 1,
+  },
+  patientName: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: Colors.text,
+    marginBottom: 4,
+  },
+  patientMeta: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 8,
   },
-  infoText: {
-    fontSize: 14,
-    color: "#888",
-    marginLeft: 5,
-  },
-  dateContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  dateText: {
+  patientMetaText: {
     fontSize: 12,
-    color: "#888",
-    marginLeft: 5,
+    color: Colors.textSecondary,
   },
-  emptyStateContainer: {
+  dateBadge: {
+    backgroundColor: Colors.divider,
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+  },
+  dateBadgeText: {
+    fontSize: 11,
+    color: Colors.textSecondary,
+    fontWeight: "500",
+  },
+  emptyCard: {
     alignItems: "center",
     justifyContent: "center",
-    padding: 30,
-    backgroundColor: "#fff",
+    padding: 28,
+    backgroundColor: Colors.surface,
     marginHorizontal: 20,
     borderRadius: 16,
-    marginBottom: 15,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
+    marginBottom: 12,
+    ...Shadows.sm,
   },
-  emptyStateText: {
+  emptyIconBg: {
+    width: 60,
+    height: 60,
+    borderRadius: 18,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  emptyTitle: {
     fontSize: 16,
-    color: "#5f2446",
-    marginTop: 15,
-    fontWeight: "600",
+    color: Colors.text,
+    fontWeight: "700",
+    marginBottom: 6,
   },
-  emptyStateSubText: {
-    fontSize: 14,
-    color: "#888",
-    marginTop: 5,
+  emptySubText: {
+    fontSize: 13,
+    color: Colors.textSecondary,
+    textAlign: "center",
+    lineHeight: 18,
   },
-  emptyStateButton: {
-    marginTop: 15,
-    backgroundColor: "#5f2446",
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
-  },
-  emptyStateButtonText: {
-    color: "#fff",
-    fontWeight: "600",
-  },
-  queriesContainer: {
+  queriesGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    paddingHorizontal: 15,
-    marginBottom: 20,
+    paddingHorizontal: 14,
+    marginBottom: 8,
+    gap: 10,
   },
   queryCard: {
-    backgroundColor: "#fff",
+    backgroundColor: Colors.surface,
     borderRadius: 16,
     padding: 16,
-    width: "46%",
-    marginHorizontal: "2%",
-    marginBottom: 15,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 3,
-    justifyContent: "space-between",
-    height: 150, // Fixed height for consistency
+    width: "47%",
+    ...Shadows.sm,
   },
-  queryHeader: {
+  queryCardTop: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 10,
   },
-  queryIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#f5f0f3",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  statusDot: {
+  urgencyDot: {
     width: 10,
     height: 10,
     borderRadius: 5,
   },
-  queryTitle: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: 5,
-    height: 40, // Limit height for title to two lines
-  },
-  queryFooter: {
-    marginTop: "auto",
-  },
   queryDate: {
-    fontSize: 12,
-    color: "#888",
-    marginTop: 4,
+    fontSize: 11,
+    color: Colors.textLight,
+    fontWeight: "500",
   },
-  quickActions: {
-    marginHorizontal: 20,
-    marginVertical: 20,
+  queryTitle: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: Colors.text,
+    lineHeight: 18,
+    marginBottom: 12,
+    flex: 1,
   },
-  quickActionsTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 15,
-  },
-  quickActionsContainer: {
+  queryPatientRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  quickActionButton: {
     alignItems: "center",
-    width: "30%",
+    gap: 6,
   },
-  quickActionIcon: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
+  queryPatientAvatar: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    backgroundColor: '#0F172A',
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 8,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 3,
-    elevation: 4,
   },
-  quickActionText: {
-    fontSize: 14,
-    color: "#333",
+  queryPatientAvatarText: {
+    color: "#fff",
+    fontSize: 10,
+    fontWeight: "700",
+  },
+  queryPatientName: {
+    fontSize: 12,
+    color: Colors.textSecondary,
     fontWeight: "500",
+    flex: 1,
   },
   footer: {
     alignItems: "center",
-    paddingVertical: 20,
-    borderTopWidth: 1,
-    borderTopColor: "#eee",
-    marginTop: 10,
+    paddingVertical: 24,
+    marginTop: 8,
   },
   footerText: {
     fontSize: 12,
-    color: "#888",
+    color: Colors.textLight,
   },
 });

@@ -11,13 +11,15 @@ import {
   Alert,
   Share,
   Platform,
+  StatusBar,
 } from "react-native";
-import { useRouter, Stack } from "expo-router";
+import { SafeAreaView } from "react-native-safe-area-context";
+import { useRouter } from "expo-router";
 import Feather from "@expo/vector-icons/Feather";
 import { useAuth } from "@/hooks/useAuth";
 import { patientService } from "@/services/api/patientService";
+import { Colors, Shadows } from "@/constants/theme";
 
-// Custom alert for web compatibility
 function showAlert(title: string, message?: string) {
   if (Platform.OS === "web") {
     window.alert(title + (message ? "\n\n" + message : ""));
@@ -44,811 +46,420 @@ export default function SettingsScreen() {
   const [showAboutModal, setShowAboutModal] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
 
-  // Fetch profile data and notification settings when component mounts
   useEffect(() => {
     const fetchProfileData = async () => {
       setIsLoading(true);
       try {
-        // Get profile data
         const profileResponse = await patientService.getProfile();
         if (profileResponse.success) {
           setProfileData(profileResponse.profile);
         } else {
-          showAlert(
-            "Error",
-            profileResponse.message || "Failed to fetch profile data",
-          );
+          showAlert("Error", profileResponse.message || "Failed to fetch profile data");
         }
       } catch (error) {
-        console.error("Error in fetchProfileData:", error);
         showAlert("Error", "Failed to load profile data. Please try again.");
       } finally {
         setIsLoading(false);
       }
     };
-
     fetchProfileData();
   }, []);
 
   const handleLogout = () => {
-    if (Platform.OS === "web") {
-      // Use window.confirm for web
-      const confirmed = window.confirm("Are you sure you want to logout?");
-      if (confirmed) {
-        (async () => {
+    Alert.alert("Logout", "Are you sure you want to logout?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Logout",
+        style: "destructive",
+        onPress: async () => {
           try {
             setIsLoggingOut(true);
             await logout();
-            setIsLoggingOut(false);
           } catch (error) {
             setIsLoggingOut(false);
-            showAlert(
-              "Logout Failed",
-              "There was a problem logging out. Please try again.",
-            );
-            console.error("Logout error:", error);
+            showAlert("Logout Failed", "There was a problem logging out.");
           }
-        })();
-      }
-    } else {
-      console.log("Clicked Logout Button")
-      // @ts-ignore
-      // Use Alert directly since it's already available in react-native
-      Alert.alert("Logout", "Are you sure you want to logout?", [
-        {
-          text: "Cancel",
-          style: "cancel",
         },
-        {
-          text: "Logout",
-          onPress: async () => {
-            try {
-              setIsLoggingOut(true);
-              await logout();
-              setIsLoggingOut(false);
-            } catch (error) {
-              setIsLoggingOut(false);
-              showAlert(
-                "Logout Failed",
-                "There was a problem logging out. Please try again.",
-              );
-              console.error("Logout error:", error);
-            }
-          },
-          style: "destructive",
-        },
-      ]);
-    }
+      },
+    ]);
   };
 
   const handleDelete = () => {
-    if (Platform.OS === "web") {
-      // Simple confirm for web
-      if (window.confirm("Are you sure you want to Delete Account?")) {
-        (async () => {
-          try {
-            setIsLoggingOut(true);
-            await patientService.deleteDocAccount();
-            await logout();
-            setIsLoggingOut(false);
-          } catch (error) {
-            setIsLoggingOut(false);
-            showAlert(
-              "Delete Failed",
-              "There was a problem Delete Account. Please try again.",
-            );
-            console.error("Logout error:", error);
-          }
-        })();
-      }
-    } else {
-      // Native Alert
-      Alert.alert(
-        "Delete Account",
-        "Are you sure you want to Delete Account?",
-        [
-          {
-        text: "Cancel",
-        style: "cancel",
-          },
-          {
-        text: "Delete Account",
+    Alert.alert("Delete Account", "This action cannot be undone. Are you sure?", [
+      { text: "Cancel", style: "cancel" },
+      {
+        text: "Delete",
+        style: "destructive",
         onPress: async () => {
           try {
             setIsLoggingOut(true);
             await patientService.deleteDocAccount();
             await logout();
-            setIsLoggingOut(false);
           } catch (error) {
             setIsLoggingOut(false);
-            showAlert(
-          "Delete Account Failed",
-          "There was a problem deleting account. Please try again.",
-            );
-            console.error("Logout error:", error);
+            showAlert("Error", "Failed to delete account.");
           }
         },
-        style: "destructive",
-          },
-        ],
-      );
-    }
-  };
-
-  const navigateToEditProfile = () => {
-    router.push("/profile/edit");
+      },
+    ]);
   };
 
   const shareDocCode = () => {
-    // Use the Share API to share the doctor code
-    const shareMessage = `Connect with me on AmbiEye using my doctor code: ${docCode}`;
-
-    try {
-      Share.share({
-        message: shareMessage,
-        title: "Share Doctor Code",
-      });
-    } catch (error) {
-      console.error("Error sharing doctor code:", error);
-      showAlert(
-        "Sharing Failed",
-        "Unable to share your doctor code. Please try again later.",
-      );
-    }
-  };
-
-  const renderSettingItem = (
-    icon: string,
-    title: string,
-    onPress: (() => void) | null,
-    showArrow = true,
-    additionalContent: React.ReactNode = null,
-  ) => {
-    return (
-      <TouchableOpacity
-        style={styles.settingItem}
-        onPress={onPress || undefined}
-        disabled={!onPress}
-      >
-        <View style={styles.settingIconContainer}>
-          <Feather name={icon as any} size={20} color="#5f2446" />
-        </View>
-        <View style={styles.settingContent}>
-          <Text style={styles.settingTitle}>{title}</Text>
-          {additionalContent}
-        </View>
-        {showArrow && <Feather name="chevron-right" size={20} color="#888" />}
-      </TouchableOpacity>
-    );
+    const docCode = profileData?.uuid || "";
+    Share.share({
+      message: `Connect with me on AmbiEye using my doctor code: ${docCode}`,
+      title: "Share Doctor Code",
+    }).catch(console.error);
   };
 
   if (isLoading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#5f2446" />
+        <ActivityIndicator size="large" color={Colors.primary} />
       </View>
     );
   }
 
-  // Doctor code to display - either from API or fallback
   const docCode = profileData?.uuid || "";
+  const initials = (profileData?.fullName?.charAt(0) || username?.toString().charAt(0) || "D").toUpperCase();
 
   return (
-    <>
-      <Stack.Screen
-        options={{
-          title: "Settings",
-        }}
-      />
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-        <View style={styles.profileCard}>
-          <View style={styles.profileInfo}>
-            <View style={styles.profileAvatar}>
-              <Text style={styles.avatarText}>
-                {profileData?.fullName?.charAt(0).toUpperCase() ||
-                  username?.toString().charAt(0).toUpperCase()}
-              </Text>
-            </View>
-            <View>
-              <Text style={styles.doctorName}>
-                {profileData?.fullName || username}
-              </Text>
-              <Text style={styles.specialization}>Doctor</Text>
-              <Text style={styles.emailText}>{profileData?.email || ""}</Text>
+    <SafeAreaView style={styles.safeArea} edges={["top"]}>
+      <StatusBar barStyle="light-content" backgroundColor="#0F172A" />
+      <ScrollView
+        style={styles.container}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={styles.scrollContent}
+      >
+        {/* Profile Header */}
+        <View style={styles.profileHeader}>
+          <View style={styles.avatarRing}>
+            <View style={styles.avatar}>
+              <Text style={styles.avatarText}>{initials}</Text>
             </View>
           </View>
+          <Text style={styles.profileName}>{profileData?.fullName || username}</Text>
+          <View style={styles.rolePill}>
+            <Feather name="activity" size={12} color={Colors.primary} />
+            <Text style={styles.roleText}>Doctor</Text>
+          </View>
+          <Text style={styles.profileEmail}>{profileData?.email || ""}</Text>
           <TouchableOpacity
-            style={styles.editProfileButton}
-            onPress={navigateToEditProfile}
+            style={styles.editBtn}
+            onPress={() => router.push("/profile/edit")}
           >
-            <Text style={styles.editProfileText}>Edit Profile</Text>
+            <Feather name="edit-2" size={14} color={Colors.primary} />
+            <Text style={styles.editBtnText}>Edit Profile</Text>
           </TouchableOpacity>
         </View>
 
-        <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>My Code</Text>
-          <View style={styles.docCodeContainer}>
-            <View style={styles.docCodeContent}>
-              <Text style={styles.docCode}>{docCode}</Text>
-            </View>
-            <View style={styles.docCodeActions}>
-              <TouchableOpacity
-                style={styles.docCodeButton}
-                onPress={shareDocCode}
-              >
-                <Feather name="share" size={18} color="#5f2446" />
+        {/* Doctor Code */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>MY DOCTOR CODE</Text>
+          <View style={styles.card}>
+            <View style={styles.codeRow}>
+              <View style={styles.codeIconBg}>
+                <Feather name="hash" size={20} color={Colors.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.codeLabel}>Share with patients to connect</Text>
+                <Text style={styles.codeValue}>{docCode || "Not available"}</Text>
+              </View>
+              <TouchableOpacity style={styles.shareBtn} onPress={shareDocCode}>
+                <Feather name="share-2" size={18} color={Colors.primary} />
               </TouchableOpacity>
             </View>
           </View>
-          <Text style={styles.docCodeDescription}>
-            Share this code with your patients to connect with them on AmbiEye
-          </Text>
         </View>
 
-        <View style={styles.sectionContainer}>
-          <Text style={styles.sectionTitle}>Account</Text>
-          {renderSettingItem("help-circle", "Help & Support", () =>
-            setShowHelpModal(true),
-          )}
-          {renderSettingItem("info", "About AmbiEye", () =>
-            setShowAboutModal(true),
-          )}
-          {renderSettingItem("book", "Privacy Policy", () =>
-            router.push("/(doctor)/(stack)/privacy"),
-          )}
+        {/* Account */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>ACCOUNT</Text>
+          <View style={styles.card}>
+            {[
+              { icon: "help-circle", label: "Help & Support", onPress: () => setShowHelpModal(true) },
+              { icon: "info", label: "About AmbiEye", onPress: () => setShowAboutModal(true) },
+              { icon: "book", label: "Privacy Policy", onPress: () => router.push("/(doctor)/(stack)/privacy") },
+            ].map((item, i, arr) => (
+              <TouchableOpacity
+                key={item.label}
+                style={[styles.settingRow, i < arr.length - 1 && styles.settingRowBorder]}
+                onPress={item.onPress}
+              >
+                <View style={styles.settingIconBg}>
+                  <Feather name={item.icon as any} size={18} color={Colors.primary} />
+                </View>
+                <Text style={styles.settingLabel}>{item.label}</Text>
+                <Feather name="chevron-right" size={16} color={Colors.textLight} />
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
 
-        <TouchableOpacity
-          style={styles.logoutButton}
-          onPress={handleLogout}
-          disabled={isLoggingOut}
-        >
+        {/* Logout */}
+        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} disabled={isLoggingOut}>
           {isLoggingOut ? (
             <ActivityIndicator color="#fff" />
           ) : (
-            <Text style={styles.logoutText}>Logout</Text>
+            <>
+              <Feather name="log-out" size={18} color="#fff" />
+              <Text style={styles.logoutText}>Logout</Text>
+            </>
           )}
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={styles.logoutButton}
-          onPress={handleDelete}
-          disabled={isLoggingOut}
-        >
-          {isLoggingOut ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <Text style={styles.logoutText}>Delete Account</Text>
-          )}
+        <TouchableOpacity style={styles.deleteBtn} onPress={handleDelete} disabled={isLoggingOut}>
+          <Feather name="trash-2" size={16} color={Colors.error} />
+          <Text style={styles.deleteText}>Delete Account</Text>
         </TouchableOpacity>
 
-        <View style={styles.footer}>
-          <Text style={styles.version}>AmbiEye v1.0.0</Text>
-        </View>
+        <Text style={styles.version}>AmbiEye v1.0.0</Text>
 
-        {/* Help & Support Modal */}
-        <Modal
-          visible={showHelpModal}
-          transparent={true}
-          animationType="fade"
-          onRequestClose={() => setShowHelpModal(false)}
-        >
+        {/* Help Modal */}
+        <Modal visible={showHelpModal} transparent animationType="fade" onRequestClose={() => setShowHelpModal(false)}>
           <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
+            <View style={styles.modalBox}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>Help & Support</Text>
-                <TouchableOpacity onPress={() => setShowHelpModal(false)}>
-                  <Feather name="x" size={24} color="#333" />
+                <TouchableOpacity onPress={() => setShowHelpModal(false)} style={styles.modalCloseBtn}>
+                  <Feather name="x" size={20} color={Colors.textSecondary} />
                 </TouchableOpacity>
               </View>
-
-              <ScrollView style={styles.modalScrollContent}>
-                <View style={styles.helpSection}>
-                  <Text style={styles.helpSectionTitle}>Contact Support</Text>
-                  <TouchableOpacity
-                    style={styles.helpItem}
-                    onPress={() =>
-                      Linking.openURL("mailto:support@ambieye.com")
-                    }
-                  >
-                    <Feather
-                      name="mail"
-                      size={20}
-                      color="#5f2446"
-                      style={styles.helpItemIcon}
-                    />
-                    <Text style={styles.helpItemText}>
-                      Email: support@ambieye.com
-                    </Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.helpItem}
-                    onPress={() => Linking.openURL("tel:+15551234567")}
-                  >
-                    <Feather
-                      name="phone"
-                      size={20}
-                      color="#5f2446"
-                      style={styles.helpItemIcon}
-                    />
-                    <Text style={styles.helpItemText}>
-                      Phone: +1 (555) 123-4567
-                    </Text>
-                  </TouchableOpacity>
+              <ScrollView style={{ maxHeight: 320 }} showsVerticalScrollIndicator={false}>
+                <TouchableOpacity style={styles.helpItem} onPress={() => Linking.openURL("mailto:support@ambieye.com")}>
+                  <Feather name="mail" size={18} color={Colors.primary} />
+                  <Text style={styles.helpItemText}>support@ambieye.com</Text>
+                </TouchableOpacity>
+                <TouchableOpacity style={styles.helpItem} onPress={() => Linking.openURL("tel:+15551234567")}>
+                  <Feather name="phone" size={18} color={Colors.primary} />
+                  <Text style={styles.helpItemText}>+1 (555) 123-4567</Text>
+                </TouchableOpacity>
+                <View style={styles.faqItem}>
+                  <Text style={styles.faqQ}>How do I use my doctor code?</Text>
+                  <Text style={styles.faqA}>Share your doctor code with patients who want to connect with you on AmbiEye.</Text>
                 </View>
-
-                <View style={styles.helpSection}>
-                  <Text style={styles.helpSectionTitle}>FAQ</Text>
-                  <View style={styles.faqItem}>
-                    <Text style={styles.faqQuestion}>
-                      How do I use my doctor code?
-                    </Text>
-                    <Text style={styles.faqAnswer}>
-                      Share your doctor code with patients who want to connect
-                      with you on AmbiEye.
-                    </Text>
-                  </View>
-
-                  <View style={styles.faqItem}>
-                    <Text style={styles.faqQuestion}>
-                      How do I respond to patient queries?
-                    </Text>
-                    <Text style={styles.faqAnswer}>
-                      Navigate to the &qout;Queries&qout; tab to view and
-                      respond to patient messages.
-                    </Text>
-                  </View>
+                <View style={styles.faqItem}>
+                  <Text style={styles.faqQ}>How do I respond to patient queries?</Text>
+                  <Text style={styles.faqA}>Navigate to the "Queries" tab to view and respond to patient messages.</Text>
                 </View>
               </ScrollView>
-
-              <TouchableOpacity
-                style={styles.modalCloseButton}
-                onPress={() => setShowHelpModal(false)}
-              >
-                <Text style={styles.modalCloseButtonText}>Close</Text>
+              <TouchableOpacity style={styles.modalSubmitBtn} onPress={() => setShowHelpModal(false)}>
+                <Text style={styles.modalSubmitText}>Close</Text>
               </TouchableOpacity>
             </View>
           </View>
         </Modal>
 
-        {/* About AmbiEye Modal */}
-        <Modal
-          visible={showAboutModal}
-          transparent={true}
-          animationType="fade"
-          onRequestClose={() => setShowAboutModal(false)}
-        >
+        {/* About Modal */}
+        <Modal visible={showAboutModal} transparent animationType="fade" onRequestClose={() => setShowAboutModal(false)}>
           <View style={styles.modalOverlay}>
-            <View style={styles.modalContent}>
+            <View style={styles.modalBox}>
               <View style={styles.modalHeader}>
                 <Text style={styles.modalTitle}>About AmbiEye</Text>
-                <TouchableOpacity onPress={() => setShowAboutModal(false)}>
-                  <Feather name="x" size={24} color="#333" />
+                <TouchableOpacity onPress={() => setShowAboutModal(false)} style={styles.modalCloseBtn}>
+                  <Feather name="x" size={20} color={Colors.textSecondary} />
                 </TouchableOpacity>
               </View>
-
-              <ScrollView style={styles.modalScrollContent}>
-                <View style={styles.aboutLogoContainer}>
-                  <Text style={styles.aboutLogoText}>AmbiEye</Text>
-                  <Text style={styles.aboutVersion}>Version 1.0.0</Text>
-                </View>
-
-                <Text style={styles.aboutDescription}>
-                  AmbiEye is a comprehensive digital health platform designed
-                  for treating amblyopia (lazy eye) through interactive games
-                  and exercises, while keeping doctors connected with their
-                  patients.
-                </Text>
-
-                <View style={styles.aboutSection}>
-                  <Text style={styles.aboutSectionTitle}>Key Features</Text>
-                  <View style={styles.aboutFeatureItem}>
-                    <Feather
-                      name="check-circle"
-                      size={18}
-                      color="#5f2446"
-                      style={styles.aboutFeatureIcon}
-                    />
-                    <Text style={styles.aboutFeatureText}>
-                      Interactive vision therapy games
-                    </Text>
+              <Text style={styles.aboutDesc}>
+                AmbiEye is a comprehensive digital health platform designed for treating amblyopia (lazy eye) through interactive games and exercises, while keeping doctors connected with their patients.
+              </Text>
+              <View style={styles.featureList}>
+                {["Interactive vision therapy games", "Direct communication with patients", "Progress tracking and reports"].map((f) => (
+                  <View key={f} style={styles.featureItem}>
+                    <Feather name="check-circle" size={16} color={Colors.accent} />
+                    <Text style={styles.featureText}>{f}</Text>
                   </View>
-                  <View style={styles.aboutFeatureItem}>
-                    <Feather
-                      name="check-circle"
-                      size={18}
-                      color="#5f2446"
-                      style={styles.aboutFeatureIcon}
-                    />
-                    <Text style={styles.aboutFeatureText}>
-                      Direct communication with patients
-                    </Text>
-                  </View>
-                  <View style={styles.aboutFeatureItem}>
-                    <Feather
-                      name="check-circle"
-                      size={18}
-                      color="#5f2446"
-                      style={styles.aboutFeatureIcon}
-                    />
-                    <Text style={styles.aboutFeatureText}>
-                      Progress tracking and reports
-                    </Text>
-                  </View>
-                </View>
-
-                <View style={styles.aboutSection}>
-                  <Text style={styles.aboutSectionTitle}>Legal</Text>
-                  <TouchableOpacity
-                    style={styles.aboutLegalItem}
-                    onPress={() =>
-                      showAlert(
-                        "Terms of Service",
-                        "Terms of Service content would be displayed here.",
-                      )
-                    }
-                  >
-                    <Text style={styles.aboutLegalText}>Terms of Service</Text>
-                    <Feather name="chevron-right" size={18} color="#888" />
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={styles.aboutLegalItem}
-                    onPress={() =>
-                      showAlert(
-                        "Privacy Policy",
-                        "Privacy Policy content would be displayed here.",
-                      )
-                    }
-                  >
-                    <Text style={styles.aboutLegalText}>Privacy Policy</Text>
-                    <Feather name="chevron-right" size={18} color="#888" />
-                  </TouchableOpacity>
-                </View>
-
-                <Text style={styles.copyrightText}>
-                  © {new Date().getFullYear()} AmbiEye. All rights reserved.
-                </Text>
-              </ScrollView>
-
-              <TouchableOpacity
-                style={styles.modalCloseButton}
-                onPress={() => setShowAboutModal(false)}
-              >
-                <Text style={styles.modalCloseButtonText}>Close</Text>
+                ))}
+              </View>
+              <Text style={styles.aboutVersion}>Version 1.0.0</Text>
+              <TouchableOpacity style={styles.modalSubmitBtn} onPress={() => setShowAboutModal(false)}>
+                <Text style={styles.modalSubmitText}>Close</Text>
               </TouchableOpacity>
             </View>
           </View>
         </Modal>
       </ScrollView>
-    </>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#f5f5f5",
+  safeArea: { flex: 1, backgroundColor: "#0F172A" },
+  container: { flex: 1, backgroundColor: Colors.background },
+  scrollContent: { paddingBottom: 100 },
+  loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: Colors.background },
+
+  profileHeader: {
+    backgroundColor: "#0F172A",
+    alignItems: "center",
+    paddingTop: 24,
+    paddingBottom: 32,
+    paddingHorizontal: 24,
   },
-  loadingContainer: {
-    flex: 1,
+  avatarRing: {
+    width: 88,
+    height: 88,
+    borderRadius: 44,
+    borderWidth: 3,
+    borderColor: Colors.primary,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#f5f5f5",
+    marginBottom: 14,
   },
-  profileCard: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 20,
-    margin: 16,
-    marginBottom: 24,
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.5,
+  avatar: {
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    backgroundColor: Colors.primary,
+    justifyContent: "center",
+    alignItems: "center",
   },
-  profileInfo: {
+  avatarText: { color: "#fff", fontSize: 30, fontWeight: "800" },
+  profileName: { fontSize: 22, fontWeight: "800", color: "#fff", marginBottom: 8 },
+  rolePill: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 15,
-  },
-  profileAvatar: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: "#5f2446",
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 15,
-  },
-  avatarText: {
-    color: "#fff",
-    fontSize: 24,
-    fontWeight: "bold",
-  },
-  doctorName: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 4,
-  },
-  specialization: {
-    fontSize: 14,
-    color: "#666",
-    marginBottom: 2,
-  },
-  emailText: {
-    fontSize: 12,
-    color: "#888",
-  },
-  editProfileButton: {
-    backgroundColor: "#f0f0f0",
-    paddingVertical: 8,
+    gap: 5,
+    backgroundColor: `${Colors.primary}20`,
     paddingHorizontal: 12,
-    borderRadius: 6,
-    alignSelf: "flex-start",
+    paddingVertical: 4,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: `${Colors.primary}40`,
+    marginBottom: 6,
   },
-  editProfileText: {
-    color: "#333",
-    fontSize: 14,
-    fontWeight: "500",
-  },
-  sectionContainer: {
-    marginHorizontal: 16,
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 12,
-  },
-  docCodeContainer: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 15,
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.5,
-  },
-  docCodeContent: {
+  roleText: { fontSize: 12, fontWeight: "700", color: Colors.primary },
+  profileEmail: { fontSize: 13, color: "rgba(255,255,255,0.45)", marginBottom: 16 },
+  editBtn: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 6,
+    backgroundColor: `${Colors.primary}20`,
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: `${Colors.primary}40`,
   },
-  docCodeIcon: {
-    marginRight: 12,
-  },
-  docCode: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#5f2446",
-  },
-  docCodeActions: {
-    flexDirection: "row",
-  },
-  docCodeButton: {
-    padding: 8,
-    marginLeft: 8,
-  },
-  docCodeDescription: {
-    fontSize: 12,
-    color: "#666",
-    fontStyle: "italic",
-  },
-  settingItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#fff",
-    padding: 15,
-    borderRadius: 12,
+  editBtnText: { fontSize: 13, fontWeight: "600", color: Colors.primary },
+
+  section: { paddingHorizontal: 16, marginTop: 20 },
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: Colors.textSecondary,
+    letterSpacing: 1,
     marginBottom: 10,
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.5,
   },
-  settingIconContainer: {
+  card: {
+    backgroundColor: Colors.surface,
+    borderRadius: 16,
+    padding: 16,
+    ...Shadows.sm,
+  },
+
+  codeRow: { flexDirection: "row", alignItems: "center", gap: 14 },
+  codeIconBg: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    backgroundColor: '#EFF6FF',
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  codeLabel: { fontSize: 12, color: Colors.textSecondary, marginBottom: 4 },
+  codeValue: { fontSize: 16, fontWeight: "700", color: Colors.text, letterSpacing: 1 },
+  shareBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: '#EFF6FF',
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  settingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingVertical: 14,
+    gap: 14,
+  },
+  settingRowBorder: { borderBottomWidth: 1, borderBottomColor: Colors.divider },
+  settingIconBg: {
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: "#f0f0f0",
+    borderRadius: 10,
+    backgroundColor: '#EFF6FF',
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 12,
   },
-  settingContent: {
-    flex: 1,
-  },
-  settingTitle: {
-    fontSize: 16,
-    color: "#333",
-  },
-  logoutButton: {
-    backgroundColor: "#e53935",
-    borderRadius: 12,
-    padding: 15,
-    margin: 16,
-    marginTop: 8,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  logoutText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
-  },
-  footer: {
-    alignItems: "center",
-    marginVertical: 24,
-  },
-  version: {
-    fontSize: 12,
-    color: "#888",
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "center",
-    alignItems: "center",
+  settingLabel: { flex: 1, fontSize: 15, color: Colors.text, fontWeight: "500" },
+
+  logoutBtn: {
+    backgroundColor: Colors.primary,
+    borderRadius: 14,
     padding: 16,
-  },
-  modalContent: {
-    backgroundColor: "#fff",
-    borderRadius: 12,
-    padding: 20,
-    width: "90%",
-    maxWidth: 400,
-    maxHeight: "80%",
-    elevation: 5,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-  },
-  modalHeader: {
+    margin: 16,
+    marginTop: 24,
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 16,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
+    justifyContent: "center",
+    gap: 8,
   },
-  modalTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#333",
-  },
-  modalDescription: {
-    fontSize: 14,
-    color: "#666",
-    marginBottom: 16,
-    lineHeight: 20,
-  },
-  modalScrollContent: {
-    maxHeight: 400,
-  },
-  modalCloseButton: {
-    backgroundColor: "#5f2446",
-    paddingVertical: 12,
-    borderRadius: 8,
+  logoutText: { color: "#fff", fontSize: 15, fontWeight: "700" },
+  deleteBtn: {
+    flexDirection: "row",
     alignItems: "center",
-    marginTop: 16,
+    justifyContent: "center",
+    gap: 8,
+    paddingVertical: 14,
+    marginHorizontal: 16,
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: `${Colors.error}40`,
+    backgroundColor: '#FEF2F2',
   },
-  modalCloseButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "500",
+  deleteText: { color: Colors.error, fontSize: 14, fontWeight: "600" },
+  version: { textAlign: "center", fontSize: 12, color: Colors.textLight, marginTop: 20, marginBottom: 8 },
+
+  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.55)", justifyContent: "center", alignItems: "center", padding: 24 },
+  modalBox: {
+    backgroundColor: Colors.surface,
+    borderRadius: 24,
+    padding: 24,
+    width: "100%",
+    maxWidth: 400,
+    ...Shadows.lg,
   },
-  helpSection: {
-    marginBottom: 24,
+  modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
+  modalCloseBtn: { width: 32, height: 32, borderRadius: 10, backgroundColor: Colors.background, justifyContent: "center", alignItems: "center" },
+  modalTitle: { fontSize: 18, fontWeight: "700", color: Colors.text },
+  modalSubmitBtn: {
+    backgroundColor: Colors.primary,
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: "center",
+    marginTop: 8,
   },
-  helpSectionTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 12,
-  },
+  modalSubmitText: { color: "#fff", fontSize: 15, fontWeight: "700" },
+
   helpItem: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 12,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    backgroundColor: "#f9f9f9",
-    borderRadius: 8,
-  },
-  helpItemIcon: {
-    marginRight: 10,
-  },
-  helpItemText: {
-    fontSize: 14,
-    color: "#333",
-  },
-  faqItem: {
-    marginBottom: 16,
-    padding: 12,
-    backgroundColor: "#f9f9f9",
-    borderRadius: 8,
-  },
-  faqQuestion: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: 8,
-  },
-  faqAnswer: {
-    fontSize: 14,
-    color: "#555",
-    lineHeight: 20,
-  },
-  aboutLogoContainer: {
-    alignItems: "center",
-    marginBottom: 24,
-  },
-  aboutLogoText: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: "#5f2446",
-    marginBottom: 8,
-  },
-  aboutVersion: {
-    fontSize: 14,
-    color: "#888",
-  },
-  aboutDescription: {
-    fontSize: 14,
-    color: "#555",
-    lineHeight: 22,
-    textAlign: "center",
-    marginBottom: 24,
-  },
-  aboutSection: {
-    marginBottom: 20,
-  },
-  aboutSectionTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 12,
-  },
-  aboutFeatureItem: {
-    flexDirection: "row",
-    alignItems: "center",
+    gap: 12,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    backgroundColor: Colors.background,
+    borderRadius: 12,
     marginBottom: 10,
   },
-  aboutFeatureIcon: {
-    marginRight: 10,
-  },
-  aboutFeatureText: {
-    fontSize: 14,
-    color: "#555",
-  },
-  aboutLegalItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#f0f0f0",
-  },
-  aboutLegalText: {
-    fontSize: 14,
-    color: "#333",
-  },
-  copyrightText: {
-    fontSize: 12,
-    color: "#888",
-    textAlign: "center",
-    marginVertical: 20,
-  },
+  helpItemText: { fontSize: 14, color: Colors.text },
+  faqItem: { backgroundColor: Colors.background, borderRadius: 12, padding: 14, marginBottom: 10 },
+  faqQ: { fontSize: 14, fontWeight: "700", color: Colors.text, marginBottom: 6 },
+  faqA: { fontSize: 13, color: Colors.textSecondary, lineHeight: 19 },
+  aboutDesc: { fontSize: 14, color: Colors.textSecondary, lineHeight: 22, marginBottom: 16 },
+  featureList: { marginBottom: 16 },
+  featureItem: { flexDirection: "row", alignItems: "center", gap: 10, marginBottom: 10 },
+  featureText: { fontSize: 14, color: Colors.text },
+  aboutVersion: { fontSize: 13, color: Colors.textLight, textAlign: "center", marginBottom: 16 },
 });

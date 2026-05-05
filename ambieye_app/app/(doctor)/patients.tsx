@@ -10,11 +10,11 @@ import {
   ScrollView,
   Modal,
   Animated,
-  SafeAreaView,
   StatusBar,
   Platform,
   RefreshControl,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import Feather from "@expo/vector-icons/Feather";
 import {
   doctorService,
@@ -418,7 +418,7 @@ function PatientDetailsModal({
   if (isLoading && !refreshing) {
     return (
       <View style={modalStyles.loadingContainer}>
-        <ActivityIndicator size="large" color="#5f2446" />
+        <ActivityIndicator size="large" color="#0EA5E9" />
       </View>
     );
   }
@@ -463,7 +463,7 @@ function PatientDetailsModal({
           <Feather name="refresh-cw" size={24} color="white" />
         </TouchableOpacity>
       </View>
-      <StatusBar backgroundColor="#5f2446" barStyle="light-content" />
+      <StatusBar backgroundColor="#0F172A" barStyle="light-content" />
 
       <ScrollView
         style={modalStyles.container}
@@ -505,24 +505,24 @@ function PatientDetailsModal({
         >
           <Text style={modalStyles.sectionTitle}>Contact Information</Text>
           <View style={modalStyles.infoItem}>
-            <Feather name="mail" size={16} color="#5f2446" />
+            <Feather name="mail" size={16} color="#0EA5E9" />
             <Text style={modalStyles.infoItemText}>{patient.email}</Text>
           </View>
           {patient.phone && (
             <View style={modalStyles.infoItem}>
-              <Feather name="phone" size={16} color="#5f2446" />
+              <Feather name="phone" size={16} color="#0EA5E9" />
               <Text style={modalStyles.infoItemText}>{patient.phone}</Text>
             </View>
           )}
           {patient.fatherName && (
             <View style={modalStyles.infoItem}>
-              <Feather name="user-check" size={16} color="#5f2446" />
+              <Feather name="user-check" size={16} color="#0EA5E9" />
               <Text style={modalStyles.infoItemText}>{patient.fatherName}</Text>
             </View>
           )}
           {patient.motherName && (
             <View style={modalStyles.infoItem}>
-              <Feather name="user-check" size={16} color="#5f2446" />
+              <Feather name="user-check" size={16} color="#0EA5E9" />
               <Text style={modalStyles.infoItemText}>{patient.motherName}</Text>
             </View>
           )}
@@ -544,7 +544,7 @@ function PatientDetailsModal({
 
           {gameHistoryLoading ? (
             <View style={modalStyles.gameLoadingContainer}>
-              <ActivityIndicator size="small" color="#5f2446" />
+              <ActivityIndicator size="small" color="#0EA5E9" />
               <Text style={modalStyles.gameLoadingText}>
                 Loading patient game data...
               </Text>
@@ -699,7 +699,7 @@ function PatientDetailsModal({
                             <Feather
                               name="play-circle"
                               size={24}
-                              color="#5f2446"
+                              color="#0EA5E9"
                             />
                           </View>
                           <View style={modalStyles.gameDetails}>
@@ -780,7 +780,7 @@ function PatientDetailsModal({
                 style={modalStyles.editButton}
                 onPress={() => setEditingMedicalInfo(true)}
               >
-                <Feather name="edit-2" size={16} color="#5f2446" />
+                <Feather name="edit-2" size={16} color="#0EA5E9" />
                 <Text style={modalStyles.editButtonText}>Edit</Text>
               </TouchableOpacity>
             )}
@@ -1153,7 +1153,7 @@ function PatientDetailsModal({
               style={modalStyles.addButton}
               onPress={() => setAddingVisitRecord(true)}
             >
-              <Feather name="plus" size={16} color="#5f2446" />
+              <Feather name="plus" size={16} color="#0EA5E9" />
               <Text style={modalStyles.addButtonText}>Add Visit</Text>
             </TouchableOpacity>
           </View>
@@ -1749,7 +1749,7 @@ export default function PatientsScreen() {
               )}
             </View>
           </View>
-          <Feather name="chevron-right" size={24} color="#5f2446" />
+          <Feather name="chevron-right" size={24} color="#0EA5E9" />
         </TouchableOpacity>
       </View>
     );
@@ -1757,7 +1757,7 @@ export default function PatientsScreen() {
 
   return (
     <View style={{ flex: 1 }}>
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView style={styles.safeArea} edges={["top"]}>
         <Animated.View
           style={[
             styles.header,
@@ -1781,7 +1781,7 @@ export default function PatientsScreen() {
               onPress={handleRefresh}
               disabled={isLoading}
             >
-              <Feather name="refresh-cw" size={20} color="#5f2446" />
+              <Feather name="refresh-cw" size={20} color="#0EA5E9" />
             </TouchableOpacity>
           </View>
         </Animated.View>
@@ -1810,7 +1810,7 @@ export default function PatientsScreen() {
 
           {isLoading && !refreshing ? (
             <View style={styles.loaderContainer}>
-              <ActivityIndicator size="large" color="#5f2446" />
+              <ActivityIndicator size="large" color="#0EA5E9" />
             </View>
           ) : error ? (
             <View style={styles.errorContainer}>
@@ -1839,7 +1839,7 @@ export default function PatientsScreen() {
             />
           ) : (
             <View style={styles.emptyContainer}>
-              <Feather name="user-x" size={50} color="#5f2446" />
+              <Feather name="user-x" size={50} color="#0EA5E9" />
               <Text style={styles.emptyText}>
                 {searchQuery.length > 0
                   ? "No patients match your search"
@@ -1878,31 +1878,32 @@ export default function PatientsScreen() {
 const modalStyles = StyleSheet.create({
   gameScrollContainer: {
     maxHeight: 400,
-    backgroundColor: "white",
-    borderRadius: 10,
+    backgroundColor: "#F9FAFB",
+    borderRadius: 14,
     marginVertical: 10,
-    padding: 10,
-    borderColor: "#eee",
+    padding: 12,
+    borderColor: "#E5E7EB",
     borderWidth: 1,
   },
   sectionHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: 14,
   },
   editButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f0e6eb",
+    backgroundColor: "#EDE9FE",
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 20,
+    gap: 5,
   },
   editButtonText: {
-    color: "#5f2446",
-    marginLeft: 5,
-    fontWeight: "500",
+    color: "#7C3AED",
+    fontWeight: "600",
+    fontSize: 13,
   },
   medicalInfoDisplay: {
     backgroundColor: "#f9f9f9",
@@ -1937,44 +1938,54 @@ const modalStyles = StyleSheet.create({
   formSectionTitle: {
     fontSize: 18,
     fontWeight: "600",
-    color: "#5f2446",
+    color: "#0F172A",
     marginTop: 20,
     marginBottom: 10,
   },
   formInput: {
-    backgroundColor: "white",
-    borderWidth: 1,
-    borderColor: "#ddd",
-    borderRadius: 8,
-    padding: 10,
-    fontSize: 16,
-    color: "#333",
-    minHeight: 40,
+    backgroundColor: "#FFFFFF",
+    borderWidth: 1.5,
+    borderColor: "#E5E7EB",
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 15,
+    color: "#111827",
+    minHeight: 44,
   },
   formButtons: {
     flexDirection: "row",
     justifyContent: "flex-end",
     marginTop: 20,
+    gap: 10,
   },
   saveButton: {
-    backgroundColor: "#5f2446",
-    paddingVertical: 10,
+    backgroundColor: "#0EA5E9",
+    paddingVertical: 12,
     paddingHorizontal: 20,
-    borderRadius: 8,
-    marginLeft: 10,
+    borderRadius: 12,
+    shadowColor: "#0EA5E9",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   saveButtonText: {
-    color: "white",
-    fontWeight: "bold",
+    color: "#FFFFFF",
+    fontWeight: "700",
+    fontSize: 14,
   },
   cancelButton: {
-    backgroundColor: "#f0f0f0",
-    paddingVertical: 10,
+    backgroundColor: "#F3F4F6",
+    paddingVertical: 12,
     paddingHorizontal: 20,
-    borderRadius: 8,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: "#E5E7EB",
   },
   cancelButtonText: {
-    color: "#666",
+    color: "#6B7280",
+    fontWeight: "600",
+    fontSize: 14,
   },
 
   // Visit records section
@@ -1984,19 +1995,20 @@ const modalStyles = StyleSheet.create({
   addButton: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f0e6eb",
+    backgroundColor: "#D1FAE5",
     paddingVertical: 6,
     paddingHorizontal: 12,
     borderRadius: 20,
+    gap: 5,
   },
   addButtonText: {
-    color: "#5f2446",
-    marginLeft: 5,
-    fontWeight: "500",
+    color: "#059669",
+    fontWeight: "600",
+    fontSize: 13,
   },
   visitRecord: {
-    backgroundColor: "white",
-    borderRadius: 12,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
     padding: 16,
     marginBottom: 12,
     elevation: 2,
@@ -2012,8 +2024,9 @@ const modalStyles = StyleSheet.create({
     marginBottom: 10,
   },
   recordDate: {
-    color: "#5f2446",
-    fontWeight: "500",
+    color: "#0EA5E9",
+    fontWeight: "600",
+    fontSize: 13,
   },
   recordReason: {
     fontWeight: "bold",
@@ -2056,8 +2069,8 @@ const modalStyles = StyleSheet.create({
   },
   recordSectionTitle: {
     fontSize: 14,
-    fontWeight: "600",
-    color: "#5f2446",
+    fontWeight: "700",
+    color: "#0F172A",
     marginBottom: 8,
   },
   visionGrid: {
@@ -2119,8 +2132,8 @@ const modalStyles = StyleSheet.create({
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: "bold",
-    color: "#5f2446",
+    fontWeight: "700",
+    color: "#0F172A",
   },
   modalBody: {
     padding: 15,
@@ -2138,150 +2151,160 @@ const modalStyles = StyleSheet.create({
     justifyContent: "space-between",
   },
   formHalfColumn: {
-    width: "48%",
+    flex: 1,
   },
   safeArea: {
     flex: 1,
-    backgroundColor: "#5f2446",
+    backgroundColor: "#0F172A",
   },
   header: {
-    height: 60,
-    backgroundColor: "#5f2446",
+    height: 64,
+    backgroundColor: "#0F172A",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 15,
+    paddingHorizontal: 20,
   },
   headerTitle: {
-    color: "white",
-    fontSize: 18,
-    fontWeight: "bold",
+    color: "#FFFFFF",
+    fontSize: 17,
+    fontWeight: "700",
   },
   backButton: {
-    padding: 5,
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   moreButton: {
-    padding: 5,
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "#F3F4F6",
   },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "#F3F4F6",
   },
   errorContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 20,
+    padding: 24,
   },
   errorText: {
-    fontSize: 16,
-    color: "#666",
+    fontSize: 15,
+    color: "#6B7280",
     textAlign: "center",
-    marginTop: 10,
+    marginTop: 12,
     marginBottom: 20,
   },
   errorButton: {
-    backgroundColor: "#5f2446",
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
+    backgroundColor: "#0EA5E9",
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 14,
   },
   errorButtonText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "500",
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "600",
   },
   patientHeader: {
-    backgroundColor: "#5f2446",
-    padding: 20,
+    backgroundColor: "#0F172A",
+    padding: 24,
     alignItems: "center",
-    borderBottomLeftRadius: 20,
-    borderBottomRightRadius: 20,
   },
   avatarContainer: {
     width: 80,
     height: 80,
-    borderRadius: 40,
-    backgroundColor: "white",
+    borderRadius: 24,
+    backgroundColor: "#0EA5E9",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: 12,
   },
   avatarText: {
     fontSize: 32,
-    fontWeight: "bold",
-    color: "#5f2446",
+    fontWeight: "800",
+    color: "#FFFFFF",
   },
   patientName: {
     fontSize: 22,
-    fontWeight: "bold",
-    color: "white",
-    marginBottom: 5,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    marginBottom: 6,
   },
   patientBasicInfo: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 8,
   },
   infoText: {
-    fontSize: 16,
-    color: "rgba(255,255,255,0.8)",
+    fontSize: 14,
+    color: "rgba(255,255,255,0.7)",
   },
   dot: {
     width: 4,
     height: 4,
     borderRadius: 2,
-    backgroundColor: "rgba(255,255,255,0.8)",
-    marginHorizontal: 8,
+    backgroundColor: "rgba(255,255,255,0.5)",
   },
   infoSection: {
-    backgroundColor: "white",
-    borderRadius: 12,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
     padding: 16,
     margin: 16,
     marginBottom: 8,
-    elevation: 2,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.5,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 12,
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#111827",
+    marginBottom: 14,
   },
   infoItem: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: 10,
+    gap: 10,
   },
   infoItemText: {
-    marginLeft: 10,
-    fontSize: 16,
-    color: "#666",
+    fontSize: 14,
+    color: "#374151",
   },
   conditionBadge: {
-    backgroundColor: "#e8d5e1",
+    backgroundColor: "#EDE9FE",
     paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
+    paddingHorizontal: 14,
+    borderRadius: 10,
     alignSelf: "flex-start",
     marginBottom: 12,
   },
   conditionText: {
-    color: "#5f2446",
-    fontWeight: "500",
+    color: "#7C3AED",
+    fontWeight: "600",
+    fontSize: 13,
   },
   lastVisit: {
-    color: "#888",
+    color: "#9CA3AF",
     fontStyle: "italic",
+    fontSize: 13,
   },
   medicalHistoryContainer: {
     padding: 16,
@@ -2290,72 +2313,83 @@ const modalStyles = StyleSheet.create({
     marginVertical: 20,
   },
   medicalRecord: {
-    backgroundColor: "white",
-    borderRadius: 12,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
     padding: 16,
-    marginBottom: 12,
-    elevation: 2,
+    marginBottom: 10,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.5,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
   recordDiagnosis: {
-    fontWeight: "bold",
-    color: "#333",
+    fontWeight: "700",
+    color: "#111827",
+    fontSize: 15,
   },
   recordNotes: {
-    color: "#666",
+    color: "#6B7280",
     marginBottom: 8,
     lineHeight: 20,
+    fontSize: 14,
   },
   treatmentContainer: {
-    backgroundColor: "#f8f8f8",
-    padding: 10,
-    borderRadius: 8,
+    backgroundColor: "#F9FAFB",
+    padding: 12,
+    borderRadius: 10,
     marginTop: 8,
   },
   treatmentLabel: {
-    fontWeight: "bold",
-    color: "#333",
+    fontWeight: "700",
+    color: "#374151",
     marginBottom: 4,
+    fontSize: 13,
   },
   treatmentText: {
-    color: "#666",
+    color: "#6B7280",
     lineHeight: 20,
+    fontSize: 14,
   },
   addRecordButton: {
-    backgroundColor: "#5f2446",
+    backgroundColor: "#0EA5E9",
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    padding: 15,
-    borderRadius: 10,
+    padding: 16,
+    borderRadius: 14,
     marginHorizontal: 16,
     marginTop: 10,
     marginBottom: 20,
+    gap: 8,
+    shadowColor: "#0EA5E9",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
   },
   addRecordText: {
-    color: "white",
-    fontWeight: "bold",
-    marginLeft: 8,
+    color: "#FFFFFF",
+    fontWeight: "700",
+    fontSize: 15,
   },
   footer: {
     height: 60,
   },
   noRecordsContainer: {
     alignItems: "center",
-    paddingVertical: 30,
+    paddingVertical: 28,
   },
   noRecordsText: {
-    color: "#888",
-    fontSize: 16,
+    color: "#9CA3AF",
+    fontSize: 14,
     marginTop: 10,
   },
   noDataText: {
-    color: "#888",
+    color: "#9CA3AF",
     fontStyle: "italic",
     marginBottom: 10,
+    fontSize: 13,
   },
 
   // Game history section styles
@@ -2364,14 +2398,14 @@ const modalStyles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     padding: 20,
+    gap: 10,
   },
   gameLoadingText: {
-    marginLeft: 10,
-    color: "#666",
+    color: "#6B7280",
     fontSize: 14,
   },
   gameDay: {
-    marginBottom: 15,
+    marginBottom: 14,
   },
   gameDayHeader: {
     flexDirection: "row",
@@ -2380,33 +2414,36 @@ const modalStyles = StyleSheet.create({
     marginBottom: 10,
   },
   gameDayDate: {
-    fontSize: 14,
-    fontWeight: "500",
-    color: "#333",
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#374151",
   },
   gameSummaryBadge: {
-    backgroundColor: "#e8f5e9",
+    backgroundColor: "#D1FAE5",
     paddingVertical: 4,
-    paddingHorizontal: 8,
-    borderRadius: 12,
+    paddingHorizontal: 10,
+    borderRadius: 20,
   },
   gameSummaryText: {
-    fontSize: 12,
-    color: "#2e7d32",
+    fontSize: 11,
+    color: "#059669",
+    fontWeight: "600",
   },
   gameItem: {
     flexDirection: "row",
-    backgroundColor: "#f9f9f9",
-    borderRadius: 8,
+    backgroundColor: "#F9FAFB",
+    borderRadius: 12,
     padding: 12,
     marginBottom: 8,
     alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#F3F4F6",
   },
   gameIconContainer: {
     width: 40,
     height: 40,
-    borderRadius: 20,
-    backgroundColor: "#f0e6eb",
+    borderRadius: 12,
+    backgroundColor: "#EDE9FE",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
@@ -2415,48 +2452,49 @@ const modalStyles = StyleSheet.create({
     flex: 1,
   },
   gameName: {
-    fontWeight: "500",
-    fontSize: 15,
+    fontWeight: "600",
+    fontSize: 14,
     marginBottom: 4,
-    color: "#333",
+    color: "#111827",
   },
   gameMetrics: {
     flexDirection: "row",
+    gap: 12,
   },
   gameMetric: {
     flexDirection: "row",
     alignItems: "center",
-    marginRight: 15,
+    gap: 4,
   },
   gameMetricText: {
     fontSize: 12,
-    color: "#666",
-    marginLeft: 4,
+    color: "#6B7280",
   },
   moreGamesText: {
     textAlign: "center",
     fontSize: 12,
-    color: "#5f2446",
+    color: "#0EA5E9",
     marginTop: 5,
     fontStyle: "italic",
+    fontWeight: "500",
   },
   moreHistoryText: {
     textAlign: "center",
     fontSize: 12,
-    color: "#666",
-    marginTop: 15,
+    color: "#9CA3AF",
+    marginTop: 14,
     paddingBottom: 20,
-    paddingTop: 8,
+    paddingTop: 10,
     borderTopWidth: 1,
-    borderTopColor: "#eee",
+    borderTopColor: "#F3F4F6",
   },
   noGameDataContainer: {
     alignItems: "center",
-    paddingVertical: 30,
+    paddingVertical: 28,
   },
   noGameDataText: {
-    color: "#888",
-    fontSize: 16,
+    color: "#9CA3AF",
+    fontSize: 14,
     marginTop: 10,
   },
 });
@@ -2464,18 +2502,18 @@ const modalStyles = StyleSheet.create({
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#5f2446",
+    backgroundColor: "#0F172A",
     paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : 0,
   },
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "#F3F4F6",
     padding: 16,
   },
   header: {
-    height: 60,
-    backgroundColor: "#5f2446",
-    paddingHorizontal: 16,
+    height: 64,
+    backgroundColor: "#0F172A",
+    paddingHorizontal: 20,
   },
   headerContent: {
     flexDirection: "row",
@@ -2484,54 +2522,68 @@ const styles = StyleSheet.create({
     height: "100%",
   },
   backButton: {
-    padding: 5,
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   moreButton: {
-    padding: 5,
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   headerTitle: {
-    color: "white",
-    fontSize: 18,
-    fontWeight: "bold",
+    color: "#FFFFFF",
+    fontSize: 17,
+    fontWeight: "700",
   },
   refreshButton: {
-    padding: 8,
-    borderRadius: 20,
-    backgroundColor: "#f0f0f0",
+    width: 36,
+    height: 36,
+    borderRadius: 11,
+    backgroundColor: "rgba(255,255,255,0.1)",
+    justifyContent: "center",
+    alignItems: "center",
   },
   searchContainer: {
     flexDirection: "row",
-    backgroundColor: "white",
-    borderRadius: 10,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
     marginBottom: 16,
     alignItems: "center",
-    paddingHorizontal: 10,
-    elevation: 2,
+    paddingHorizontal: 14,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.5,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
   searchIcon: {
     marginRight: 10,
   },
   searchInput: {
     flex: 1,
-    paddingVertical: 12,
-    color: "#333",
+    paddingVertical: 14,
+    color: "#111827",
+    fontSize: 15,
   },
   listContainer: {
     paddingBottom: 80,
   },
   patientCard: {
-    backgroundColor: "white",
-    borderRadius: 12,
-    marginBottom: 12,
-    elevation: 2,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    marginBottom: 10,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.2,
-    shadowRadius: 1.5,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
     overflow: "hidden",
   },
   cardContent: {
@@ -2542,42 +2594,41 @@ const styles = StyleSheet.create({
   patientAvatar: {
     width: 50,
     height: 50,
-    borderRadius: 25,
-    backgroundColor: "#0D0145",
+    borderRadius: 15,
+    backgroundColor: "#0F172A",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 15,
+    marginRight: 14,
   },
   avatarText: {
-    color: "white",
+    color: "#FFFFFF",
     fontSize: 20,
-    fontWeight: "bold",
+    fontWeight: "700",
   },
   patientDetails: {
     flex: 1,
   },
   patientName: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#333",
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#111827",
     marginBottom: 4,
   },
   infoRow: {
     flexDirection: "row",
     alignItems: "center",
-    marginTop: 4,
+    marginTop: 3,
+    gap: 6,
   },
   infoText: {
-    fontSize: 14,
-    color: "#666",
-    marginLeft: 6,
+    fontSize: 13,
+    color: "#6B7280",
   },
   divider: {
-    width: 4,
-    height: 4,
+    width: 3,
+    height: 3,
     borderRadius: 2,
-    backgroundColor: "#ccc",
-    marginHorizontal: 8,
+    backgroundColor: "#D1D5DB",
   },
   loaderContainer: {
     flex: 1,
@@ -2588,24 +2639,25 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    padding: 20,
+    padding: 24,
   },
   errorText: {
-    fontSize: 16,
-    color: "#666",
+    fontSize: 15,
+    color: "#6B7280",
     textAlign: "center",
-    marginTop: 10,
+    marginTop: 12,
     marginBottom: 20,
   },
   retryButton: {
-    backgroundColor: "#5f2446",
-    paddingVertical: 10,
-    paddingHorizontal: 20,
-    borderRadius: 8,
+    backgroundColor: "#0EA5E9",
+    paddingVertical: 12,
+    paddingHorizontal: 24,
+    borderRadius: 14,
   },
   retryButtonText: {
-    color: "white",
-    fontWeight: "500",
+    color: "#FFFFFF",
+    fontWeight: "600",
+    fontSize: 14,
   },
   emptyContainer: {
     flex: 1,
@@ -2614,21 +2666,22 @@ const styles = StyleSheet.create({
     paddingVertical: 40,
   },
   emptyText: {
-    fontSize: 16,
-    color: "#666",
-    marginTop: 10,
-    marginBottom: 15,
+    fontSize: 15,
+    color: "#6B7280",
+    marginTop: 12,
+    marginBottom: 16,
     textAlign: "center",
   },
   clearSearchButton: {
-    backgroundColor: "#5f2446",
-    paddingVertical: 8,
-    paddingHorizontal: 16,
-    borderRadius: 8,
+    backgroundColor: "#0EA5E9",
+    paddingVertical: 10,
+    paddingHorizontal: 20,
+    borderRadius: 14,
   },
   clearSearchText: {
-    color: "white",
-    fontWeight: "500",
+    color: "#FFFFFF",
+    fontWeight: "600",
+    fontSize: 14,
   },
 });
 
@@ -2637,49 +2690,49 @@ const progressStyles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     marginTop: 8,
+    gap: 8,
   },
   gameAccuracyBar: {
     flex: 1,
-    height: 6,
-    backgroundColor: "#f0f0f0",
+    height: 5,
+    backgroundColor: "#E5E7EB",
     borderRadius: 3,
     overflow: "hidden",
-    marginRight: 10,
   },
   gameAccuracyFill: {
-    height: 6,
-    backgroundColor: "#5f2446",
+    height: 5,
+    backgroundColor: "#0EA5E9",
     borderRadius: 3,
   },
   gameAccuracyText: {
     fontSize: 12,
-    fontWeight: "500",
-    color: "#666",
-    minWidth: 80,
+    fontWeight: "600",
+    color: "#0EA5E9",
+    minWidth: 70,
   },
   progressSummaryCard: {
-    backgroundColor: "#fff",
-    borderRadius: 15,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
     padding: 20,
-    marginBottom: 20,
+    marginBottom: 16,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
   },
   progressSummaryDate: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 18,
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#111827",
+    marginBottom: 16,
     textAlign: "center",
   },
   progressSummaryStatsRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 24,
+    marginBottom: 20,
   },
   progressSummaryStatItem: {
     flex: 1,
@@ -2687,111 +2740,115 @@ const progressStyles = StyleSheet.create({
   },
   progressSummaryStatValue: {
     fontSize: 24,
-    fontWeight: "bold",
-    color: "#5f2446",
-    marginBottom: 6,
+    fontWeight: "800",
+    color: "#0EA5E9",
+    marginBottom: 4,
   },
   progressSummaryStatLabel: {
-    fontSize: 14,
-    color: "#666",
+    fontSize: 12,
+    color: "#6B7280",
     textAlign: "center",
+    fontWeight: "500",
   },
   progressSummaryStatDivider: {
-    height: 40,
+    height: 36,
     width: 1,
-    backgroundColor: "#e0e0e0",
+    backgroundColor: "#E5E7EB",
   },
   progressCompletionContainer: {
-    marginBottom: 24,
+    marginBottom: 20,
   },
   progressCompletionText: {
-    fontSize: 14,
-    color: "#666",
-    marginBottom: 10,
+    fontSize: 13,
+    color: "#6B7280",
+    marginBottom: 8,
+    fontWeight: "500",
   },
   progressCompletionBar: {
     height: 8,
-    backgroundColor: "#f0f0f0",
+    backgroundColor: "#E5E7EB",
     borderRadius: 4,
     overflow: "hidden",
   },
   progressCompletionFill: {
     height: 8,
-    backgroundColor: "#5f2446",
+    backgroundColor: "#0EA5E9",
     borderRadius: 4,
   },
   progressGamesListTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 16,
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#111827",
+    marginBottom: 12,
   },
   progressGameItem: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#f9f9f9",
-    borderRadius: 12,
+    backgroundColor: "#F9FAFB",
+    borderRadius: 14,
     padding: 14,
-    marginBottom: 10,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "#F3F4F6",
   },
   progressGameIconContainer: {
     width: 42,
     height: 42,
-    borderRadius: 21,
-    backgroundColor: "#5f2446",
+    borderRadius: 13,
+    backgroundColor: "#0EA5E9",
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 14,
+    marginRight: 12,
   },
   progressGameContent: {
     flex: 1,
   },
   progressGameName: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#333",
-    marginBottom: 6,
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#111827",
+    marginBottom: 5,
   },
   progressGameStats: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 8,
+    marginBottom: 6,
   },
   progressGameScore: {
-    fontSize: 14,
-    color: "#666",
+    fontSize: 12,
+    color: "#6B7280",
   },
   progressGameScoreValue: {
-    fontWeight: "bold",
-    color: "#5f2446",
+    fontWeight: "700",
+    color: "#0EA5E9",
   },
   progressGameTime: {
-    fontSize: 14,
-    color: "#666",
+    fontSize: 12,
+    color: "#6B7280",
   },
   progressGameAccuracyContainer: {
     flexDirection: "row",
     alignItems: "center",
+    gap: 8,
   },
   progressGameAccuracyBar: {
     flex: 1,
-    height: 6,
-    backgroundColor: "#f0f0f0",
+    height: 5,
+    backgroundColor: "#E5E7EB",
     borderRadius: 3,
     overflow: "hidden",
-    marginRight: 10,
   },
   progressGameAccuracyFill: {
-    height: 6,
-    backgroundColor: "#5f2446",
+    height: 5,
+    backgroundColor: "#0EA5E9",
     borderRadius: 3,
   },
   progressGameAccuracyText: {
-    fontSize: 13,
-    fontWeight: "bold",
-    color: "#5f2446",
-    width: 40,
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#0EA5E9",
+    width: 38,
     textAlign: "right",
   },
   noGamesContainer: {
@@ -2799,66 +2856,67 @@ const progressStyles = StyleSheet.create({
     paddingVertical: 20,
   },
   noGamesText: {
-    fontSize: 16,
-    color: "#666",
+    fontSize: 14,
+    color: "#6B7280",
     textAlign: "center",
-    marginBottom: 20,
+    marginBottom: 16,
+    lineHeight: 20,
   },
   progressPastDayCard: {
-    backgroundColor: "#fff",
-    borderRadius: 15,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
     padding: 16,
-    marginBottom: 12,
+    marginBottom: 10,
     shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 2,
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
     elevation: 2,
   },
   progressPastDayHeader: {
     flexDirection: "row",
     alignItems: "center",
-    marginBottom: 12,
+    marginBottom: 10,
   },
   progressPastDayBadge: {
     width: 36,
     height: 36,
-    borderRadius: 18,
-    backgroundColor: "#5f2446",
+    borderRadius: 11,
+    backgroundColor: "#0F172A",
     justifyContent: "center",
     alignItems: "center",
     marginRight: 12,
   },
   progressPastDayBadgeText: {
-    color: "#fff",
-    fontSize: 16,
-    fontWeight: "bold",
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "700",
   },
   progressPastDayInfo: {
     flex: 1,
   },
   progressPastDayDate: {
-    fontSize: 16,
-    fontWeight: "500",
-    color: "#333",
-    marginBottom: 4,
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#111827",
+    marginBottom: 3,
   },
   progressPastDayStats: {
-    fontSize: 14,
-    color: "#666",
+    fontSize: 12,
+    color: "#6B7280",
   },
   progressPastDayCompletion: {
-    marginTop: 4,
+    marginTop: 6,
   },
   progressPastDayCompletionBar: {
-    height: 6,
-    backgroundColor: "#f0f0f0",
+    height: 5,
+    backgroundColor: "#E5E7EB",
     borderRadius: 3,
     overflow: "hidden",
   },
   progressPastDayCompletionFill: {
-    height: 6,
-    backgroundColor: "#5f2446",
+    height: 5,
+    backgroundColor: "#0EA5E9",
     borderRadius: 3,
   },
 });
