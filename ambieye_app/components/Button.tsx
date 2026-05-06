@@ -30,54 +30,38 @@ export const Button: React.FC<ButtonProps> = ({
   style,
   textStyle,
 }) => {
-  // Determine background color based on variant
   const getBackgroundColor = () => {
-    if (disabled) return '#cccccc';
+    if (disabled) return '#E5E7EB';
     switch (variant) {
-      case 'primary':
-        return '#5f2446';
-      case 'secondary':
-        return '#0D0145';
-      case 'outline':
-        return 'transparent';
-      default:
-        return '#5f2446';
+      case 'primary': return '#E8447A';
+      case 'secondary': return '#1A0A5E';
+      case 'outline': return 'transparent';
+      default: return '#E8447A';
     }
   };
 
-  // Determine text color based on variant
   const getTextColor = () => {
-    if (disabled) return '#666666';
+    if (disabled) return '#9CA3AF';
     switch (variant) {
-      case 'outline':
-        return '#5f2446';
-      default:
-        return '#FFFFFF';
+      case 'outline': return '#E8447A';
+      default: return '#FFFFFF';
     }
   };
 
-  // Determine border color based on variant
   const getBorderColor = () => {
-    if (disabled) return '#cccccc';
+    if (disabled) return '#E5E7EB';
     switch (variant) {
-      case 'outline':
-        return '#5f2446';
-      default:
-        return 'transparent';
+      case 'outline': return '#E8447A';
+      default: return 'transparent';
     }
   };
 
-  // Determine button padding based on size
   const getPadding = () => {
     switch (size) {
-      case 'small':
-        return { paddingVertical: 8, paddingHorizontal: 12 };
-      case 'medium':
-        return { paddingVertical: 12, paddingHorizontal: 16 };
-      case 'large':
-        return { paddingVertical: 16, paddingHorizontal: 20 };
-      default:
-        return { paddingVertical: 12, paddingHorizontal: 16 };
+      case 'small': return { paddingVertical: 8, paddingHorizontal: 14 };
+      case 'medium': return { paddingVertical: 13, paddingHorizontal: 18 };
+      case 'large': return { paddingVertical: 16, paddingHorizontal: 24 };
+      default: return { paddingVertical: 13, paddingHorizontal: 18 };
     }
   };
 
@@ -90,10 +74,12 @@ export const Button: React.FC<ButtonProps> = ({
           borderColor: getBorderColor(),
           ...getPadding(),
         },
+        variant === 'primary' && !disabled && styles.primaryShadow,
         style,
       ]}
       onPress={onPress}
       disabled={disabled || loading}
+      activeOpacity={0.85}
     >
       {loading ? (
         <ActivityIndicator color={getTextColor()} size="small" />
@@ -102,8 +88,8 @@ export const Button: React.FC<ButtonProps> = ({
           style={[
             styles.text,
             { color: getTextColor() },
-            size === 'small' && { fontSize: 14 },
-            size === 'large' && { fontSize: 18 },
+            size === 'small' && { fontSize: 13 },
+            size === 'large' && { fontSize: 17 },
             textStyle,
           ]}
         >
@@ -116,16 +102,24 @@ export const Button: React.FC<ButtonProps> = ({
 
 const styles = StyleSheet.create({
   button: {
-    borderRadius: 10,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
+    borderWidth: 1.5,
     flexDirection: 'row',
     minWidth: 100,
   },
+  primaryShadow: {
+    shadowColor: '#E8447A',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 8,
+    elevation: 4,
+  },
   text: {
-    fontSize: 16,
-    fontWeight: 'bold',
+    fontSize: 15,
+    fontWeight: '700',
     textAlign: 'center',
+    letterSpacing: 0.3,
   },
 });
