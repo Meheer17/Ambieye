@@ -9,29 +9,34 @@ import {
   Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { saveGameResult } from "@/utils/gameUtils";
+import EyeTrackingOverlay from "@/components/EyeTrackingOverlay";
+import { useEyeTracking } from "@/hooks/useEyeTracking";
 
 const { width, height } = Dimensions.get("window");
 const BALL_SIZE = 30;
-const EXERCISE_DURATION = 120; // 1 minute in seconds
+const EXERCISE_DURATION = 120;
 
 export default function EyeballMovementGame() {
   const router = useRouter();
   const [gameActive, setGameActive] = useState(false);
-  const [score, setScore] = useState(100);
-  const [gameStartTime, setGameStartTime] = useState(0);
   const [timeRemaining, setTimeRemaining] = useState(EXERCISE_DURATION);
   const [currentPatternIndex, setCurrentPatternIndex] = useState(0);
   const [currentPatternName, setCurrentPatternName] = useState("");
   const ballPosition = useRef(new Animated.ValueXY({ x: 0, y: 0 })).current;
-  const animationRef = useRef<any>(null);
-  const patternsRef = useRef<any[]>([]);
-  const timerRef = useRef<NodeJS.Timeout | number | null>(null);
+  const animationRef = useRef<Animated.CompositeAnimation | null>(null);
+  const patternsRef = useRef<{ name: string; positions: { x: number; y: number }[] }[]>([]);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const isAnimatingRef = useRef(false);
+  const gameStartTimeRef = useRef(0);
+  const isEndingRef = useRef(false);
+  // Keep a ref of timeRemaining so endGame can read the latest value
+  const timeRemainingRef = useRef(EXERCISE_DURATION);
 
-  // Define the different movement patterns
+  const { frameProcessor, result: eyeResult, reset: resetEyeTracking } = useEyeTracking(gameActive);
+
+  // ── Movement patterns ─────────────────────────────────────────────────────
   useEffect(() => {
     patternsRef.current = [
       {
@@ -69,259 +74,178 @@ export default function EyeballMovementGame() {
       {
         name: "Box Shape",
         positions: [
-          { x: -width * 0.4, y: -height * 0.25 }, // top-left corner
-          { x: width * 0.4, y: -height * 0.25 },  // top-right
-          { x: width * 0.4, y: height * 0.25 },   // bottom-right
-          { x: -width * 0.4, y: height * 0.25 },  // bottom-left
-          { x: 0, y: 0 },                         // center
-          { x: -width * 0.4, y: -height * 0.25 }, // back to start
-        ],
-      },
-      {
-        name: "Spiral Square",
-        positions: [
-          // Outer layer (1)
-          { x: -width * 0.4, y: -height * 0.25 },  // top-left
-          { x: width * 0.4, y: -height * 0.25 },   // top-right
-          { x: width * 0.4, y: height * 0.25 },    // bottom-right
-          { x: -width * 0.4, y: height * 0.25 },   // bottom-left
-
-          // Second layer (2)
-          { x: -width * 0.3, y: -height * 0.18 },  // top-left
-          { x: width * 0.3, y: -height * 0.18 },   // top-right
-          { x: width * 0.3, y: height * 0.18 },    // bottom-right
-          { x: -width * 0.3, y: height * 0.18 },   // bottom-left
-
-          // Third layer (3)
-          { x: -width * 0.2, y: -height * 0.12 },  // top-left
-          { x: width * 0.2, y: -height * 0.12 },   // top-right
-          { x: width * 0.2, y: height * 0.12 },    // bottom-right
-          { x: -width * 0.2, y: height * 0.12 },   // bottom-left
-
-          // Inner layer (4)
-          { x: -width * 0.1, y: -height * 0.06 },  // top-left
-          { x: width * 0.1, y: -height * 0.06 },   // top-right
-          { x: width * 0.1, y: height * 0.06 },    // bottom-right
-          { x: -width * 0.1, y: height * 0.06 },   // bottom-left
-
-          // Center
-          { x: 0, y: 0 },
-
-          // Return to start (optional)
           { x: -width * 0.4, y: -height * 0.25 },
-        ],
-      },
-      {
-        name: "Hourglass",
-        positions: [
-          { x: -width * 0.3, y: -height * 0.2 }, // Position 1: top-left
-          { x: 0, y: -height * 0.2 },            // Position 2: top-center
-          { x: width * 0.3, y: -height * 0.2 },  // Position 3: top-right
-          { x: 0, y: 0 },                        // Position 5: center
-          { x: -width * 0.3, y: height * 0.2 },  // Position 7: bottom-left
-          { x: 0, y: height * 0.2 },             // Position 8: bottom-center
-          { x: width * 0.3, y: height * 0.2 },   // Position 9: bottom-right
-          { x: 0, y: 0 },                        // Position 5: center again
-          { x: -width * 0.3, y: -height * 0.2 }, // Position 1: back to top-left
-          // Reverse pattern
-          { x: 0, y: 0 },                        // Position 5: center
-          { x: width * 0.3, y: height * 0.2 },   // Position 9: bottom-right
-          { x: 0, y: height * 0.2 },             // Position 8: bottom-center
-          { x: -width * 0.3, y: height * 0.2 },  // Position 7: bottom-left
-          { x: 0, y: 0 },                        // Position 5: center
-          { x: width * 0.3, y: -height * 0.2 },  // Position 3: top-right
-          { x: 0, y: -height * 0.2 },            // Position 2: top-center
-          { x: -width * 0.3, y: -height * 0.2 }, // Position 1: top-left
+          { x: width * 0.4, y: -height * 0.25 },
+          { x: width * 0.4, y: height * 0.25 },
+          { x: -width * 0.4, y: height * 0.25 },
+          { x: 0, y: 0 },
+          { x: -width * 0.4, y: -height * 0.25 },
         ],
       },
       {
         name: "Zigzag",
         positions: [
-          // Start at top left
           { x: -width * 0.4, y: -height * 0.25 },
-          // Move right
           { x: width * 0.4, y: -height * 0.25 },
-          // Diagonal down to left
-          { x: -width * 0.4, y: -height * 0.17 },
-          // Move right
-          { x: width * 0.4, y: -height * 0.17 },
-          // Diagonal down to left
           { x: -width * 0.4, y: -height * 0.08 },
-          // Move right
           { x: width * 0.4, y: -height * 0.08 },
-          // Diagonal down to left
-          { x: -width * 0.4, y: 0 },
-          // Move right
-          { x: width * 0.4, y: 0 },
-          // Diagonal down to left
           { x: -width * 0.4, y: height * 0.08 },
-          // Move right
           { x: width * 0.4, y: height * 0.08 },
-          // Diagonal down to left
-          { x: -width * 0.4, y: height * 0.17 },
-          // Move right
-          { x: width * 0.4, y: height * 0.17 },
-          // Diagonal down to left
           { x: -width * 0.4, y: height * 0.25 },
-          // Move right (final horizontal line)
           { x: width * 0.4, y: height * 0.25 },
-          // Return to start
           { x: -width * 0.4, y: -height * 0.25 },
         ],
       },
     ];
   }, []);
 
-  const endGame = useCallback(async () => {
-    setGameActive(false);
-
-    // Stop any ongoing animations
-    if (animationRef.current) {
-      animationRef.current.stop();
-    }
-
-    // Clear timer
+  // ── Cleanup helper ────────────────────────────────────────────────────────
+  const stopEverything = useCallback(() => {
     if (timerRef.current) {
       clearInterval(timerRef.current);
+      timerRef.current = null;
     }
+    if (animationRef.current) {
+      animationRef.current.stop();
+      animationRef.current = null;
+    }
+    isAnimatingRef.current = false;
+    resetEyeTracking();
+  }, [resetEyeTracking]);
 
-    const gameDuration = (Date.now() - gameStartTime) / 1000; // in seconds
+  // ── Unmount cleanup ───────────────────────────────────────────────────────
+  useEffect(() => {
+    return () => {
+      stopEverything();
+    };
+  }, [stopEverything]);
+
+  // ── Back button ───────────────────────────────────────────────────────────
+  const handleBack = useCallback(() => {
+    stopEverything();
+    setGameActive(false);
+    router.back();
+  }, [stopEverything, router]);
+
+  const endGame = useCallback(async () => {
+    if (isEndingRef.current) return;
+    isEndingRef.current = true;
+
+    stopEverything();
+    setGameActive(false);
+
+    const gameDuration = (Date.now() - gameStartTimeRef.current) / 1000;
+    const completedTime = EXERCISE_DURATION - timeRemainingRef.current;
 
     try {
-      // Save game result to API
       await saveGameResult({
-        gameId: 8, // ID for "Eyeball movement" game
-        score: score,
+        gameId: 8,
+        score: 100,
         duration: gameDuration,
         date: new Date().toISOString(),
-        details: {
-          completedExerciseTime: EXERCISE_DURATION - timeRemaining,
-        },
+        details: { completedExerciseTime: completedTime },
       });
-
       Alert.alert(
         "Exercise Complete!",
-        `Score: ${score}%\nTime: ${Math.round(gameDuration)}s`,
-        [{ text: "OK", onPress: () => router.back() }],
+        `Time: ${Math.round(gameDuration)}s`,
+        [{ text: "OK", onPress: () => router.back() }]
       );
-    } catch (error) {
-      console.error("Failed to save game result:", error);
+    } catch {
       Alert.alert(
         "Exercise Complete!",
-        `Score: ${score}%\nTime: ${Math.round(gameDuration)}s\n(Failed to save results)`,
-        [{ text: "OK", onPress: () => router.back() }],
+        `Time: ${Math.round(gameDuration)}s\n(Failed to save results)`,
+        [{ text: "OK", onPress: () => router.back() }]
       );
     }
-  }, [gameStartTime, router, score, timeRemaining]);
+  }, [stopEverything, router]);
 
+  // ── Ball animation ────────────────────────────────────────────────────────
   const animateBall = useCallback(
-    (pattern: any, patternIndex: number) => {
-      if (!gameActive) return;
+    (patternIndex: number) => {
+      const pattern = patternsRef.current[patternIndex];
+      if (!pattern) return;
 
       isAnimatingRef.current = true;
       setCurrentPatternName(pattern.name);
       setCurrentPatternIndex(patternIndex);
 
-      // Create an animation sequence
-      const sequence = pattern.positions.map((position: any) => {
-        return Animated.timing(ballPosition, {
-          toValue: { x: position.x, y: position.y },
-          duration: 1200, // Slightly faster to ensure more pattern changes
-          useNativeDriver: true,
-        });
-      });
-
-      // Reset any ongoing animation
       if (animationRef.current) {
         animationRef.current.stop();
       }
 
-      // Start the new animation sequence
+      const sequence = pattern.positions.map((pos) =>
+        Animated.timing(ballPosition, {
+          toValue: { x: pos.x, y: pos.y },
+          duration: 1200,
+          useNativeDriver: true,
+        })
+      );
+
       animationRef.current = Animated.sequence(sequence);
-      animationRef.current.start(({ finished }: {finished: any}) => {
+      animationRef.current.start(() => {
         isAnimatingRef.current = false;
-
-        // Only proceed if game is still active
-        if (gameActive) {
-          // Move to the next pattern regardless of whether animation finished
-          const nextPatternIndex =
-            (patternIndex + 1) % patternsRef.current.length;
-
-          // Start next pattern animation immediately
+        // Only chain next pattern if game is still running
+        if (timerRef.current !== null) {
+          const next = (patternIndex + 1) % patternsRef.current.length;
           setTimeout(() => {
-            if (gameActive) {
-              animateBall(
-                patternsRef.current[nextPatternIndex],
-                nextPatternIndex,
-              );
+            if (timerRef.current !== null) {
+              animateBall(next);
             }
           }, 100);
         }
       });
     },
-    [gameActive, ballPosition],
+    [ballPosition]
   );
 
-  // Timer effect
+  // ── Timer ─────────────────────────────────────────────────────────────────
   useEffect(() => {
-    if (gameActive && timeRemaining > 0) {
-      timerRef.current = setInterval(() => {
-        setTimeRemaining((prev) => {
-          if (prev <= 1) {
-            // When time is up
-            if (timerRef.current) {
-              clearInterval(timerRef.current);
-            }
-            // Set score to 100% and end game
-            setScore(100);
-            endGame();
-            return 0;
-          }
-          return prev - 1;
-        });
-      }, 1000);
-    }
+    if (!gameActive) return;
+
+    timerRef.current = setInterval(() => {
+      setTimeRemaining((prev) => {
+        const next = prev - 1;
+        timeRemainingRef.current = next;
+        if (next <= 0) {
+          endGame();
+          return 0;
+        }
+        return next;
+      });
+    }, 1000);
 
     return () => {
       if (timerRef.current) {
         clearInterval(timerRef.current);
+        timerRef.current = null;
       }
     };
-  }, [gameActive, endGame, timeRemaining]);
+  }, [gameActive, endGame]);
 
-  // Ensure animations continue through the full minute
+  // ── Start animation when game becomes active ──────────────────────────────
   useEffect(() => {
     if (gameActive && !isAnimatingRef.current) {
-      animateBall(
-        patternsRef.current[currentPatternIndex],
-        currentPatternIndex,
-      );
+      animateBall(currentPatternIndex);
     }
-  }, [gameActive, currentPatternIndex, animateBall]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameActive]);
 
-  const startGame = () => {
+  const startGame = useCallback(() => {
+    isEndingRef.current = false;
     setGameActive(true);
-    setScore(0);
     setTimeRemaining(EXERCISE_DURATION);
+    timeRemainingRef.current = EXERCISE_DURATION;
     setCurrentPatternIndex(0);
-    setGameStartTime(Date.now());
+    setCurrentPatternName("");
+    gameStartTimeRef.current = Date.now();
     isAnimatingRef.current = false;
-
-    // Start with the first pattern
     ballPosition.setValue({ x: 0, y: 0 });
-    // Animation will be triggered by useEffect
-  };
+  }, [ballPosition]);
 
   return (
     <View style={styles.container}>
-      <View
-        style={{
-          display: "flex",
-          flexDirection: "row",
-          justifyContent: "space-between",
-        }}
-      >
-        <TouchableOpacity onPress={() => router.back()}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={handleBack} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <FontAwesome name="arrow-left" size={24} color="#0EA5E9" />
         </TouchableOpacity>
         <Text style={styles.gameTitle}>Eyeball Movement</Text>
@@ -345,12 +269,19 @@ export default function EyeballMovementGame() {
             <Text style={styles.roundText}>Pattern: {currentPatternName}</Text>
           </View>
 
+          <View style={styles.eyeTrackingRow}>
+            <EyeTrackingOverlay
+              frameProcessor={frameProcessor}
+              result={eyeResult}
+              active={gameActive}
+            />
+          </View>
+
           <Text style={styles.instructions}>
-            Follow the ball with your eyes for 1 minute
+            Keep your head still and follow only with your eyes
           </Text>
 
           <View style={styles.gameArea}>
-            {/* Animated Ball */}
             <Animated.View
               style={[
                 styles.ball,
@@ -362,12 +293,6 @@ export default function EyeballMovementGame() {
                 },
               ]}
             />
-          </View>
-
-          <View style={styles.patternGuide}>
-            <Text style={styles.patternText}>
-              Keep your head still and follow only with your eyes
-            </Text>
           </View>
         </View>
       )}
@@ -382,12 +307,13 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingTop: 56,
   },
-  backButton: {
-    marginTop: 20,
-    marginBottom: 10,
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   gameTitle: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: "bold",
     color: "#0EA5E9",
     marginBottom: 20,
@@ -425,7 +351,11 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     justifyContent: "space-between",
     width: "100%",
-    marginBottom: 20,
+    marginBottom: 12,
+  },
+  eyeTrackingRow: {
+    alignItems: "center",
+    marginBottom: 10,
   },
   scoreText: {
     fontSize: 18,
@@ -438,14 +368,14 @@ const styles = StyleSheet.create({
     color: "#333",
   },
   instructions: {
-    fontSize: 16,
+    fontSize: 14,
     textAlign: "center",
-    marginBottom: 30,
-    color: "#333",
+    marginBottom: 16,
+    color: "#666",
   },
   gameArea: {
     width: width * 0.9,
-    height: height * 0.5,
+    height: height * 0.45,
     justifyContent: "center",
     alignItems: "center",
     borderWidth: 2,
@@ -459,17 +389,5 @@ const styles = StyleSheet.create({
     borderRadius: BALL_SIZE / 2,
     backgroundColor: "#0EA5E9",
     position: "absolute",
-  },
-  patternGuide: {
-    marginTop: 30,
-    padding: 15,
-    backgroundColor: "#EFF6FF",
-    borderRadius: 10,
-    borderLeftWidth: 4,
-    borderLeftColor: "#0EA5E9",
-  },
-  patternText: {
-    color: "#333",
-    fontSize: 14,
   },
 });

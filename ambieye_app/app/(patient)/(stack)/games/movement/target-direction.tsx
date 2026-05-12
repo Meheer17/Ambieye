@@ -1,4 +1,4 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect, useCallback } from "react";
 import {
   StyleSheet,
   View,
@@ -9,161 +9,97 @@ import {
   Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
-import { SafeAreaView } from "react-native-safe-area-context";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { saveGameResult } from "@/utils/gameUtils";
+import EyeTrackingOverlay from "@/components/EyeTrackingOverlay";
+import { useEyeTracking } from "@/hooks/useEyeTracking";
 
 const { width, height } = Dimensions.get("window");
 const TARGET_SIZE = 40;
+const TOTAL_ROUNDS = 10;
 
 export default function TargetDirectionGame() {
   const router = useRouter();
   const [gameActive, setGameActive] = useState(false);
   const [score, setScore] = useState(0);
   const [round, setRound] = useState(0);
-  const [totalRounds] = useState(10);
   const [direction, setDirection] = useState("");
   const [correctSelections, setCorrectSelections] = useState(0);
   const [wrongSelections, setWrongSelections] = useState(0);
-  const [gameStartTime, setGameStartTime] = useState(0);
   const [gameEnded, setGameEnded] = useState(false);
   const [waitingForSelection, setWaitingForSelection] = useState(false);
   const targetPosition = useRef(new Animated.ValueXY()).current;
   const targetOpacity = useRef(new Animated.Value(0)).current;
+  const gameStartTimeRef = useRef(0);
+  const roundRef = useRef(0);
+  const correctRef = useRef(0);
+  const wrongRef = useRef(0);
+  const targetAnimRef = useRef<Animated.CompositeAnimation | null>(null);
+  const roundTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isEndingRef = useRef(false);
 
-  const directions = ["left", "right", "up", "down"];
-  // const directionIcons = {
-  //   left: "arrow-left",
-  //   right: "arrow-right",
-  //   up: "arrow-up",
-  //   down: "arrow-down",
-  // };
+  const { frameProcessor, result: eyeResult, reset: resetEyeTracking } = useEyeTracking(gameActive);
 
-  // Animation configurations for different directions
+  const directions = ["left", "right", "up", "down"] as const;
+
   const directionConfigs = {
-    left: { start: { x: width * 0.75, y: height * 0.3 }, end: { x: -TARGET_SIZE, y: height * 0.3 } },
+    left:  { start: { x: width * 0.75, y: height * 0.3 }, end: { x: -TARGET_SIZE, y: height * 0.3 } },
     right: { start: { x: -TARGET_SIZE, y: height * 0.3 }, end: { x: width * 0.75, y: height * 0.3 } },
-    up: { start: { x: width * 0.4, y: height * 0.6 }, end: { x: width * 0.4, y: -TARGET_SIZE } },
-    down: { start: { x: width * 0.4, y: -TARGET_SIZE }, end: { x: width * 0.4, y: height * 0.6 } },
+    up:    { start: { x: width * 0.4, y: height * 0.6 },  end: { x: width * 0.4, y: -TARGET_SIZE } },
+    down:  { start: { x: width * 0.4, y: -TARGET_SIZE },  end: { x: width * 0.4, y: height * 0.6 } },
   };
 
-  const setupRound = () => {
-    const nextRound = round + 1;
-
-    // Check if we've reached the total rounds limit
-    if (nextRound > totalRounds) {
-      endGame();
-      return;
+  // ── Cleanup helper ────────────────────────────────────────────────────────
+  const stopEverything = useCallback(() => {
+    if (targetAnimRef.current) {
+      targetAnimRef.current.stop();
+      targetAnimRef.current = null;
     }
-
-    setRound(nextRound);
-    setWaitingForSelection(true);
-
-    // Select random direction
-    const newDirection = directions[Math.floor(Math.random() * directions.length)];
-    setDirection(newDirection);
-
-    const config = directionConfigs[newDirection as keyof typeof directionConfigs];
-
-    // Set initial position
-    targetPosition.setValue(config.start);
-    targetOpacity.setValue(1);
-
-    // Animate target
-    Animated.parallel([
-      Animated.timing(targetPosition, {
-        toValue: config.end,
-        duration: 3000, // 3 seconds for the animation (slower speed)
-        useNativeDriver: true,
-      }),
-      Animated.sequence([
-        Animated.timing(targetOpacity, {
-          toValue: 1,
-          duration: 100,
-          useNativeDriver: true,
-        }),
-        Animated.delay(2800), // Keep fully visible during most of the animation
-        Animated.timing(targetOpacity, {
-          toValue: 0,
-          duration: 100,
-          useNativeDriver: true,
-        })
-      ])
-    ]).start();
-  };
-
-  const startGame = () => {
-    setGameActive(true);
-    setGameEnded(false);
-    setScore(0);
-    setRound(0);
-    setCorrectSelections(0);
-    setWrongSelections(0);
-    setWaitingForSelection(false);
-    setGameStartTime(Date.now());
-    setupRound();
-  };
-
-  const handleDirectionSelect = (selectedDirection: string) => {
-    // Prevent user interaction if game has ended, if we've reached max rounds, or if we're not waiting for selection
-    if (gameEnded || !waitingForSelection) {
-      return;
+    if (roundTimeoutRef.current) {
+      clearTimeout(roundTimeoutRef.current);
+      roundTimeoutRef.current = null;
     }
+    resetEyeTracking();
+  }, [resetEyeTracking]);
 
-    setWaitingForSelection(false);
+  // ── Unmount cleanup ───────────────────────────────────────────────────────
+  useEffect(() => {
+    return () => {
+      stopEverything();
+    };
+  }, [stopEverything]);
 
-    if (selectedDirection === direction) {
-      setCorrectSelections(prev => prev + 1);
-      setScore(prevScore => prevScore + 10);
-    } else {
-      setWrongSelections(prev => prev + 1);
-    }
+  // ── Back button ───────────────────────────────────────────────────────────
+  const handleBack = useCallback(() => {
+    stopEverything();
+    setGameActive(false);
+    router.back();
+  }, [stopEverything, router]);
 
-    // Wait a short time before setting up the next round
-    setTimeout(() => {
-      // Check if this was the last round
-      if (round >= totalRounds) {
-        endGame();
-      } else {
-        setupRound();
-      }
-    }, 1000);
-  };
+  const endGame = useCallback(async () => {
+    if (isEndingRef.current) return;
+    isEndingRef.current = true;
 
-  const endGame = async () => {
-    // Ensure we only end the game once
-    if (gameEnded) return;
-
+    stopEverything();
     setGameActive(false);
     setGameEnded(true);
 
-    const gameDuration = (Date.now() - gameStartTime) / 1000; // in seconds
-
-    // Ensure we use the latest state values
-    const finalCorrect = correctSelections;
-    const finalWrong = wrongSelections;
-    const totalSelections = finalCorrect + finalWrong;
-
-    // Calculate score (percentage based on correct selections)
-    const finalScore = totalSelections > 0 
-      ? Math.round((finalCorrect / totalSelections) * 100) 
-      : 0;
+    const gameDuration = (Date.now() - gameStartTimeRef.current) / 1000;
+    const total = correctRef.current + wrongRef.current;
+    const finalScore = total > 0 ? Math.round((correctRef.current / total) * 100) : 0;
 
     try {
-      // Save game result to API
       await saveGameResult({
-        gameId: 9, // ID for "Direction of the target" game
+        gameId: 9,
         score: finalScore,
         duration: gameDuration,
         date: new Date().toISOString(),
         details: {
-          rounds: round,
-          correctSelections: finalCorrect,
-          wrongSelections: finalWrong
-        }
+          rounds: roundRef.current,
+          correctSelections: correctRef.current,
+          wrongSelections: wrongRef.current,
+        },
       });
-
-      // Ensure Alert is shown
       setTimeout(() => {
         Alert.alert(
           "Game Complete!",
@@ -171,8 +107,7 @@ export default function TargetDirectionGame() {
           [{ text: "OK", onPress: () => router.back() }]
         );
       }, 100);
-    } catch (error) {
-      console.error("Failed to save game result:", error);
+    } catch {
       setTimeout(() => {
         Alert.alert(
           "Game Complete!",
@@ -181,27 +116,110 @@ export default function TargetDirectionGame() {
         );
       }, 100);
     }
-  };
+  }, [stopEverything, router]);
+
+  const setupRound = useCallback(() => {
+    const nextRound = roundRef.current + 1;
+    if (nextRound > TOTAL_ROUNDS) {
+      endGame();
+      return;
+    }
+
+    roundRef.current = nextRound;
+    setRound(nextRound);
+    setWaitingForSelection(true);
+
+    const newDirection = directions[Math.floor(Math.random() * directions.length)];
+    setDirection(newDirection);
+
+    const config = directionConfigs[newDirection];
+    targetPosition.setValue(config.start);
+    targetOpacity.setValue(1);
+
+    if (targetAnimRef.current) {
+      targetAnimRef.current.stop();
+    }
+
+    targetAnimRef.current = Animated.parallel([
+      Animated.timing(targetPosition, {
+        toValue: config.end,
+        duration: 3000,
+        useNativeDriver: true,
+      }),
+      Animated.sequence([
+        Animated.timing(targetOpacity, { toValue: 1, duration: 100, useNativeDriver: true }),
+        Animated.delay(2800),
+        Animated.timing(targetOpacity, { toValue: 0, duration: 100, useNativeDriver: true }),
+      ]),
+    ]);
+    targetAnimRef.current.start();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [endGame, targetOpacity, targetPosition]);
+
+  const handleDirectionSelect = useCallback(
+    (selectedDirection: string) => {
+      if (gameEnded || !waitingForSelection) return;
+
+      setWaitingForSelection(false);
+
+      if (selectedDirection === direction) {
+        correctRef.current += 1;
+        setCorrectSelections(correctRef.current);
+        setScore((prev) => prev + 10);
+      } else {
+        wrongRef.current += 1;
+        setWrongSelections(wrongRef.current);
+      }
+
+      roundTimeoutRef.current = setTimeout(() => {
+        if (roundRef.current >= TOTAL_ROUNDS) {
+          endGame();
+        } else {
+          setupRound();
+        }
+      }, 1000);
+    },
+    [gameEnded, waitingForSelection, direction, endGame, setupRound]
+  );
+
+  const startGame = useCallback(() => {
+    isEndingRef.current = false;
+    roundRef.current = 0;
+    correctRef.current = 0;
+    wrongRef.current = 0;
+    setGameActive(true);
+    setGameEnded(false);
+    setScore(0);
+    setRound(0);
+    setCorrectSelections(0);
+    setWrongSelections(0);
+    setWaitingForSelection(false);
+    gameStartTimeRef.current = Date.now();
+    // setupRound will be called after state settles via the effect below
+  }, []);
+
+  // Kick off the first round once the game becomes active
+  useEffect(() => {
+    if (gameActive && round === 0 && !gameEnded) {
+      setupRound();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameActive]);
 
   return (
     <View style={styles.container}>
-      <View
-        style={{
-          display: "flex",
-          flexDirection: "row",
-          justifyContent: "space-between",
-        }}
-      >
-        <TouchableOpacity onPress={() => router.back()}>
+      <View style={styles.header}>
+        <TouchableOpacity onPress={handleBack} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
           <FontAwesome name="arrow-left" size={24} color="#0EA5E9" />
         </TouchableOpacity>
         <Text style={styles.gameTitle}>Direction of Target</Text>
       </View>
+
       {!gameActive ? (
         <View style={styles.startContainer}>
           <Text style={styles.instructionText}>
-            Watch the moving target and identify which direction it&apos;s moving.
-            Select the correct direction after the target disappears.
+            Watch the moving target and identify which direction it&apos;s
+            moving. Select the correct direction after the target disappears.
           </Text>
           <TouchableOpacity style={styles.startButton} onPress={startGame}>
             <Text style={styles.startButtonText}>Start Game</Text>
@@ -211,7 +229,15 @@ export default function TargetDirectionGame() {
         <View style={styles.gameContainer}>
           <View style={styles.scoreContainer}>
             <Text style={styles.scoreText}>Score: {score}</Text>
-            <Text style={styles.roundText}>Round: {round}/{totalRounds}</Text>
+            <Text style={styles.roundText}>Round: {round}/{TOTAL_ROUNDS}</Text>
+          </View>
+
+          <View style={styles.eyeTrackingRow}>
+            <EyeTrackingOverlay
+              frameProcessor={frameProcessor}
+              result={eyeResult}
+              active={gameActive}
+            />
           </View>
 
           <View style={styles.gameArea}>
@@ -222,9 +248,9 @@ export default function TargetDirectionGame() {
                   opacity: targetOpacity,
                   transform: [
                     { translateX: targetPosition.x },
-                    { translateY: targetPosition.y }
-                  ]
-                }
+                    { translateY: targetPosition.y },
+                  ],
+                },
               ]}
             >
               <FontAwesome name="bullseye" size={TARGET_SIZE - 10} color="#0EA5E9" />
@@ -232,7 +258,7 @@ export default function TargetDirectionGame() {
           </View>
 
           <View style={styles.directionButtons}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.directionButton, gameEnded && styles.disabledButton]}
               onPress={() => handleDirectionSelect("up")}
               disabled={gameEnded}
@@ -241,7 +267,7 @@ export default function TargetDirectionGame() {
             </TouchableOpacity>
 
             <View style={styles.horizontalButtons}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[styles.directionButton, gameEnded && styles.disabledButton]}
                 onPress={() => handleDirectionSelect("left")}
                 disabled={gameEnded}
@@ -251,7 +277,7 @@ export default function TargetDirectionGame() {
 
               <View style={styles.directionButtonPlaceholder} />
 
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[styles.directionButton, gameEnded && styles.disabledButton]}
                 onPress={() => handleDirectionSelect("right")}
                 disabled={gameEnded}
@@ -260,7 +286,7 @@ export default function TargetDirectionGame() {
               </TouchableOpacity>
             </View>
 
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[styles.directionButton, gameEnded && styles.disabledButton]}
               onPress={() => handleDirectionSelect("down")}
               disabled={gameEnded}
@@ -281,12 +307,13 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingTop: 56,
   },
-  backButton: {
-    marginTop: 20,
-    marginBottom: 10,
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
   },
   gameTitle: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: "bold",
     color: "#0EA5E9",
     marginBottom: 20,
@@ -322,7 +349,11 @@ const styles = StyleSheet.create({
   scoreContainer: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginBottom: 20,
+    marginBottom: 12,
+  },
+  eyeTrackingRow: {
+    alignItems: "center",
+    marginBottom: 10,
   },
   scoreText: {
     fontSize: 18,
@@ -336,11 +367,10 @@ const styles = StyleSheet.create({
   },
   gameArea: {
     width: "100%",
-    height: height * 0.4,
+    height: height * 0.35,
     backgroundColor: "#fff",
     borderRadius: 10,
-    marginBottom: 30,
-    position: "relative",
+    marginBottom: 20,
     overflow: "hidden",
     borderWidth: 2,
     borderColor: "#ddd",

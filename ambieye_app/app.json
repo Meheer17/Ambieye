@@ -30,6 +30,13 @@
       "expo-router",
       "expo-font",
       [
+        "react-native-vision-camera",
+        {
+          "cameraPermission": "Allow Ambi Eye to access your camera for eye movement tracking during exercises.",
+          "enableMicrophonePermission": false
+        }
+      ],
+      [
         "expo-splash-screen",
         {
           "backgroundColor": "#0D0145",
