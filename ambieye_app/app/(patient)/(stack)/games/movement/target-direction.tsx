@@ -38,8 +38,8 @@ export default function TargetDirectionGame() {
   const isEndingRef = useRef(false);
 
   const { cameraRef, status: eyeStatus, result: eyeResult,
-          uploadProgress, videoSize,
-          startRecording, stopAndUpload, reset: resetEye } = useEyeRecording({
+          chunksAnalysed, liveVerdict,
+          startRecording, stopAndFinalise, reset: resetEye } = useEyeRecording({
     gameId: 9, gameName: "Target Direction",
   });
 
@@ -58,14 +58,14 @@ export default function TargetDirectionGame() {
   const stopEverything = useCallback(async () => {
     if (targetAnimRef.current) { targetAnimRef.current.stop(); targetAnimRef.current = null; }
     if (roundTimeoutRef.current) { clearTimeout(roundTimeoutRef.current); roundTimeoutRef.current = null; }
-    await stopAndUpload();
-  }, [stopAndUpload]);
+    await stopAndFinalise();
+  }, [stopAndFinalise]);
 
   useEffect(() => {
     return () => {
       if (targetAnimRef.current) targetAnimRef.current.stop();
       if (roundTimeoutRef.current) clearTimeout(roundTimeoutRef.current);
-      stopAndUpload();
+      stopAndFinalise();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -230,8 +230,8 @@ export default function TargetDirectionGame() {
           <EyeTrackingResult
             status={eyeStatus}
             result={eyeResult}
-            uploadProgress={uploadProgress}
-            videoSize={videoSize}
+            chunksAnalysed={chunksAnalysed}
+            liveVerdict={liveVerdict}
           />
           <TouchableOpacity style={[styles.primaryBtn, { marginTop: 32 }]} onPress={() => router.back()}>
             <Text style={styles.primaryBtnText}>Done</Text>

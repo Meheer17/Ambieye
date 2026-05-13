@@ -34,8 +34,8 @@ export default function EyeballMovementGame() {
   const timeRemainingRef = useRef(EXERCISE_DURATION);
 
   const { cameraRef, status: eyeStatus, result: eyeResult,
-          uploadProgress, videoSize,
-          startRecording, stopAndUpload, reset: resetEye } = useEyeRecording({
+          chunksAnalysed, liveVerdict,
+          startRecording, stopAndFinalise, reset: resetEye } = useEyeRecording({
     gameId: 8, gameName: "Eyeball Movement",
   });
 
@@ -58,14 +58,14 @@ export default function EyeballMovementGame() {
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
     if (animationRef.current) { animationRef.current.stop(); animationRef.current = null; }
     isAnimatingRef.current = false;
-    await stopAndUpload();
-  }, [stopAndUpload]);
+    await stopAndFinalise();
+  }, [stopAndFinalise]);
 
   useEffect(() => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
       if (animationRef.current) animationRef.current.stop();
-      stopAndUpload();
+      stopAndFinalise();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -204,8 +204,8 @@ export default function EyeballMovementGame() {
           <EyeTrackingResult
             status={eyeStatus}
             result={eyeResult}
-            uploadProgress={uploadProgress}
-            videoSize={videoSize}
+            chunksAnalysed={chunksAnalysed}
+            liveVerdict={liveVerdict}
           />
           <TouchableOpacity style={[styles.primaryBtn, { marginTop: 32 }]} onPress={() => router.back()}>
             <Text style={styles.primaryBtnText}>Done</Text>

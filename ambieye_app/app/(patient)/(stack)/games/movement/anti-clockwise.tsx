@@ -30,8 +30,8 @@ export default function AntiClockwiseGame() {
   const isEndingRef = useRef(false);
 
   const { cameraRef, status: eyeStatus, result: eyeResult,
-          uploadProgress, videoSize,
-          startRecording, stopAndUpload, reset: resetEye } = useEyeRecording({
+          chunksAnalysed, liveVerdict,
+          startRecording, stopAndFinalise, reset: resetEye } = useEyeRecording({
     gameId: 7, gameName: "Anti-Clockwise",
   });
 
@@ -42,14 +42,14 @@ export default function AntiClockwiseGame() {
   const stopEverything = useCallback(async () => {
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
     if (animationRef.current) { animationRef.current.stop(); animationRef.current = null; }
-    await stopAndUpload();
-  }, [stopAndUpload]);
+    await stopAndFinalise();
+  }, [stopAndFinalise]);
 
   useEffect(() => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
       if (animationRef.current) animationRef.current.stop();
-      stopAndUpload();
+      stopAndFinalise();
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -162,8 +162,8 @@ export default function AntiClockwiseGame() {
           <EyeTrackingResult
             status={eyeStatus}
             result={eyeResult}
-            uploadProgress={uploadProgress}
-            videoSize={videoSize}
+            chunksAnalysed={chunksAnalysed}
+            liveVerdict={liveVerdict}
           />
           <TouchableOpacity style={[styles.primaryBtn, { marginTop: 32 }]} onPress={() => router.back()}>
             <Text style={styles.primaryBtnText}>Done</Text>
