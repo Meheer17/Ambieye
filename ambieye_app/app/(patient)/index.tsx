@@ -26,6 +26,7 @@ import { patientService, Query } from "@/services/api/patientService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { VisitRecord } from "@/services/api/doctorService";
 import { useFocusEffect } from "@react-navigation/native";
+import EyeTrackingBadge from "@/components/EyeTrackingBadge";
 
 export default function PatientHome() {
   const { username } = useAuth();
@@ -801,6 +802,8 @@ export default function PatientHome() {
                       {Math.round(accuracyPercent)}%
                     </Text>
                   </View>
+                  {/* Eye tracking result from OpenCV server */}
+                  <EyeTrackingBadge eyeTracking={game.details?.eyeTracking} />
                 </View>
               </View>
             );

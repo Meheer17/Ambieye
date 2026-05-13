@@ -16,3 +16,6 @@ apps/mobile_client/android
 apps/mobile_client/.expo
 
 **/.turbo
+
+eye_tracking_server/.venv*
+**/__pycache__

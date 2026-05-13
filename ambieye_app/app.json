@@ -30,10 +30,11 @@
       "expo-router",
       "expo-font",
       [
-        "react-native-vision-camera",
+        "expo-camera",
         {
-          "cameraPermission": "Allow Ambi Eye to access your camera for eye movement tracking during exercises.",
-          "enableMicrophonePermission": false
+          "cameraPermission": "Allow Ambi Eye to access your camera for eye movement recording during exercises.",
+          "microphonePermission": "Allow Ambi Eye to access your microphone for video recording during exercises.",
+          "recordAudioAndroid": true
         }
       ],
       [

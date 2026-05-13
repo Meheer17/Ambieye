@@ -1,4 +1,3 @@
-import axios from "axios";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import apiClient from "@/services/api/apiService";
 
@@ -12,137 +11,100 @@ export interface GameResult {
 }
 
 export const saveGameResult = async (result: GameResult): Promise<void> => {
+  const today = new Date().toISOString().split("T")[0];
+
+  const buildEntry = () => ({
+    id: result.gameId,
+    game: getGameNameById(result.gameId),
+    score: result.score,
+    points: result.score,
+    time: result.duration,
+    details: result.details,
+    accuracy: Math.min(100, Math.round((result.score / 100) * 100)),
+    date: today,
+  });
+
   try {
-    // First, save to backend API
+    // Save to backend API
     const response = await apiClient.post("/games/results", result);
     console.log("Game result saved to backend:", response.data);
+  } catch (error) {
+    console.error("Error saving game result to backend:", error);
+    // Continue to save locally even if API fails
+  }
 
-    // Also save locally for offline access (keeping existing logic)
-    // Get existing history
+  // Save locally
+  try {
+    // gameHistory
     const historyJson = await AsyncStorage.getItem("gameHistory");
     const history = historyJson ? JSON.parse(historyJson) : [];
-
-    // Format date as YYYY-MM-DD
-    const today = new Date().toISOString().split("T")[0];
-
-    // Check if we already have an entry for today
-    const todayEntry = history.find((entry: any) => entry.date === today);
-
+    const todayEntry = history.find((e: any) => e.date === today);
     if (todayEntry) {
-      // Add to existing entry
-      todayEntry.games.push({
-        id: result.gameId,
-        game: getGameNameById(result.gameId),
-        points: result.score,
-        time: result.duration,
-        details: result.details,
-      });
+      todayEntry.games.push(buildEntry());
     } else {
-      // Create new entry for today
-      history.push({
-        date: today,
-        games: [
-          {
-            id: result.gameId,
-            game: getGameNameById(result.gameId),
-            points: result.score,
-            time: result.duration,
-            details: result.details,
-          },
-        ],
-      });
+      history.push({ date: today, games: [buildEntry()] });
     }
-
-    // Save updated history
     await AsyncStorage.setItem("gameHistory", JSON.stringify(history));
 
-    // NEW CODE: Save today's game data separately for progress tracking
-    const todayGameDataJson = await AsyncStorage.getItem("todayGameData");
-    let todayGameData = todayGameDataJson ? JSON.parse(todayGameDataJson) : { date: today, games: [] };
-    
-    // If the stored date is not today, clear the data (delete yesterday's data)
-    if (todayGameData.date !== today) {
-      todayGameData = { date: today, games: [] };
-    }
-    
-    // Add the new game result
-    todayGameData.games.push({
-      id: result.gameId,
-      game: getGameNameById(result.gameId),
-      score: result.score,
-      time: result.duration, // in seconds
-      details: result.details,
-      accuracy: Math.min(100, Math.round((result.score / 100) * 100)), // Simple accuracy calculation
-      date: today,
-    });
-    
-    // Save today's data
-    await AsyncStorage.setItem("todayGameData", JSON.stringify(todayGameData));
-  } catch (error) {
-    console.error("Error saving game result:", error);
-
-    // If API fails, at least save locally (keeping existing logic)
-    try {
-      const historyJson = await AsyncStorage.getItem("gameHistory");
-      const history = historyJson ? JSON.parse(historyJson) : [];
-
-      const today = new Date().toISOString().split("T")[0];
-      const todayEntry = history.find((entry: any) => entry.date === today);
-
-      if (todayEntry) {
-        todayEntry.games.push({
-          id: result.gameId,
-          game: getGameNameById(result.gameId),
-          points: result.score,
-          time: result.duration,
-          details: result.details,
-        });
-      } else {
-        history.push({
-          date: today,
-          games: [
-            {
-              id: result.gameId,
-              game: getGameNameById(result.gameId),
-              points: result.score,
-              time: result.duration,
-              details: result.details,
-            },
-          ],
-        });
-      }
-
-      await AsyncStorage.setItem("gameHistory", JSON.stringify(history));
-
-      // NEW CODE: Save today's game data separately even if API fails
-      const todayGameDataJson = await AsyncStorage.getItem("todayGameData");
-      let todayGameData = todayGameDataJson ? JSON.parse(todayGameDataJson) : { date: today, games: [] };
-      
-      // If the stored date is not today, clear the data (delete yesterday's data)
-      if (todayGameData.date !== today) {
-        todayGameData = { date: today, games: [] };
-      }
-      
-      // Add the new game result
-      todayGameData.games.push({
-        id: result.gameId,
-        game: getGameNameById(result.gameId),
-        score: result.score,
-        time: result.duration,
-        details: result.details,
-        accuracy: Math.min(100, Math.round((result.score / 100) * 100)), // Simple accuracy calculation
-        date: today,
-      });
-      
-      // Save today's data
-      await AsyncStorage.setItem("todayGameData", JSON.stringify(todayGameData));
-      
-    } catch (localError) {
-      console.error("Failed to save even to local storage:", localError);
-    }
-
-    throw error;
+    // todayGameData
+    const todayJson = await AsyncStorage.getItem("todayGameData");
+    let todayData = todayJson ? JSON.parse(todayJson) : { date: today, games: [] };
+    if (todayData.date !== today) todayData = { date: today, games: [] };
+    todayData.games.push(buildEntry());
+    await AsyncStorage.setItem("todayGameData", JSON.stringify(todayData));
+  } catch (localError) {
+    console.error("Failed to save to local storage:", localError);
   }
+};
+
+/**
+ * Patches the eye tracking result from the OpenCV server onto the most
+ * recently saved game entry for a given gameId in AsyncStorage.
+ * Called after the server returns its analysis — non-blocking, non-critical.
+ */
+export const saveEyeTrackingResult = async (
+  gameId: number,
+  eyeResult: {
+    verdict: string;
+    movement_count: number;
+    frames_with_eyes: number;
+    avg_movement: number;
+    summary: string;
+  }
+): Promise<void> => {
+  const today = new Date().toISOString().split("T")[0];
+
+  const patchStorage = async (key: string) => {
+    try {
+      const json = await AsyncStorage.getItem(key);
+      if (!json) return;
+      const data = JSON.parse(json);
+
+      const todayEntry = Array.isArray(data)
+        ? data.find((e: any) => e.date === today)
+        : data.date === today ? data : null;
+
+      if (!todayEntry?.games) return;
+
+      // Patch the last game entry with this gameId
+      for (let i = todayEntry.games.length - 1; i >= 0; i--) {
+        const g = todayEntry.games[i];
+        if ((g.id ?? g.gameId) === gameId) {
+          g.details = { ...(g.details ?? {}), eyeTracking: eyeResult };
+          break;
+        }
+      }
+
+      await AsyncStorage.setItem(key, JSON.stringify(data));
+    } catch {
+      // Non-critical — silently ignore
+    }
+  };
+
+  await Promise.all([
+    patchStorage("gameHistory"),
+    patchStorage("todayGameData"),
+  ]);
 };
 
 // Helper function to get game name by ID

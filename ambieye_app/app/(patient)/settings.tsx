@@ -14,6 +14,7 @@ import {
   Linking,
   StatusBar,
 } from "react-native";
+import { getServerConfig, saveServerConfig, buildServerUrl, DEFAULT_PORT } from "@/utils/eyeTrackingStorage";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import Feather from "@expo/vector-icons/Feather";
@@ -76,6 +77,13 @@ export default function SettingsScreen() {
   const [showAboutModal, setShowAboutModal] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
 
+  // Eye tracking server config
+  const [showServerModal, setShowServerModal] = useState(false);
+  const [serverIp, setServerIp] = useState("");
+  const [serverPort, setServerPort] = useState(DEFAULT_PORT);
+  const [serverPinging, setServerPinging] = useState(false);
+  const [serverPingResult, setServerPingResult] = useState<"ok" | "fail" | null>(null);
+
   useEffect(() => {
     const fetchProfileData = async () => {
       setIsLoading(true);
@@ -98,6 +106,12 @@ export default function SettingsScreen() {
       }
     };
     fetchProfileData();
+
+    // Load saved server config
+    getServerConfig().then(({ ip, port }) => {
+      setServerIp(ip);
+      setServerPort(port);
+    });
   }, []);
 
   const fetchDoctorData = async (docId: string) => {
@@ -109,6 +123,28 @@ export default function SettingsScreen() {
       console.error("Error fetching doctor details:", error);
     } finally {
       setIsDoctorLoading(false);
+    }
+  };
+
+  const handleSaveServerConfig = async () => {
+    await saveServerConfig(serverIp, serverPort);
+    showAlert("Saved", "Eye tracking server address saved.");
+    setShowServerModal(false);
+    setServerPingResult(null);
+  };
+
+  const handlePingServer = async () => {
+    const url = buildServerUrl(serverIp, serverPort);
+    if (!url) { showAlert("Error", "Enter a server IP first."); return; }
+    setServerPinging(true);
+    setServerPingResult(null);
+    try {
+      const res = await fetch(`${url}/health`, { method: "GET" });
+      setServerPingResult(res.ok ? "ok" : "fail");
+    } catch {
+      setServerPingResult("fail");
+    } finally {
+      setServerPinging(false);
     }
   };
 
@@ -346,6 +382,23 @@ export default function SettingsScreen() {
           </View>
         )}
 
+        {/* Eye Tracking Server */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>EYE TRACKING SERVER</Text>
+          <TouchableOpacity style={styles.addDoctorCard} onPress={() => setShowServerModal(true)}>
+            <View style={[styles.addDoctorIcon, { backgroundColor: "#F0FDF4" }]}>
+              <Feather name="wifi" size={22} color="#22c55e" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.addDoctorTitle}>OpenCV Server</Text>
+              <Text style={styles.addDoctorSubtitle}>
+                {serverIp ? `${serverIp}:${serverPort}` : "Tap to configure server IP"}
+              </Text>
+            </View>
+            <Feather name="chevron-right" size={18} color={Colors.textLight} />
+          </TouchableOpacity>
+        </View>
+
         {/* Account */}
         <View style={styles.section}>
           <Text style={styles.sectionLabel}>ACCOUNT</Text>
@@ -388,6 +441,77 @@ export default function SettingsScreen() {
         </TouchableOpacity>
 
         <Text style={styles.version}>AmbiEye v1.0.0</Text>
+
+        {/* Eye Tracking Server Modal */}
+        <Modal visible={showServerModal} transparent animationType="fade" onRequestClose={() => setShowServerModal(false)}>
+          <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.modalOverlay}>
+            <View style={styles.modalBox}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Eye Tracking Server</Text>
+                <TouchableOpacity onPress={() => setShowServerModal(false)} style={styles.modalCloseBtn}>
+                  <Feather name="x" size={20} color={Colors.textSecondary} />
+                </TouchableOpacity>
+              </View>
+              <Text style={styles.modalDesc}>
+                Enter the IP address of your laptop running the OpenCV FastAPI server.
+                Make sure both devices are on the same Wi-Fi network.
+              </Text>
+              <Text style={[styles.sectionLabel, { marginBottom: 6 }]}>SERVER IP</Text>
+              <TextInput
+                style={styles.modalInput}
+                placeholder="e.g. 192.168.1.42"
+                placeholderTextColor={Colors.textLight}
+                value={serverIp}
+                onChangeText={setServerIp}
+                keyboardType="decimal-pad"
+                autoCapitalize="none"
+                autoCorrect={false}
+              />
+              <Text style={[styles.sectionLabel, { marginBottom: 6, marginTop: 4 }]}>PORT</Text>
+              <TextInput
+                style={styles.modalInput}
+                placeholder="8000"
+                placeholderTextColor={Colors.textLight}
+                value={serverPort}
+                onChangeText={setServerPort}
+                keyboardType="number-pad"
+              />
+
+              {/* Ping result */}
+              {serverPingResult === "ok" && (
+                <View style={[styles.pingBadge, { backgroundColor: "#DCFCE7" }]}>
+                  <Feather name="check-circle" size={16} color="#16a34a" />
+                  <Text style={[styles.pingText, { color: "#16a34a" }]}>Server reachable ✓</Text>
+                </View>
+              )}
+              {serverPingResult === "fail" && (
+                <View style={[styles.pingBadge, { backgroundColor: "#FEE2E2" }]}>
+                  <Feather name="x-circle" size={16} color="#dc2626" />
+                  <Text style={[styles.pingText, { color: "#dc2626" }]}>Cannot reach server. Check IP and that the server is running.</Text>
+                </View>
+              )}
+
+              <View style={{ flexDirection: "row", gap: 10, marginTop: 16 }}>
+                <TouchableOpacity
+                  style={[styles.modalSubmitBtn, { flex: 1, backgroundColor: "#F1F5F9" }]}
+                  onPress={handlePingServer}
+                  disabled={serverPinging}
+                >
+                  {serverPinging
+                    ? <ActivityIndicator size="small" color={Colors.primary} />
+                    : <Text style={[styles.modalSubmitText, { color: Colors.primary }]}>Test Connection</Text>
+                  }
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalSubmitBtn, { flex: 1 }]}
+                  onPress={handleSaveServerConfig}
+                >
+                  <Text style={styles.modalSubmitText}>Save</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </KeyboardAvoidingView>
+        </Modal>
 
         {/* Doctor ID Modal */}
         <Modal visible={showDoctorModal} transparent animationType="fade">
@@ -720,4 +844,6 @@ const styles = StyleSheet.create({
   faqA: { fontSize: 13, color: Colors.textSecondary, lineHeight: 19 },
   aboutDesc: { fontSize: 14, color: Colors.textSecondary, lineHeight: 22, textAlign: "center", marginBottom: 12 },
   aboutVersion: { fontSize: 13, color: Colors.textLight, textAlign: "center", marginBottom: 20 },
+  pingBadge: { flexDirection: "row", alignItems: "center", gap: 8, padding: 10, borderRadius: 10, marginTop: 10 },
+  pingText: { fontSize: 13, fontWeight: "500", flex: 1 },
 });

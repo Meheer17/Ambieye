@@ -23,6 +23,7 @@ import {
   VisitRecord,
 } from "@/services/api/doctorService";
 import { patientService } from "@/services/api/patientService";
+import EyeTrackingBadge from "@/components/EyeTrackingBadge";
 
 // Define types for game history
 interface GameData {
@@ -733,6 +734,8 @@ function PatientDetailsModal({
                                 {Math.round(accuracyPercent)}% accuracy
                               </Text>
                             </View>
+                            {/* Eye tracking result from OpenCV server */}
+                            <EyeTrackingBadge eyeTracking={game.details?.eyeTracking} />
                           </View>
                         </View>
                       );
