@@ -1,0 +1,127 @@
+name: End-to-End Tests (Selenium & Appium)
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  selenium-web-tests:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+          cache-dependency-path: ambieye_app/package-lock.json
+
+      - name: Install Google Chrome
+        uses: browser-actions/setup-chrome@v1
+        with:
+          chrome-version: stable
+
+      - name: Install frontend dependencies
+        run: |
+          cd ambieye_app
+          npm install
+
+      - name: Install Selenium test dependencies
+        run: |
+          cd ambieye_app/tests/selenium
+          npm install
+
+      - name: Start Expo Web Server
+        run: |
+          cd ambieye_app
+          # Run Expo Web in background
+          npx expo start --web --non-interactive &
+          
+          # Wait for Expo Web port 8081 to be up and running
+          echo "Waiting for web server to start on port 8081..."
+          timeout 120s bash -c '
+            until curl -s http://localhost:8081 > /dev/null; do
+              sleep 2
+            done
+          '
+          echo "Web server is up!"
+
+      - name: Run Selenium E2E Tests
+        run: |
+          cd ambieye_app/tests/selenium
+          HEADLESS=true APP_URL=http://localhost:8081 npm test
+
+  appium-mobile-tests:
+    runs-on: macos-latest # macOS is preferred for hardware-accelerated Android emulators and XCode iOS tests
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: 'npm'
+          cache-dependency-path: ambieye_app/package-lock.json
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v3
+        with:
+          distribution: 'zulu'
+          java-version: '17'
+
+      - name: Install Appium and UIAutomator2 Driver
+        run: |
+          npm install -g appium
+          appium driver install uiautomator2
+          appium -v
+
+      - name: Install dependencies
+        run: |
+          cd ambieye_app
+          npm install
+
+      - name: Prebuild React Native App
+        run: |
+          cd ambieye_app
+          # Generate native Android and iOS folders if not present (required for Expo bare workflow testing)
+          npx expo prebuild --platform android --no-install
+
+      - name: Build Android App (APK)
+        run: |
+          cd ambieye_app/android
+          # Compile the debug version of APK
+          chmod +x gradlew
+          ./gradlew assembleDebug
+          
+          # Ensure target build directory exists and contains our APK
+          ls -la app/build/outputs/apk/debug/
+
+      - name: Start Appium Server
+        run: |
+          appium --log appium.log &
+          echo "Appium server started in background"
+
+      - name: Install Appium test dependencies
+        run: |
+          cd ambieye_app/tests/appium
+          npm install
+
+      - name: Run Appium E2E Tests on Android Emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 33
+          target: google_apis
+          arch: x86_64
+          force-avd-creation: false
+          emulator-options: -no-window -gpu off -no-audio -no-boot-anim -camera-back none
+          disable-animations: false
+          script: |
+            cd ambieye_app/tests/appium
+            ANDROID_APP_PATH=../../android/app/build/outputs/apk/debug/app-debug.apk npm run test:android
