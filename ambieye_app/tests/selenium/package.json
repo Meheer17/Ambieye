@@ -1,0 +1,16 @@
+{
+  "name": "ambieye-selenium-tests",
+  "version": "1.0.0",
+  "description": "Selenium E2E tests for AmbiEye web client",
+  "main": "doctor_login.test.js",
+  "type": "commonjs",
+  "scripts": {
+    "test": "mocha *.test.js --timeout 60000"
+  },
+  "dependencies": {
+    "selenium-webdriver": "^4.16.0"
+  },
+  "devDependencies": {
+    "mocha": "^10.2.0"
+  }
+}
