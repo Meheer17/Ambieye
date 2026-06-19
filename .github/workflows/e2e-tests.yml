@@ -2,7 +2,7 @@ name: End-to-End Tests (Selenium & Appium)
 
 on:
   push:
-    branches: [ main, master ]
+    branches: [ mahi ]
   pull_request:
     branches: [ main, master ]
 
