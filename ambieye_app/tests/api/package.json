@@ -1,0 +1,13 @@
+{
+  "name": "ambieye-api-tests",
+  "version": "1.0.0",
+  "description": "API Tests for AmbiEye Server",
+  "main": "api_300_tests.test.js",
+  "type": "commonjs",
+  "scripts": {
+    "test": "mocha api_300_tests.test.js --timeout 60000"
+  },
+  "devDependencies": {
+    "mocha": "^10.2.0"
+  }
+}

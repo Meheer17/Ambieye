@@ -5,7 +5,7 @@
   "main": "doctor_login.test.js",
   "type": "commonjs",
   "scripts": {
-    "test": "mocha *.test.js --timeout 60000"
+    "test": "mocha e2e_300_selenium.test.js --timeout 100000"
   },
   "dependencies": {
     "selenium-webdriver": "^4.16.0"

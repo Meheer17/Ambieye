@@ -1,0 +1,10 @@
+{
+  "name": "ambieye-load-tests",
+  "version": "1.0.0",
+  "description": "Load Tests for AmbiEye Server",
+  "main": "load_test.js",
+  "type": "commonjs",
+  "scripts": {
+    "test": "node load_test.js"
+  }
+}
