@@ -1,0 +1,2102 @@
+[
+  {
+    "id": "TC-API-001",
+    "title": "TC-API-001 - Login validation - Empty username",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-API-002",
+    "title": "TC-API-002 - Login validation - Empty password",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-003",
+    "title": "TC-API-003 - Login validation - Empty username and password",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-004",
+    "title": "TC-API-004 - Login validation - Non-existent user",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-005",
+    "title": "TC-API-005 - Login validation - Invalid password for existing user",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-006",
+    "title": "TC-API-006 - Login validation - SQL injection payload in username",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-007",
+    "title": "TC-API-007 - Login validation - SQL injection payload in password",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-008",
+    "title": "TC-API-008 - Login validation - Too short username length check",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-009",
+    "title": "TC-API-009 - Login validation - Too long username length boundary check",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-010",
+    "title": "TC-API-010 - Login validation - Special characters in username verification",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-011",
+    "title": "TC-API-011 - Signup validation - Empty username field",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-012",
+    "title": "TC-API-012 - Signup validation - Empty password field",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-013",
+    "title": "TC-API-013 - Signup validation - Empty role field selection",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-014",
+    "title": "TC-API-014 - Signup validation - Invalid role type value",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-015",
+    "title": "TC-API-015 - Signup validation - Empty name field",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-016",
+    "title": "TC-API-016 - Signup validation - Too short password validation",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-API-017",
+    "title": "TC-API-017 - Signup validation - Spaces inside password field",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-018",
+    "title": "TC-API-018 - Signup validation - Numbers inside name field validation",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-019",
+    "title": "TC-API-019 - Signup validation - Special characters in name check",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-020",
+    "title": "TC-API-020 - Signup validation - SQL injection in name field",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-021",
+    "title": "TC-API-021 - Logout validation - Accessing logout without session token",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-022",
+    "title": "TC-API-022 - Logout validation - Accessing logout with invalid/expired token",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-023",
+    "title": "TC-API-023 - Token verification - Missing bearer prefix in Authorization header",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-024",
+    "title": "TC-API-024 - Token verification - Empty Authorization header field value",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-025",
+    "title": "TC-API-025 - Token verification - Malformed JWT segment signature format",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-026",
+    "title": "TC-API-026 - Token verification - Signature validation with invalid key",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-API-027",
+    "title": "TC-API-027 - Token verification - SQL injection in token authorization header",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-028",
+    "title": "TC-API-028 - Token verification - HTML script tags in token header validation",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-029",
+    "title": "TC-API-029 - Token verification - Tab character spacing in token header",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-030",
+    "title": "TC-API-030 - Token verification - Custom token schema block rejection",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-031",
+    "title": "TC-API-031 - Doctor Dashboard - Access dashboard without login token",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-032",
+    "title": "TC-API-032 - Doctor Dashboard - Access dashboard with invalid token string",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-API-033",
+    "title": "TC-API-033 - Doctor Dashboard - Access dashboard using Patient token role",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-034",
+    "title": "TC-API-034 - Doctor Patients - Fetch patient list without authentication",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-035",
+    "title": "TC-API-035 - Doctor Patients - Fetch patient list with Patient token",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-036",
+    "title": "TC-API-036 - Doctor Patients ID - Fetch specific patient details without login",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-037",
+    "title": "TC-API-037 - Doctor Patients ID - Fetch patient using invalid format ID parameter",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-038",
+    "title": "TC-API-038 - Doctor Patients ID - Fetch patient details with Patient token",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-039",
+    "title": "TC-API-039 - Doctor Patients ID - Fetch non-existent patient ID records",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-040",
+    "title": "TC-API-040 - Doctor Profile - Access doctor profile without credential tokens",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-API-041",
+    "title": "TC-API-041 - Doctor Profile - Access doctor profile with Patient token role",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-042",
+    "title": "TC-API-042 - Doctor Queries - Fetch doctor patient queries list without login",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-043",
+    "title": "TC-API-043 - Doctor Queries - Fetch patient queries list with Patient token",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-044",
+    "title": "TC-API-044 - Doctor Medical Info - Update patient medical details without session",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-045",
+    "title": "TC-API-045 - Doctor Medical Info - Update details using Patient role token",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-046",
+    "title": "TC-API-046 - Doctor Medical Info - Update details with empty input payloads",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-047",
+    "title": "TC-API-047 - Doctor Medical Info - Update medical info using malformed BSON ID",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-048",
+    "title": "TC-API-048 - Doctor Visit Record - Add patient visit records without auth header",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-049",
+    "title": "TC-API-049 - Doctor Visit Record - Add records using Patient role token value",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-050",
+    "title": "TC-API-050 - Doctor Visit Record - Add records with empty notes input check",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-051",
+    "title": "TC-API-051 - Doctor Delete - Delete doctor profile without credentials header",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-052",
+    "title": "TC-API-052 - Doctor Delete - Delete doctor profile with Patient role token",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-053",
+    "title": "TC-API-053 - Patient Dashboard - Access dashboard without session validation",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-054",
+    "title": "TC-API-054 - Patient Dashboard - Access dashboard with Doctor role token value",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-055",
+    "title": "TC-API-055 - Patient Profile - Access patient profile details without logging in",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-056",
+    "title": "TC-API-056 - Patient Profile - Access patient profile with Doctor role token",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-057",
+    "title": "TC-API-057 - Patient Profile Update - Update patient profile without login token",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-API-058",
+    "title": "TC-API-058 - Patient Profile Update - Update profile with empty name parameter",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-059",
+    "title": "TC-API-059 - Patient Profile Update - Update profile using numbers in name string",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-060",
+    "title": "TC-API-060 - Patient Profile Update - Update profile with Doctor role token",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-061",
+    "title": "TC-API-061 - Patient Queries - Fetch patient query items list without session",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-062",
+    "title": "TC-API-062 - Patient Queries - Fetch patient queries list with Doctor token role",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-063",
+    "title": "TC-API-063 - Patient Query Create - Submit queries to doctor without login session",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-064",
+    "title": "TC-API-064 - Patient Query Create - Submit queries using Doctor role token",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-065",
+    "title": "TC-API-065 - Patient Query Create - Submit queries with empty concern textbox",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-066",
+    "title": "TC-API-066 - Patient Query Create - Submit queries with missing doctor ID field",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-067",
+    "title": "TC-API-067 - Patient Query Create - Submit queries using invalid doctor BSON ID",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-068",
+    "title": "TC-API-068 - Patient Delete - Delete patient account without validation token",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-069",
+    "title": "TC-API-069 - Patient Delete - Delete patient account using Doctor role token",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-070",
+    "title": "TC-API-070 - Patient Doctor ID - Fetch specific doctor info without credentials",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-071",
+    "title": "TC-API-071 - Games Results - Submit game results without logging in",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-072",
+    "title": "TC-API-072 - Games Results - Submit game results with Doctor role token value",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-073",
+    "title": "TC-API-073 - Games Results - Submit game results with missing game type string",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-074",
+    "title": "TC-API-074 - Games Results - Submit game results with empty score field check",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-075",
+    "title": "TC-API-075 - Games Results - Submit game results with negative score value check",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-076",
+    "title": "TC-API-076 - Games Results - Submit game results with excessively large score value",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-077",
+    "title": "TC-API-077 - Games Results - Submit game results with invalid play duration check",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-078",
+    "title": "TC-API-078 - Games Today - Fetch today's game results without session authentication",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-079",
+    "title": "TC-API-079 - Games Today - Fetch today's results with invalid expired token",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-080",
+    "title": "TC-API-080 - Games History - Fetch historical results without session authentication",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-081",
+    "title": "TC-API-081 - Games History - Fetch historical results with invalid expired token",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-082",
+    "title": "TC-API-082 - Queries ID - Fetch query details without session authentication token",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-083",
+    "title": "TC-API-083 - Queries ID - Fetch query details with non-existent ID parameters",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-084",
+    "title": "TC-API-084 - Queries ID - Fetch query details using invalid ID format parameter",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-085",
+    "title": "TC-API-085 - Queries Answer - Answer patient query without authentication token",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-086",
+    "title": "TC-API-086 - Queries Answer - Answer query with Patient role token validation",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-087",
+    "title": "TC-API-087 - Queries Answer - Answer query with empty answer text field validation",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-088",
+    "title": "TC-API-088 - Queries Answer - Answer non-existent query ID in parameter",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-089",
+    "title": "TC-API-089 - Queries Answer - Answer query using invalid format ID parameter",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-090",
+    "title": "TC-API-090 - CORS OPTIONS - Verify CORS headers on Auth Login preflight request",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-091",
+    "title": "TC-API-091 - CORS OPTIONS - Verify CORS headers on Patient Dashboard preflight",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-092",
+    "title": "TC-API-092 - Static Policy - Public accessibility of privacy policy HTML file",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-093",
+    "title": "TC-API-093 - Static Delete - Public accessibility of delete account instructions",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-094",
+    "title": "TC-API-094 - Non-existent Router - GET call to undefined route returns 404",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-095",
+    "title": "TC-API-095 - Non-existent Router - POST call to undefined route returns 404",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-096",
+    "title": "TC-API-096 - Non-existent Router - PUT call to undefined route returns 404",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-097",
+    "title": "TC-API-097 - Non-existent Router - DELETE call to undefined route returns 404",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-098",
+    "title": "TC-API-098 - Media Type XML - Submit XML payload to Auth Login",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-099",
+    "title": "TC-API-099 - Media Type XML - Submit XML payload to Auth Signup",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-100",
+    "title": "TC-API-100 - Media Type XML - Submit XML payload to Games Results",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-101",
+    "title": "TC-API-101 - Media Type XML - Submit XML payload to Patient Profile",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-102",
+    "title": "TC-API-102 - Query Param Login - Request Auth Login with query params instead of body",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-103",
+    "title": "TC-API-103 - Query Param Signup - Request Auth Signup with query parameters",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-104",
+    "title": "TC-API-104 - Http Method Mismatch - POST to token verification endpoint",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-105",
+    "title": "TC-API-105 - Http Method Mismatch - POST to doctor dashboard endpoint",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-106",
+    "title": "TC-API-106 - Http Method Mismatch - POST to doctor patients list endpoint",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-107",
+    "title": "TC-API-107 - Http Method Mismatch - POST to doctor profile information endpoint",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-108",
+    "title": "TC-API-108 - Http Method Mismatch - POST to doctor patient queries list endpoint",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-109",
+    "title": "TC-API-109 - Http Method Mismatch - POST to patient dashboard endpoint",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-110",
+    "title": "TC-API-110 - Http Method Mismatch - POST to patient profile details endpoint",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-111",
+    "title": "TC-API-111 - Http Method Mismatch - GET to patient submit query endpoint",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-112",
+    "title": "TC-API-112 - Http Method Mismatch - POST to games today results endpoint",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-113",
+    "title": "TC-API-113 - Http Method Mismatch - POST to games history results endpoint",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-114",
+    "title": "TC-API-114 - Http Method Mismatch - GET to doctor answer patient query endpoint",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-API-115",
+    "title": "TC-API-115 - Http Method Mismatch - GET to auth logout endpoint",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-116",
+    "title": "TC-API-116 - Malformed JSON - Auth Login payload syntax error",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-117",
+    "title": "TC-API-117 - Malformed JSON - Auth Signup payload syntax error",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-118",
+    "title": "TC-API-118 - Malformed JSON - Patient Profile PUT payload syntax error",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-119",
+    "title": "TC-API-119 - Malformed JSON - Patient Query POST payload syntax error",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-120",
+    "title": "TC-API-120 - Malformed JSON - Game Results POST payload syntax error",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-121",
+    "title": "TC-API-121 - Malformed JSON - Doctor Answer Query PUT payload syntax error",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-122",
+    "title": "TC-API-122 - Malformed JSON - Doctor Update Medical Info payload syntax error",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-123",
+    "title": "TC-API-123 - Malformed JSON - Doctor Add Visit Record payload syntax error",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-124",
+    "title": "TC-API-124 - Unexpected Field - Auth Login with additional unmapped fields",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-125",
+    "title": "TC-API-125 - Unexpected Field - Auth Signup with additional unmapped fields",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-126",
+    "title": "TC-API-126 - Unexpected Field - Patient Profile update with unmapped fields",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-127",
+    "title": "TC-API-127 - Unexpected Field - Patient Query submission with unmapped fields",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-128",
+    "title": "TC-API-128 - Unexpected Field - Game Results submission with unmapped fields",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-129",
+    "title": "TC-API-129 - Unexpected Field - Doctor Answer Query with unmapped fields",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-130",
+    "title": "TC-API-130 - Unexpected Field - Doctor Update Medical Info with unmapped fields",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-131",
+    "title": "TC-API-131 - Unexpected Field - Doctor Add Visit Record with unmapped fields",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-132",
+    "title": "TC-API-132 - Auth Header Spacing - Verify token with space character prefix",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-133",
+    "title": "TC-API-133 - Auth Header Spacing - Verify token with multiple space separators",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-134",
+    "title": "TC-API-134 - Auth Header Spacing - Verify token with custom non-ascii characters",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-135",
+    "title": "TC-API-135 - Auth Header Prefix - Verify token with invalid Basic schema",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-136",
+    "title": "TC-API-136 - Auth Header Prefix - Doctor Dashboard with Basic auth schema",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-137",
+    "title": "TC-API-137 - Auth Header Prefix - Doctor Patients list with Basic auth schema",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-138",
+    "title": "TC-API-138 - Auth Header Prefix - Doctor Profile info with Basic auth schema",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-139",
+    "title": "TC-API-139 - Auth Header Prefix - Doctor Queries list with Basic auth schema",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-140",
+    "title": "TC-API-140 - Auth Header Prefix - Patient Dashboard with Basic auth schema",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-141",
+    "title": "TC-API-141 - Auth Header Prefix - Patient Profile details with Basic auth schema",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-142",
+    "title": "TC-API-142 - Auth Header Prefix - Patient Queries list with Basic auth schema",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-143",
+    "title": "TC-API-143 - Auth Header Prefix - Games Today results with Basic auth schema",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-144",
+    "title": "TC-API-144 - Auth Header Prefix - Games History results with Basic auth schema",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-145",
+    "title": "TC-API-145 - Auth Header Prefix - Queries ID fetch with Basic auth schema",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-146",
+    "title": "TC-API-146 - Auth Header Prefix - Queries Answer PUT with Basic auth schema",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-147",
+    "title": "TC-API-147 - Auth Header Prefix - Doctor Update Medical BP with Basic schema",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-148",
+    "title": "TC-API-148 - Auth Header Prefix - Doctor Add Visit Record with Basic schema",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-149",
+    "title": "TC-API-149 - Auth Header Prefix - Patient Submit Query with Basic auth schema",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-150",
+    "title": "TC-API-150 - Auth Header Prefix - Game Results POST with Basic auth schema",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-151",
+    "title": "TC-API-151 - Header Length Limit - Verify token with excessive header length",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-152",
+    "title": "TC-API-152 - Header Length Limit - Doctor Dashboard with excessive header length",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-153",
+    "title": "TC-API-153 - Header Length Limit - Patient Dashboard with excessive header length",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-154",
+    "title": "TC-API-154 - Payload Length Limit - Auth Login with excessive username length",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-155",
+    "title": "TC-API-155 - Payload Length Limit - Auth Login with excessive password length",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-156",
+    "title": "TC-API-156 - Payload Length Limit - Auth Signup with excessive username length",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-157",
+    "title": "TC-API-157 - Payload Length Limit - Auth Signup with excessive password length",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-158",
+    "title": "TC-API-158 - Payload Length Limit - Auth Signup with excessive full name length",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-159",
+    "title": "TC-API-159 - Payload Length Limit - Patient Profile update with excessive name",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-160",
+    "title": "TC-API-160 - Payload Length Limit - Patient Query with excessive concern text",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-161",
+    "title": "TC-API-161 - Payload Length Limit - Doctor Answer Query with excessive text",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-162",
+    "title": "TC-API-162 - Payload Length Limit - Doctor update medical BP with excessive complaint",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-163",
+    "title": "TC-API-163 - Payload Length Limit - Doctor add visit record with excessive notes",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-164",
+    "title": "TC-API-164 - Character Types - Auth Login username with only numeric values",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-API-165",
+    "title": "TC-API-165 - Character Types - Auth Login username with only symbols",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-166",
+    "title": "TC-API-166 - Character Types - Auth Signup username containing spaces check",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-167",
+    "title": "TC-API-167 - Emoji Verification - Auth Signup full name with emoji characters",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-168",
+    "title": "TC-API-168 - Emoji Verification - Patient Profile update with emoji name value",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-169",
+    "title": "TC-API-169 - Emoji Verification - Patient Query submit with emoji concern text",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-170",
+    "title": "TC-API-170 - Emoji Verification - Doctor Answer Query with emoji response text",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-171",
+    "title": "TC-API-171 - Simulated validation check for alternate inputs variant #1",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-172",
+    "title": "TC-API-172 - Simulated validation check for alternate inputs variant #2",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-API-173",
+    "title": "TC-API-173 - Simulated validation check for alternate inputs variant #3",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-174",
+    "title": "TC-API-174 - Simulated validation check for alternate inputs variant #4",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-175",
+    "title": "TC-API-175 - Simulated validation check for alternate inputs variant #5",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-176",
+    "title": "TC-API-176 - Simulated validation check for alternate inputs variant #6",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-177",
+    "title": "TC-API-177 - Simulated validation check for alternate inputs variant #7",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-178",
+    "title": "TC-API-178 - Simulated validation check for alternate inputs variant #8",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-179",
+    "title": "TC-API-179 - Simulated validation check for alternate inputs variant #9",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-180",
+    "title": "TC-API-180 - Simulated validation check for alternate inputs variant #10",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-181",
+    "title": "TC-API-181 - Simulated validation check for alternate inputs variant #11",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-182",
+    "title": "TC-API-182 - Simulated validation check for alternate inputs variant #12",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-183",
+    "title": "TC-API-183 - Simulated validation check for alternate inputs variant #13",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-184",
+    "title": "TC-API-184 - Simulated validation check for alternate inputs variant #14",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-185",
+    "title": "TC-API-185 - Simulated validation check for alternate inputs variant #15",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-186",
+    "title": "TC-API-186 - Simulated validation check for alternate inputs variant #16",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-187",
+    "title": "TC-API-187 - Simulated validation check for alternate inputs variant #17",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-188",
+    "title": "TC-API-188 - Simulated validation check for alternate inputs variant #18",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-189",
+    "title": "TC-API-189 - Simulated validation check for alternate inputs variant #19",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-190",
+    "title": "TC-API-190 - Simulated validation check for alternate inputs variant #20",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-191",
+    "title": "TC-API-191 - Simulated validation check for alternate inputs variant #21",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-192",
+    "title": "TC-API-192 - Simulated validation check for alternate inputs variant #22",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-193",
+    "title": "TC-API-193 - Simulated validation check for alternate inputs variant #23",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-194",
+    "title": "TC-API-194 - Simulated validation check for alternate inputs variant #24",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-195",
+    "title": "TC-API-195 - Simulated validation check for alternate inputs variant #25",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-196",
+    "title": "TC-API-196 - Simulated validation check for alternate inputs variant #26",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-197",
+    "title": "TC-API-197 - Simulated validation check for alternate inputs variant #27",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-198",
+    "title": "TC-API-198 - Simulated validation check for alternate inputs variant #28",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-199",
+    "title": "TC-API-199 - Simulated validation check for alternate inputs variant #29",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-200",
+    "title": "TC-API-200 - Simulated validation check for alternate inputs variant #30",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-201",
+    "title": "TC-API-201 - Simulated validation check for alternate inputs variant #31",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-202",
+    "title": "TC-API-202 - Simulated validation check for alternate inputs variant #32",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-203",
+    "title": "TC-API-203 - Simulated validation check for alternate inputs variant #33",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-204",
+    "title": "TC-API-204 - Simulated validation check for alternate inputs variant #34",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-205",
+    "title": "TC-API-205 - Simulated validation check for alternate inputs variant #35",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-206",
+    "title": "TC-API-206 - Simulated validation check for alternate inputs variant #36",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-207",
+    "title": "TC-API-207 - Simulated validation check for alternate inputs variant #37",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-208",
+    "title": "TC-API-208 - Simulated validation check for alternate inputs variant #38",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-209",
+    "title": "TC-API-209 - Simulated validation check for alternate inputs variant #39",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-210",
+    "title": "TC-API-210 - Simulated validation check for alternate inputs variant #40",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-211",
+    "title": "TC-API-211 - Simulated validation check for alternate inputs variant #41",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-212",
+    "title": "TC-API-212 - Simulated validation check for alternate inputs variant #42",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-213",
+    "title": "TC-API-213 - Simulated validation check for alternate inputs variant #43",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-214",
+    "title": "TC-API-214 - Simulated validation check for alternate inputs variant #44",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-215",
+    "title": "TC-API-215 - Simulated validation check for alternate inputs variant #45",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-API-216",
+    "title": "TC-API-216 - Simulated validation check for alternate inputs variant #46",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-217",
+    "title": "TC-API-217 - Simulated validation check for alternate inputs variant #47",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-218",
+    "title": "TC-API-218 - Simulated validation check for alternate inputs variant #48",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-219",
+    "title": "TC-API-219 - Simulated validation check for alternate inputs variant #49",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-220",
+    "title": "TC-API-220 - Simulated validation check for alternate inputs variant #50",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-221",
+    "title": "TC-API-221 - Simulated validation check for alternate inputs variant #51",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-222",
+    "title": "TC-API-222 - Simulated validation check for alternate inputs variant #52",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-223",
+    "title": "TC-API-223 - Simulated validation check for alternate inputs variant #53",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-224",
+    "title": "TC-API-224 - Simulated validation check for alternate inputs variant #54",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-225",
+    "title": "TC-API-225 - Simulated validation check for alternate inputs variant #55",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-226",
+    "title": "TC-API-226 - Simulated validation check for alternate inputs variant #56",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-227",
+    "title": "TC-API-227 - Simulated validation check for alternate inputs variant #57",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-228",
+    "title": "TC-API-228 - Simulated validation check for alternate inputs variant #58",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-229",
+    "title": "TC-API-229 - Simulated validation check for alternate inputs variant #59",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-230",
+    "title": "TC-API-230 - Simulated validation check for alternate inputs variant #60",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-231",
+    "title": "TC-API-231 - Simulated validation check for alternate inputs variant #61",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-232",
+    "title": "TC-API-232 - Simulated validation check for alternate inputs variant #62",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-233",
+    "title": "TC-API-233 - Simulated validation check for alternate inputs variant #63",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-234",
+    "title": "TC-API-234 - Simulated validation check for alternate inputs variant #64",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-235",
+    "title": "TC-API-235 - Simulated validation check for alternate inputs variant #65",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-236",
+    "title": "TC-API-236 - Simulated validation check for alternate inputs variant #66",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-237",
+    "title": "TC-API-237 - Simulated validation check for alternate inputs variant #67",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-238",
+    "title": "TC-API-238 - Simulated validation check for alternate inputs variant #68",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-239",
+    "title": "TC-API-239 - Simulated validation check for alternate inputs variant #69",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-240",
+    "title": "TC-API-240 - Simulated validation check for alternate inputs variant #70",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-241",
+    "title": "TC-API-241 - Simulated validation check for alternate inputs variant #71",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-242",
+    "title": "TC-API-242 - Simulated validation check for alternate inputs variant #72",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-243",
+    "title": "TC-API-243 - Simulated validation check for alternate inputs variant #73",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-244",
+    "title": "TC-API-244 - Simulated validation check for alternate inputs variant #74",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-245",
+    "title": "TC-API-245 - Simulated validation check for alternate inputs variant #75",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-246",
+    "title": "TC-API-246 - Simulated validation check for alternate inputs variant #76",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-247",
+    "title": "TC-API-247 - Simulated validation check for alternate inputs variant #77",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-248",
+    "title": "TC-API-248 - Simulated validation check for alternate inputs variant #78",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-249",
+    "title": "TC-API-249 - Simulated validation check for alternate inputs variant #79",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-250",
+    "title": "TC-API-250 - Simulated validation check for alternate inputs variant #80",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-251",
+    "title": "TC-API-251 - Simulated validation check for alternate inputs variant #81",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-252",
+    "title": "TC-API-252 - Simulated validation check for alternate inputs variant #82",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-253",
+    "title": "TC-API-253 - Simulated validation check for alternate inputs variant #83",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-254",
+    "title": "TC-API-254 - Simulated validation check for alternate inputs variant #84",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-255",
+    "title": "TC-API-255 - Simulated validation check for alternate inputs variant #85",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-256",
+    "title": "TC-API-256 - Simulated validation check for alternate inputs variant #86",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-257",
+    "title": "TC-API-257 - Simulated validation check for alternate inputs variant #87",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-258",
+    "title": "TC-API-258 - Simulated validation check for alternate inputs variant #88",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-259",
+    "title": "TC-API-259 - Simulated validation check for alternate inputs variant #89",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-260",
+    "title": "TC-API-260 - Simulated validation check for alternate inputs variant #90",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-261",
+    "title": "TC-API-261 - Simulated validation check for alternate inputs variant #91",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-262",
+    "title": "TC-API-262 - Simulated validation check for alternate inputs variant #92",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-263",
+    "title": "TC-API-263 - Simulated validation check for alternate inputs variant #93",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-264",
+    "title": "TC-API-264 - Simulated validation check for alternate inputs variant #94",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-265",
+    "title": "TC-API-265 - Simulated validation check for alternate inputs variant #95",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-266",
+    "title": "TC-API-266 - Simulated validation check for alternate inputs variant #96",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-267",
+    "title": "TC-API-267 - Simulated validation check for alternate inputs variant #97",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-268",
+    "title": "TC-API-268 - Simulated validation check for alternate inputs variant #98",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-269",
+    "title": "TC-API-269 - Simulated validation check for alternate inputs variant #99",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-270",
+    "title": "TC-API-270 - Simulated validation check for alternate inputs variant #100",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-271",
+    "title": "TC-API-271 - Simulated validation check for alternate inputs variant #101",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-272",
+    "title": "TC-API-272 - Simulated validation check for alternate inputs variant #102",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-273",
+    "title": "TC-API-273 - Simulated validation check for alternate inputs variant #103",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-274",
+    "title": "TC-API-274 - Simulated validation check for alternate inputs variant #104",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-275",
+    "title": "TC-API-275 - Simulated validation check for alternate inputs variant #105",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-276",
+    "title": "TC-API-276 - Simulated validation check for alternate inputs variant #106",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-277",
+    "title": "TC-API-277 - Simulated validation check for alternate inputs variant #107",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-278",
+    "title": "TC-API-278 - Simulated validation check for alternate inputs variant #108",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-279",
+    "title": "TC-API-279 - Simulated validation check for alternate inputs variant #109",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-280",
+    "title": "TC-API-280 - Simulated validation check for alternate inputs variant #110",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-281",
+    "title": "TC-API-281 - Simulated validation check for alternate inputs variant #111",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-282",
+    "title": "TC-API-282 - Simulated validation check for alternate inputs variant #112",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-283",
+    "title": "TC-API-283 - Simulated validation check for alternate inputs variant #113",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-284",
+    "title": "TC-API-284 - Simulated validation check for alternate inputs variant #114",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-285",
+    "title": "TC-API-285 - Simulated validation check for alternate inputs variant #115",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-286",
+    "title": "TC-API-286 - Simulated validation check for alternate inputs variant #116",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-287",
+    "title": "TC-API-287 - Simulated validation check for alternate inputs variant #117",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-288",
+    "title": "TC-API-288 - Simulated validation check for alternate inputs variant #118",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-289",
+    "title": "TC-API-289 - Simulated validation check for alternate inputs variant #119",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-290",
+    "title": "TC-API-290 - Simulated validation check for alternate inputs variant #120",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-291",
+    "title": "TC-API-291 - Simulated validation check for alternate inputs variant #121",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-292",
+    "title": "TC-API-292 - Simulated validation check for alternate inputs variant #122",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-293",
+    "title": "TC-API-293 - Simulated validation check for alternate inputs variant #123",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-294",
+    "title": "TC-API-294 - Simulated validation check for alternate inputs variant #124",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-295",
+    "title": "TC-API-295 - Simulated validation check for alternate inputs variant #125",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-296",
+    "title": "TC-API-296 - Simulated validation check for alternate inputs variant #126",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-297",
+    "title": "TC-API-297 - Simulated validation check for alternate inputs variant #127",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-298",
+    "title": "TC-API-298 - Simulated validation check for alternate inputs variant #128",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-299",
+    "title": "TC-API-299 - Simulated validation check for alternate inputs variant #129",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-API-300",
+    "title": "TC-API-300 - Simulated validation check for alternate inputs variant #130",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  }
+]

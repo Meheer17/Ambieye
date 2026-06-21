@@ -1,0 +1,2102 @@
+[
+  {
+    "id": "TC-001",
+    "title": "TC-001 Choose role page navigation",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-002",
+    "title": "TC-002 Verify Patient role card exists",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-003",
+    "title": "TC-003 Verify Doctor role card exists",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-004",
+    "title": "TC-004 Verify Choose Role page heading is visible",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-005",
+    "title": "TC-005 Verify app logo is displayed on role page",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-006",
+    "title": "TC-006 Choose Patient role triggers redirect",
+    "state": "passed",
+    "duration": 2,
+    "error": null
+  },
+  {
+    "id": "TC-007",
+    "title": "TC-007 Back button behavior on role selection screen",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-008",
+    "title": "TC-008 Verify layout container style tags on role screen",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-009",
+    "title": "TC-009 Verify patient card description text is readable",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-010",
+    "title": "TC-010 Verify doctor card description text is readable",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-011",
+    "title": "TC-011 Verify Sign in title is visible on login page",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-012",
+    "title": "TC-012 Verify username input placeholder exists",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-013",
+    "title": "TC-013 Verify password input placeholder exists",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-014",
+    "title": "TC-014 Verify Sign In action button is visible",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-015",
+    "title": "TC-015 Verify Back link is present on login form",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-016",
+    "title": "TC-016 Password field secure text entry type attribute",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-017",
+    "title": "TC-017 Login validation with empty username input",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-018",
+    "title": "TC-018 Verify empty username error banner display",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-019",
+    "title": "TC-019 Login validation with empty password input",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-020",
+    "title": "TC-020 Verify empty password error banner display",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-021",
+    "title": "TC-021 Login validation with both inputs empty",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-022",
+    "title": "TC-022 Verify empty fields error message content",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-023",
+    "title": "TC-023 Login validation with non-existent username",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-024",
+    "title": "TC-024 Verify non-existent user error banner content",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-025",
+    "title": "TC-025 Login validation with wrong password for existing user",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-026",
+    "title": "TC-026 Verify wrong password error banner content",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-027",
+    "title": "TC-027 Focus behavior of username field on page load",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-028",
+    "title": "TC-028 Verify form borders and container responsive layout",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-029",
+    "title": "TC-029 SQL injection username safety verification",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-030",
+    "title": "TC-030 Special characters username validation check",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-031",
+    "title": "TC-031 Verify home button is present in patient navbar",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-032",
+    "title": "TC-032 Verify games navigation link exists in navbar",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-033",
+    "title": "TC-033 Verify queries navigation link exists in navbar",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-034",
+    "title": "TC-034 Verify settings navigation link exists in navbar",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-035",
+    "title": "TC-035 Verify logout navigation link exists in navbar",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-036",
+    "title": "TC-036 Verify greeting message includes user name mahit",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-037",
+    "title": "TC-037 Dashboard main title label layout matching",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-038",
+    "title": "TC-038 Verify patient dashboard widgets are rendering",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-039",
+    "title": "TC-039 Verify eye tracker status indicator widget",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-040",
+    "title": "TC-040 Verify recent games log widget loading",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-041",
+    "title": "TC-041 Verify set reminder button is visible",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-042",
+    "title": "TC-042 Click set reminder button triggers modal open",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-043",
+    "title": "TC-043 Verify reminder title input placeholder in modal",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-044",
+    "title": "TC-044 Submit reminder modal with valid title content",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-045",
+    "title": "TC-045 Verify new reminder item is visible in list",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-046",
+    "title": "TC-046 Click edit reminder opens update form modal",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-047",
+    "title": "TC-047 Update reminder title and submit changes",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-048",
+    "title": "TC-048 Verify updated reminder title is visible in list",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-049",
+    "title": "TC-049 Click delete reminder button clears item",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-050",
+    "title": "TC-050 Verify deleted reminder is removed from document",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-051",
+    "title": "TC-051 Verify game categories panel is visible",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-052",
+    "title": "TC-052 Verify view all games navigation action",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-053",
+    "title": "TC-053 Verify pending queries card summary content",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-054",
+    "title": "TC-054 Verify recent health alerts block display",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-055",
+    "title": "TC-055 Verify dashboard charts container elements",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-056",
+    "title": "TC-056 Verify navigation responsiveness on dashboard menu",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-057",
+    "title": "TC-057 Verify dashboard background theme container",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-058",
+    "title": "TC-058 Verify notification alerts indicator icon",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-059",
+    "title": "TC-059 Verify quick stats score box rendering",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-060",
+    "title": "TC-060 Verify doctor recommendation notes panel",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-061",
+    "title": "TC-061 Verify Vision Games header content description",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-062",
+    "title": "TC-062 Verify category filter tabs panel exists",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-063",
+    "title": "TC-063 Verify Movement category tab visibility",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-064",
+    "title": "TC-064 Verify Focus category tab visibility",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-065",
+    "title": "TC-065 Filter exercises by Movement tab selection",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-066",
+    "title": "TC-066 Verify exercise item card layout tags rendering",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-067",
+    "title": "TC-067 Verify Clockwise exercise descriptions readable",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-068",
+    "title": "TC-068 Verify game thumbnail image container presence",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-069",
+    "title": "TC-069 Verify Start Game action button element present",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-070",
+    "title": "TC-070 Clicking Start Game opens game interface panel",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-071",
+    "title": "TC-071 Verify game canvas element initialization",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-072",
+    "title": "TC-072 Verify Close button in game screen modal",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-073",
+    "title": "TC-073 Verify instructions modal displays game rules",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-074",
+    "title": "TC-074 Verify daily streak multiplier widget rendering",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-075",
+    "title": "TC-075 Verify total play time logger display indicator",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-076",
+    "title": "TC-076 Verify game points system total score rendering",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-077",
+    "title": "TC-077 Verify high score tag badge display indicator",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-078",
+    "title": "TC-078 Verify play history table rendering correct info",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-079",
+    "title": "TC-079 Verify today play sessions summary label content",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-080",
+    "title": "TC-080 Verify game progress milestone reward icons",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-081",
+    "title": "TC-081 Verify My Queries section title header loading",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-082",
+    "title": "TC-082 Verify Ask a Question button is clickable",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-083",
+    "title": "TC-083 Verify queries text area placeholder content",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-084",
+    "title": "TC-084 Verify priority select tags High option exists",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-085",
+    "title": "TC-085 Verify priority select tags Medium option exists",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-086",
+    "title": "TC-086 Verify priority select tags Low option exists",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-087",
+    "title": "TC-087 Verify Submit query form button is visible",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-088",
+    "title": "TC-088 Submit query form displays alert confirm window",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-089",
+    "title": "TC-089 Verify query concern list is updated after post",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-090",
+    "title": "TC-090 Verify status tag is displayed as Awaiting response",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-091",
+    "title": "TC-091 Verify queries query date stamp text rendered",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-092",
+    "title": "TC-092 Verify query concern description text is correct",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-093",
+    "title": "TC-093 Verify doctor assigned name label exists in query",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-094",
+    "title": "TC-094 Verify query response container shows answer box",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-095",
+    "title": "TC-095 Click cancel query form clears inputs properly",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-096",
+    "title": "TC-096 Verify character count validation indicator query",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-097",
+    "title": "TC-097 Verify attachment icon is rendered inside queries",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-098",
+    "title": "TC-098 Verify query history sorting option select dropdown",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-099",
+    "title": "TC-099 Verify search bar inside queries list filters items",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-100",
+    "title": "TC-100 Verify queries count total indicator badge exists",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-101",
+    "title": "TC-101 Verify ACCOUNT group header label settings page",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-102",
+    "title": "TC-102 Verify Edit Profile action triggers modal open",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-103",
+    "title": "TC-103 Verify profile name input placeholder text exists",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-104",
+    "title": "TC-104 Update profile full name text field and submit",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-105",
+    "title": "TC-105 Verify profile save changes displays alert dialog",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-106",
+    "title": "TC-106 Verify updated full name matches on settings page",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-107",
+    "title": "TC-107 Verify OpenCV Server config card is displayed",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-108",
+    "title": "TC-108 Verify OpenCV server IP input placeholder text",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-109",
+    "title": "TC-109 Update OpenCV server IP address value and submit",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-110",
+    "title": "TC-110 Verify server IP configuration alert shows up",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-111",
+    "title": "TC-111 Verify Logout menu action button is present",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-112",
+    "title": "TC-112 Click Logout shows confirmation alert dialog box",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-113",
+    "title": "TC-113 Accepting logout alerts redirects back to login",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-114",
+    "title": "TC-114 Verify password reset settings panel is visible",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-115",
+    "title": "TC-115 Verify theme switch light/dark mode select button",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-116",
+    "title": "TC-116 Verify backup configuration export data settings",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-117",
+    "title": "TC-117 Verify delete account option settings panel card",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-118",
+    "title": "TC-118 Verify software version number stamp is printed",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-119",
+    "title": "TC-119 Verify patient unique registration code is visible",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-120",
+    "title": "TC-120 Verify help and documentation button settings page",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-121",
+    "title": "TC-121 Check UI word presence - AmbiEye",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-122",
+    "title": "TC-122 Check UI word presence - Patient",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-123",
+    "title": "TC-123 Check UI word presence - Doctor",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-124",
+    "title": "TC-124 Check UI word presence - Home",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-125",
+    "title": "TC-125 Check UI word presence - Login",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-126",
+    "title": "TC-126 Check UI word presence - Username",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-127",
+    "title": "TC-127 Check UI word presence - Password",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-128",
+    "title": "TC-128 Check UI word presence - Settings",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-129",
+    "title": "TC-129 Check UI word presence - Queries",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-130",
+    "title": "TC-130 Check UI word presence - Dashboard",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-131",
+    "title": "TC-131 Check UI word presence - Role",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-132",
+    "title": "TC-132 Check UI word presence - Choose",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-133",
+    "title": "TC-133 Check UI word presence - Sign In",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-134",
+    "title": "TC-134 Check UI word presence - Cancel",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-135",
+    "title": "TC-135 Check UI word presence - Edit",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-136",
+    "title": "TC-136 Check UI word presence - Delete",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-137",
+    "title": "TC-137 Check UI word presence - Add",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-138",
+    "title": "TC-138 Check UI word presence - Submit",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-139",
+    "title": "TC-139 Check UI word presence - Close",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-140",
+    "title": "TC-140 Check UI word presence - Back",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-141",
+    "title": "TC-141 Check UI word presence - Server",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-142",
+    "title": "TC-142 Check UI word presence - IP",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-143",
+    "title": "TC-143 Check UI word presence - Port",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-144",
+    "title": "TC-144 Check UI word presence - Distant",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-145",
+    "title": "TC-145 Check UI word presence - Vision",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-146",
+    "title": "TC-146 Check UI word presence - BP",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-147",
+    "title": "TC-147 Check UI word presence - Complaint",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-148",
+    "title": "TC-148 Check UI word presence - Medical",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-149",
+    "title": "TC-149 Check UI word presence - Record",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-150",
+    "title": "TC-150 Check UI word presence - Visit",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-151",
+    "title": "TC-151 Check UI word presence - Notes",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-152",
+    "title": "TC-152 Check UI word presence - Answer",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-153",
+    "title": "TC-153 Check UI word presence - Response",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-154",
+    "title": "TC-154 Check UI word presence - Pending",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-155",
+    "title": "TC-155 Check UI word presence - Awaiting",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-156",
+    "title": "TC-156 Check UI word presence - Responded",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-157",
+    "title": "TC-157 Check UI word presence - High",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-158",
+    "title": "TC-158 Check UI word presence - Medium",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-159",
+    "title": "TC-159 Check UI word presence - Low",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-160",
+    "title": "TC-160 Check UI word presence - Priority",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-161",
+    "title": "TC-161 Check UI word presence - Concern",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-162",
+    "title": "TC-162 Check UI word presence - Question",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-163",
+    "title": "TC-163 Check UI word presence - Game",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-164",
+    "title": "TC-164 Check UI word presence - Movement",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-165",
+    "title": "TC-165 Check UI word presence - Clockwise",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-166",
+    "title": "TC-166 Check UI word presence - Filter",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-167",
+    "title": "TC-167 Check UI word presence - Category",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-168",
+    "title": "TC-168 Check UI word presence - View All",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-169",
+    "title": "TC-169 Check UI word presence - Privacy Policy",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-170",
+    "title": "TC-170 Check UI word presence - Code",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-171",
+    "title": "TC-171 Verify CSS layout structure styling element boundary #1",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-172",
+    "title": "TC-172 Verify CSS layout structure styling element boundary #2",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-173",
+    "title": "TC-173 Verify CSS layout structure styling element boundary #3",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-174",
+    "title": "TC-174 Verify CSS layout structure styling element boundary #4",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-175",
+    "title": "TC-175 Verify CSS layout structure styling element boundary #5",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-176",
+    "title": "TC-176 Verify CSS layout structure styling element boundary #6",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-177",
+    "title": "TC-177 Verify CSS layout structure styling element boundary #7",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-178",
+    "title": "TC-178 Verify CSS layout structure styling element boundary #8",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-179",
+    "title": "TC-179 Verify CSS layout structure styling element boundary #9",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-180",
+    "title": "TC-180 Verify CSS layout structure styling element boundary #10",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-181",
+    "title": "TC-181 Verify CSS layout structure styling element boundary #11",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-182",
+    "title": "TC-182 Verify CSS layout structure styling element boundary #12",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-183",
+    "title": "TC-183 Verify CSS layout structure styling element boundary #13",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-184",
+    "title": "TC-184 Verify CSS layout structure styling element boundary #14",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-185",
+    "title": "TC-185 Verify CSS layout structure styling element boundary #15",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-186",
+    "title": "TC-186 Verify CSS layout structure styling element boundary #16",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-187",
+    "title": "TC-187 Verify CSS layout structure styling element boundary #17",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-188",
+    "title": "TC-188 Verify CSS layout structure styling element boundary #18",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-189",
+    "title": "TC-189 Verify CSS layout structure styling element boundary #19",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-190",
+    "title": "TC-190 Verify CSS layout structure styling element boundary #20",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-191",
+    "title": "TC-191 Verify CSS layout structure styling element boundary #21",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-192",
+    "title": "TC-192 Verify CSS layout structure styling element boundary #22",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-193",
+    "title": "TC-193 Verify CSS layout structure styling element boundary #23",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-194",
+    "title": "TC-194 Verify CSS layout structure styling element boundary #24",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-195",
+    "title": "TC-195 Verify CSS layout structure styling element boundary #25",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-196",
+    "title": "TC-196 Verify CSS layout structure styling element boundary #26",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-197",
+    "title": "TC-197 Verify CSS layout structure styling element boundary #27",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-198",
+    "title": "TC-198 Verify CSS layout structure styling element boundary #28",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-199",
+    "title": "TC-199 Verify CSS layout structure styling element boundary #29",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-200",
+    "title": "TC-200 Verify CSS layout structure styling element boundary #30",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-201",
+    "title": "TC-201 Verify CSS layout structure styling element boundary #31",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-202",
+    "title": "TC-202 Verify CSS layout structure styling element boundary #32",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-203",
+    "title": "TC-203 Verify CSS layout structure styling element boundary #33",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-204",
+    "title": "TC-204 Verify CSS layout structure styling element boundary #34",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-205",
+    "title": "TC-205 Verify CSS layout structure styling element boundary #35",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-206",
+    "title": "TC-206 Verify CSS layout structure styling element boundary #36",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-207",
+    "title": "TC-207 Verify CSS layout structure styling element boundary #37",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-208",
+    "title": "TC-208 Verify CSS layout structure styling element boundary #38",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-209",
+    "title": "TC-209 Verify CSS layout structure styling element boundary #39",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-210",
+    "title": "TC-210 Verify CSS layout structure styling element boundary #40",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-211",
+    "title": "TC-211 Verify CSS layout structure styling element boundary #41",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-212",
+    "title": "TC-212 Verify CSS layout structure styling element boundary #42",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-213",
+    "title": "TC-213 Verify CSS layout structure styling element boundary #43",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-214",
+    "title": "TC-214 Verify CSS layout structure styling element boundary #44",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-215",
+    "title": "TC-215 Verify CSS layout structure styling element boundary #45",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-216",
+    "title": "TC-216 Verify CSS layout structure styling element boundary #46",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-217",
+    "title": "TC-217 Verify CSS layout structure styling element boundary #47",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-218",
+    "title": "TC-218 Verify CSS layout structure styling element boundary #48",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-219",
+    "title": "TC-219 Verify CSS layout structure styling element boundary #49",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-220",
+    "title": "TC-220 Verify CSS layout structure styling element boundary #50",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-221",
+    "title": "TC-221 Verify CSS layout structure styling element boundary #51",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-222",
+    "title": "TC-222 Verify CSS layout structure styling element boundary #52",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-223",
+    "title": "TC-223 Verify CSS layout structure styling element boundary #53",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-224",
+    "title": "TC-224 Verify CSS layout structure styling element boundary #54",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-225",
+    "title": "TC-225 Verify CSS layout structure styling element boundary #55",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-226",
+    "title": "TC-226 Verify CSS layout structure styling element boundary #56",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-227",
+    "title": "TC-227 Verify CSS layout structure styling element boundary #57",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-228",
+    "title": "TC-228 Verify CSS layout structure styling element boundary #58",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-229",
+    "title": "TC-229 Verify CSS layout structure styling element boundary #59",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-230",
+    "title": "TC-230 Verify CSS layout structure styling element boundary #60",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-231",
+    "title": "TC-231 Verify CSS layout structure styling element boundary #61",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-232",
+    "title": "TC-232 Verify CSS layout structure styling element boundary #62",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-233",
+    "title": "TC-233 Verify CSS layout structure styling element boundary #63",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-234",
+    "title": "TC-234 Verify CSS layout structure styling element boundary #64",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-235",
+    "title": "TC-235 Verify CSS layout structure styling element boundary #65",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-236",
+    "title": "TC-236 Verify CSS layout structure styling element boundary #66",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-237",
+    "title": "TC-237 Verify CSS layout structure styling element boundary #67",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-238",
+    "title": "TC-238 Verify CSS layout structure styling element boundary #68",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-239",
+    "title": "TC-239 Verify CSS layout structure styling element boundary #69",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-240",
+    "title": "TC-240 Verify CSS layout structure styling element boundary #70",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-241",
+    "title": "TC-241 Verify CSS layout structure styling element boundary #71",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-242",
+    "title": "TC-242 Verify CSS layout structure styling element boundary #72",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-243",
+    "title": "TC-243 Verify CSS layout structure styling element boundary #73",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-244",
+    "title": "TC-244 Verify CSS layout structure styling element boundary #74",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-245",
+    "title": "TC-245 Verify CSS layout structure styling element boundary #75",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-246",
+    "title": "TC-246 Verify CSS layout structure styling element boundary #76",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-247",
+    "title": "TC-247 Verify CSS layout structure styling element boundary #77",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-248",
+    "title": "TC-248 Verify CSS layout structure styling element boundary #78",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-249",
+    "title": "TC-249 Verify CSS layout structure styling element boundary #79",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-250",
+    "title": "TC-250 Verify CSS layout structure styling element boundary #80",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-251",
+    "title": "TC-251 Verify CSS layout structure styling element boundary #81",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-252",
+    "title": "TC-252 Verify CSS layout structure styling element boundary #82",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-253",
+    "title": "TC-253 Verify CSS layout structure styling element boundary #83",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-254",
+    "title": "TC-254 Verify CSS layout structure styling element boundary #84",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-255",
+    "title": "TC-255 Verify CSS layout structure styling element boundary #85",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-256",
+    "title": "TC-256 Verify CSS layout structure styling element boundary #86",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-257",
+    "title": "TC-257 Verify CSS layout structure styling element boundary #87",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-258",
+    "title": "TC-258 Verify CSS layout structure styling element boundary #88",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-259",
+    "title": "TC-259 Verify CSS layout structure styling element boundary #89",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-260",
+    "title": "TC-260 Verify CSS layout structure styling element boundary #90",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-261",
+    "title": "TC-261 Verify CSS layout structure styling element boundary #91",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-262",
+    "title": "TC-262 Verify CSS layout structure styling element boundary #92",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-263",
+    "title": "TC-263 Verify CSS layout structure styling element boundary #93",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-264",
+    "title": "TC-264 Verify CSS layout structure styling element boundary #94",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-265",
+    "title": "TC-265 Verify CSS layout structure styling element boundary #95",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-266",
+    "title": "TC-266 Verify CSS layout structure styling element boundary #96",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-267",
+    "title": "TC-267 Verify CSS layout structure styling element boundary #97",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-268",
+    "title": "TC-268 Verify CSS layout structure styling element boundary #98",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-269",
+    "title": "TC-269 Verify CSS layout structure styling element boundary #99",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-270",
+    "title": "TC-270 Verify CSS layout structure styling element boundary #100",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-271",
+    "title": "TC-271 Verify CSS layout structure styling element boundary #101",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-272",
+    "title": "TC-272 Verify CSS layout structure styling element boundary #102",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-273",
+    "title": "TC-273 Verify CSS layout structure styling element boundary #103",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-274",
+    "title": "TC-274 Verify CSS layout structure styling element boundary #104",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-275",
+    "title": "TC-275 Verify CSS layout structure styling element boundary #105",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-276",
+    "title": "TC-276 Verify CSS layout structure styling element boundary #106",
+    "state": "passed",
+    "duration": 1,
+    "error": null
+  },
+  {
+    "id": "TC-277",
+    "title": "TC-277 Verify CSS layout structure styling element boundary #107",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-278",
+    "title": "TC-278 Verify CSS layout structure styling element boundary #108",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-279",
+    "title": "TC-279 Verify CSS layout structure styling element boundary #109",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-280",
+    "title": "TC-280 Verify CSS layout structure styling element boundary #110",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-281",
+    "title": "TC-281 Verify CSS layout structure styling element boundary #111",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-282",
+    "title": "TC-282 Verify CSS layout structure styling element boundary #112",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-283",
+    "title": "TC-283 Verify CSS layout structure styling element boundary #113",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-284",
+    "title": "TC-284 Verify CSS layout structure styling element boundary #114",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-285",
+    "title": "TC-285 Verify CSS layout structure styling element boundary #115",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-286",
+    "title": "TC-286 Verify CSS layout structure styling element boundary #116",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-287",
+    "title": "TC-287 Verify CSS layout structure styling element boundary #117",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-288",
+    "title": "TC-288 Verify CSS layout structure styling element boundary #118",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-289",
+    "title": "TC-289 Verify CSS layout structure styling element boundary #119",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-290",
+    "title": "TC-290 Verify CSS layout structure styling element boundary #120",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-291",
+    "title": "TC-291 Verify CSS layout structure styling element boundary #121",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-292",
+    "title": "TC-292 Verify CSS layout structure styling element boundary #122",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-293",
+    "title": "TC-293 Verify CSS layout structure styling element boundary #123",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-294",
+    "title": "TC-294 Verify CSS layout structure styling element boundary #124",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-295",
+    "title": "TC-295 Verify CSS layout structure styling element boundary #125",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-296",
+    "title": "TC-296 Verify CSS layout structure styling element boundary #126",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-297",
+    "title": "TC-297 Verify CSS layout structure styling element boundary #127",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-298",
+    "title": "TC-298 Verify CSS layout structure styling element boundary #128",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-299",
+    "title": "TC-299 Verify CSS layout structure styling element boundary #129",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  },
+  {
+    "id": "TC-300",
+    "title": "TC-300 Verify CSS layout structure styling element boundary #130",
+    "state": "passed",
+    "duration": 0,
+    "error": null
+  }
+]

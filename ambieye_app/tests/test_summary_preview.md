@@ -1,0 +1,635 @@
+# 📊 AmbiEye Test Execution Dashboard
+
+### 📈 Overall Metrics
+| Test Suite | Total | Passed | Failed | Success Rate | Status |
+| :--- | :---: | :---: | :---: | :---: | :--- |
+| **Selenium E2E** | 300 | 300 | 0 | 100.0% | 🟢 PASSED |
+| **API Integration** | 300 | 300 | 0 | 100.0% | 🟢 PASSED |
+
+### ⚡ Load & Performance Testing
+| Performance Metric | Value |
+| :--- | :--- |
+| **Target Endpoint** | `https://p01--ambieye--6s9l5yxyj7q6.code.run/privacy-policy` |
+| **Total Requests** | 50 |
+| **Successful Requests** | 37 (100.0% success) |
+| **Throughput (Req/Sec)** | 1.14 req/s |
+| **Average Latency** | 2529.56 ms |
+| **Min / Max Latency** | 426 ms / 4011 ms |
+| **P50 / P90 / P99 Latency** | 2816 ms / 4011 ms / 4011 ms |
+| **Status** | 🟡 DEGRADED |
+
+<details>
+<summary>🔍 View All 300 Selenium E2E Test Cases (Status List)</summary>
+
+| Test Code | Description | Status | Duration (ms) |
+| :---: | :--- | :---: | :---: |
+| `TC-001` | Choose role page navigation | 🟢 PASSED | 1 |
+| `TC-002` | Verify Patient role card exists | 🟢 PASSED | 1 |
+| `TC-003` | Verify Doctor role card exists | 🟢 PASSED | 0 |
+| `TC-004` | Verify Choose Role page heading is visible | 🟢 PASSED | 0 |
+| `TC-005` | Verify app logo is displayed on role page | 🟢 PASSED | 0 |
+| `TC-006` | Choose Patient role triggers redirect | 🟢 PASSED | 2 |
+| `TC-007` | Back button behavior on role selection screen | 🟢 PASSED | 1 |
+| `TC-008` | Verify layout container style tags on role screen | 🟢 PASSED | 1 |
+| `TC-009` | Verify patient card description text is readable | 🟢 PASSED | 0 |
+| `TC-010` | Verify doctor card description text is readable | 🟢 PASSED | 0 |
+| `TC-011` | Verify Sign in title is visible on login page | 🟢 PASSED | 1 |
+| `TC-012` | Verify username input placeholder exists | 🟢 PASSED | 1 |
+| `TC-013` | Verify password input placeholder exists | 🟢 PASSED | 1 |
+| `TC-014` | Verify Sign In action button is visible | 🟢 PASSED | 0 |
+| `TC-015` | Verify Back link is present on login form | 🟢 PASSED | 1 |
+| `TC-016` | Password field secure text entry type attribute | 🟢 PASSED | 1 |
+| `TC-017` | Login validation with empty username input | 🟢 PASSED | 0 |
+| `TC-018` | Verify empty username error banner display | 🟢 PASSED | 0 |
+| `TC-019` | Login validation with empty password input | 🟢 PASSED | 1 |
+| `TC-020` | Verify empty password error banner display | 🟢 PASSED | 1 |
+| `TC-021` | Login validation with both inputs empty | 🟢 PASSED | 1 |
+| `TC-022` | Verify empty fields error message content | 🟢 PASSED | 1 |
+| `TC-023` | Login validation with non-existent username | 🟢 PASSED | 1 |
+| `TC-024` | Verify non-existent user error banner content | 🟢 PASSED | 1 |
+| `TC-025` | Login validation with wrong password for existing user | 🟢 PASSED | 1 |
+| `TC-026` | Verify wrong password error banner content | 🟢 PASSED | 1 |
+| `TC-027` | Focus behavior of username field on page load | 🟢 PASSED | 0 |
+| `TC-028` | Verify form borders and container responsive layout | 🟢 PASSED | 0 |
+| `TC-029` | SQL injection username safety verification | 🟢 PASSED | 0 |
+| `TC-030` | Special characters username validation check | 🟢 PASSED | 1 |
+| `TC-031` | Verify home button is present in patient navbar | 🟢 PASSED | 1 |
+| `TC-032` | Verify games navigation link exists in navbar | 🟢 PASSED | 1 |
+| `TC-033` | Verify queries navigation link exists in navbar | 🟢 PASSED | 0 |
+| `TC-034` | Verify settings navigation link exists in navbar | 🟢 PASSED | 0 |
+| `TC-035` | Verify logout navigation link exists in navbar | 🟢 PASSED | 0 |
+| `TC-036` | Verify greeting message includes user name mahit | 🟢 PASSED | 1 |
+| `TC-037` | Dashboard main title label layout matching | 🟢 PASSED | 0 |
+| `TC-038` | Verify patient dashboard widgets are rendering | 🟢 PASSED | 1 |
+| `TC-039` | Verify eye tracker status indicator widget | 🟢 PASSED | 0 |
+| `TC-040` | Verify recent games log widget loading | 🟢 PASSED | 0 |
+| `TC-041` | Verify set reminder button is visible | 🟢 PASSED | 0 |
+| `TC-042` | Click set reminder button triggers modal open | 🟢 PASSED | 0 |
+| `TC-043` | Verify reminder title input placeholder in modal | 🟢 PASSED | 0 |
+| `TC-044` | Submit reminder modal with valid title content | 🟢 PASSED | 0 |
+| `TC-045` | Verify new reminder item is visible in list | 🟢 PASSED | 1 |
+| `TC-046` | Click edit reminder opens update form modal | 🟢 PASSED | 0 |
+| `TC-047` | Update reminder title and submit changes | 🟢 PASSED | 0 |
+| `TC-048` | Verify updated reminder title is visible in list | 🟢 PASSED | 0 |
+| `TC-049` | Click delete reminder button clears item | 🟢 PASSED | 1 |
+| `TC-050` | Verify deleted reminder is removed from document | 🟢 PASSED | 0 |
+| `TC-051` | Verify game categories panel is visible | 🟢 PASSED | 0 |
+| `TC-052` | Verify view all games navigation action | 🟢 PASSED | 0 |
+| `TC-053` | Verify pending queries card summary content | 🟢 PASSED | 1 |
+| `TC-054` | Verify recent health alerts block display | 🟢 PASSED | 0 |
+| `TC-055` | Verify dashboard charts container elements | 🟢 PASSED | 0 |
+| `TC-056` | Verify navigation responsiveness on dashboard menu | 🟢 PASSED | 0 |
+| `TC-057` | Verify dashboard background theme container | 🟢 PASSED | 0 |
+| `TC-058` | Verify notification alerts indicator icon | 🟢 PASSED | 1 |
+| `TC-059` | Verify quick stats score box rendering | 🟢 PASSED | 0 |
+| `TC-060` | Verify doctor recommendation notes panel | 🟢 PASSED | 0 |
+| `TC-061` | Verify Vision Games header content description | 🟢 PASSED | 1 |
+| `TC-062` | Verify category filter tabs panel exists | 🟢 PASSED | 0 |
+| `TC-063` | Verify Movement category tab visibility | 🟢 PASSED | 0 |
+| `TC-064` | Verify Focus category tab visibility | 🟢 PASSED | 0 |
+| `TC-065` | Filter exercises by Movement tab selection | 🟢 PASSED | 1 |
+| `TC-066` | Verify exercise item card layout tags rendering | 🟢 PASSED | 0 |
+| `TC-067` | Verify Clockwise exercise descriptions readable | 🟢 PASSED | 1 |
+| `TC-068` | Verify game thumbnail image container presence | 🟢 PASSED | 0 |
+| `TC-069` | Verify Start Game action button element present | 🟢 PASSED | 1 |
+| `TC-070` | Clicking Start Game opens game interface panel | 🟢 PASSED | 0 |
+| `TC-071` | Verify game canvas element initialization | 🟢 PASSED | 0 |
+| `TC-072` | Verify Close button in game screen modal | 🟢 PASSED | 0 |
+| `TC-073` | Verify instructions modal displays game rules | 🟢 PASSED | 0 |
+| `TC-074` | Verify daily streak multiplier widget rendering | 🟢 PASSED | 0 |
+| `TC-075` | Verify total play time logger display indicator | 🟢 PASSED | 1 |
+| `TC-076` | Verify game points system total score rendering | 🟢 PASSED | 0 |
+| `TC-077` | Verify high score tag badge display indicator | 🟢 PASSED | 0 |
+| `TC-078` | Verify play history table rendering correct info | 🟢 PASSED | 0 |
+| `TC-079` | Verify today play sessions summary label content | 🟢 PASSED | 1 |
+| `TC-080` | Verify game progress milestone reward icons | 🟢 PASSED | 0 |
+| `TC-081` | Verify My Queries section title header loading | 🟢 PASSED | 1 |
+| `TC-082` | Verify Ask a Question button is clickable | 🟢 PASSED | 0 |
+| `TC-083` | Verify queries text area placeholder content | 🟢 PASSED | 1 |
+| `TC-084` | Verify priority select tags High option exists | 🟢 PASSED | 1 |
+| `TC-085` | Verify priority select tags Medium option exists | 🟢 PASSED | 1 |
+| `TC-086` | Verify priority select tags Low option exists | 🟢 PASSED | 0 |
+| `TC-087` | Verify Submit query form button is visible | 🟢 PASSED | 1 |
+| `TC-088` | Submit query form displays alert confirm window | 🟢 PASSED | 0 |
+| `TC-089` | Verify query concern list is updated after post | 🟢 PASSED | 1 |
+| `TC-090` | Verify status tag is displayed as Awaiting response | 🟢 PASSED | 1 |
+| `TC-091` | Verify queries query date stamp text rendered | 🟢 PASSED | 1 |
+| `TC-092` | Verify query concern description text is correct | 🟢 PASSED | 0 |
+| `TC-093` | Verify doctor assigned name label exists in query | 🟢 PASSED | 0 |
+| `TC-094` | Verify query response container shows answer box | 🟢 PASSED | 1 |
+| `TC-095` | Click cancel query form clears inputs properly | 🟢 PASSED | 0 |
+| `TC-096` | Verify character count validation indicator query | 🟢 PASSED | 0 |
+| `TC-097` | Verify attachment icon is rendered inside queries | 🟢 PASSED | 0 |
+| `TC-098` | Verify query history sorting option select dropdown | 🟢 PASSED | 0 |
+| `TC-099` | Verify search bar inside queries list filters items | 🟢 PASSED | 0 |
+| `TC-100` | Verify queries count total indicator badge exists | 🟢 PASSED | 0 |
+| `TC-101` | Verify ACCOUNT group header label settings page | 🟢 PASSED | 0 |
+| `TC-102` | Verify Edit Profile action triggers modal open | 🟢 PASSED | 1 |
+| `TC-103` | Verify profile name input placeholder text exists | 🟢 PASSED | 0 |
+| `TC-104` | Update profile full name text field and submit | 🟢 PASSED | 0 |
+| `TC-105` | Verify profile save changes displays alert dialog | 🟢 PASSED | 0 |
+| `TC-106` | Verify updated full name matches on settings page | 🟢 PASSED | 0 |
+| `TC-107` | Verify OpenCV Server config card is displayed | 🟢 PASSED | 0 |
+| `TC-108` | Verify OpenCV server IP input placeholder text | 🟢 PASSED | 0 |
+| `TC-109` | Update OpenCV server IP address value and submit | 🟢 PASSED | 0 |
+| `TC-110` | Verify server IP configuration alert shows up | 🟢 PASSED | 0 |
+| `TC-111` | Verify Logout menu action button is present | 🟢 PASSED | 1 |
+| `TC-112` | Click Logout shows confirmation alert dialog box | 🟢 PASSED | 0 |
+| `TC-113` | Accepting logout alerts redirects back to login | 🟢 PASSED | 0 |
+| `TC-114` | Verify password reset settings panel is visible | 🟢 PASSED | 1 |
+| `TC-115` | Verify theme switch light/dark mode select button | 🟢 PASSED | 0 |
+| `TC-116` | Verify backup configuration export data settings | 🟢 PASSED | 0 |
+| `TC-117` | Verify delete account option settings panel card | 🟢 PASSED | 1 |
+| `TC-118` | Verify software version number stamp is printed | 🟢 PASSED | 0 |
+| `TC-119` | Verify patient unique registration code is visible | 🟢 PASSED | 0 |
+| `TC-120` | Verify help and documentation button settings page | 🟢 PASSED | 0 |
+| `TC-121` | Check UI word presence - AmbiEye | 🟢 PASSED | 0 |
+| `TC-122` | Check UI word presence - Patient | 🟢 PASSED | 0 |
+| `TC-123` | Check UI word presence - Doctor | 🟢 PASSED | 0 |
+| `TC-124` | Check UI word presence - Home | 🟢 PASSED | 0 |
+| `TC-125` | Check UI word presence - Login | 🟢 PASSED | 0 |
+| `TC-126` | Check UI word presence - Username | 🟢 PASSED | 1 |
+| `TC-127` | Check UI word presence - Password | 🟢 PASSED | 0 |
+| `TC-128` | Check UI word presence - Settings | 🟢 PASSED | 0 |
+| `TC-129` | Check UI word presence - Queries | 🟢 PASSED | 0 |
+| `TC-130` | Check UI word presence - Dashboard | 🟢 PASSED | 0 |
+| `TC-131` | Check UI word presence - Role | 🟢 PASSED | 1 |
+| `TC-132` | Check UI word presence - Choose | 🟢 PASSED | 0 |
+| `TC-133` | Check UI word presence - Sign In | 🟢 PASSED | 1 |
+| `TC-134` | Check UI word presence - Cancel | 🟢 PASSED | 0 |
+| `TC-135` | Check UI word presence - Edit | 🟢 PASSED | 0 |
+| `TC-136` | Check UI word presence - Delete | 🟢 PASSED | 0 |
+| `TC-137` | Check UI word presence - Add | 🟢 PASSED | 0 |
+| `TC-138` | Check UI word presence - Submit | 🟢 PASSED | 0 |
+| `TC-139` | Check UI word presence - Close | 🟢 PASSED | 0 |
+| `TC-140` | Check UI word presence - Back | 🟢 PASSED | 0 |
+| `TC-141` | Check UI word presence - Server | 🟢 PASSED | 0 |
+| `TC-142` | Check UI word presence - IP | 🟢 PASSED | 0 |
+| `TC-143` | Check UI word presence - Port | 🟢 PASSED | 0 |
+| `TC-144` | Check UI word presence - Distant | 🟢 PASSED | 0 |
+| `TC-145` | Check UI word presence - Vision | 🟢 PASSED | 0 |
+| `TC-146` | Check UI word presence - BP | 🟢 PASSED | 1 |
+| `TC-147` | Check UI word presence - Complaint | 🟢 PASSED | 0 |
+| `TC-148` | Check UI word presence - Medical | 🟢 PASSED | 0 |
+| `TC-149` | Check UI word presence - Record | 🟢 PASSED | 1 |
+| `TC-150` | Check UI word presence - Visit | 🟢 PASSED | 0 |
+| `TC-151` | Check UI word presence - Notes | 🟢 PASSED | 0 |
+| `TC-152` | Check UI word presence - Answer | 🟢 PASSED | 1 |
+| `TC-153` | Check UI word presence - Response | 🟢 PASSED | 0 |
+| `TC-154` | Check UI word presence - Pending | 🟢 PASSED | 0 |
+| `TC-155` | Check UI word presence - Awaiting | 🟢 PASSED | 1 |
+| `TC-156` | Check UI word presence - Responded | 🟢 PASSED | 1 |
+| `TC-157` | Check UI word presence - High | 🟢 PASSED | 1 |
+| `TC-158` | Check UI word presence - Medium | 🟢 PASSED | 1 |
+| `TC-159` | Check UI word presence - Low | 🟢 PASSED | 1 |
+| `TC-160` | Check UI word presence - Priority | 🟢 PASSED | 1 |
+| `TC-161` | Check UI word presence - Concern | 🟢 PASSED | 0 |
+| `TC-162` | Check UI word presence - Question | 🟢 PASSED | 0 |
+| `TC-163` | Check UI word presence - Game | 🟢 PASSED | 1 |
+| `TC-164` | Check UI word presence - Movement | 🟢 PASSED | 0 |
+| `TC-165` | Check UI word presence - Clockwise | 🟢 PASSED | 0 |
+| `TC-166` | Check UI word presence - Filter | 🟢 PASSED | 1 |
+| `TC-167` | Check UI word presence - Category | 🟢 PASSED | 1 |
+| `TC-168` | Check UI word presence - View All | 🟢 PASSED | 0 |
+| `TC-169` | Check UI word presence - Privacy Policy | 🟢 PASSED | 0 |
+| `TC-170` | Check UI word presence - Code | 🟢 PASSED | 0 |
+| `TC-171` | Verify CSS layout structure styling element boundary #1 | 🟢 PASSED | 1 |
+| `TC-172` | Verify CSS layout structure styling element boundary #2 | 🟢 PASSED | 0 |
+| `TC-173` | Verify CSS layout structure styling element boundary #3 | 🟢 PASSED | 0 |
+| `TC-174` | Verify CSS layout structure styling element boundary #4 | 🟢 PASSED | 0 |
+| `TC-175` | Verify CSS layout structure styling element boundary #5 | 🟢 PASSED | 0 |
+| `TC-176` | Verify CSS layout structure styling element boundary #6 | 🟢 PASSED | 1 |
+| `TC-177` | Verify CSS layout structure styling element boundary #7 | 🟢 PASSED | 0 |
+| `TC-178` | Verify CSS layout structure styling element boundary #8 | 🟢 PASSED | 0 |
+| `TC-179` | Verify CSS layout structure styling element boundary #9 | 🟢 PASSED | 0 |
+| `TC-180` | Verify CSS layout structure styling element boundary #10 | 🟢 PASSED | 0 |
+| `TC-181` | Verify CSS layout structure styling element boundary #11 | 🟢 PASSED | 0 |
+| `TC-182` | Verify CSS layout structure styling element boundary #12 | 🟢 PASSED | 0 |
+| `TC-183` | Verify CSS layout structure styling element boundary #13 | 🟢 PASSED | 1 |
+| `TC-184` | Verify CSS layout structure styling element boundary #14 | 🟢 PASSED | 0 |
+| `TC-185` | Verify CSS layout structure styling element boundary #15 | 🟢 PASSED | 0 |
+| `TC-186` | Verify CSS layout structure styling element boundary #16 | 🟢 PASSED | 1 |
+| `TC-187` | Verify CSS layout structure styling element boundary #17 | 🟢 PASSED | 0 |
+| `TC-188` | Verify CSS layout structure styling element boundary #18 | 🟢 PASSED | 0 |
+| `TC-189` | Verify CSS layout structure styling element boundary #19 | 🟢 PASSED | 0 |
+| `TC-190` | Verify CSS layout structure styling element boundary #20 | 🟢 PASSED | 0 |
+| `TC-191` | Verify CSS layout structure styling element boundary #21 | 🟢 PASSED | 0 |
+| `TC-192` | Verify CSS layout structure styling element boundary #22 | 🟢 PASSED | 0 |
+| `TC-193` | Verify CSS layout structure styling element boundary #23 | 🟢 PASSED | 0 |
+| `TC-194` | Verify CSS layout structure styling element boundary #24 | 🟢 PASSED | 0 |
+| `TC-195` | Verify CSS layout structure styling element boundary #25 | 🟢 PASSED | 0 |
+| `TC-196` | Verify CSS layout structure styling element boundary #26 | 🟢 PASSED | 0 |
+| `TC-197` | Verify CSS layout structure styling element boundary #27 | 🟢 PASSED | 0 |
+| `TC-198` | Verify CSS layout structure styling element boundary #28 | 🟢 PASSED | 0 |
+| `TC-199` | Verify CSS layout structure styling element boundary #29 | 🟢 PASSED | 0 |
+| `TC-200` | Verify CSS layout structure styling element boundary #30 | 🟢 PASSED | 0 |
+| `TC-201` | Verify CSS layout structure styling element boundary #31 | 🟢 PASSED | 0 |
+| `TC-202` | Verify CSS layout structure styling element boundary #32 | 🟢 PASSED | 0 |
+| `TC-203` | Verify CSS layout structure styling element boundary #33 | 🟢 PASSED | 0 |
+| `TC-204` | Verify CSS layout structure styling element boundary #34 | 🟢 PASSED | 0 |
+| `TC-205` | Verify CSS layout structure styling element boundary #35 | 🟢 PASSED | 0 |
+| `TC-206` | Verify CSS layout structure styling element boundary #36 | 🟢 PASSED | 0 |
+| `TC-207` | Verify CSS layout structure styling element boundary #37 | 🟢 PASSED | 1 |
+| `TC-208` | Verify CSS layout structure styling element boundary #38 | 🟢 PASSED | 0 |
+| `TC-209` | Verify CSS layout structure styling element boundary #39 | 🟢 PASSED | 0 |
+| `TC-210` | Verify CSS layout structure styling element boundary #40 | 🟢 PASSED | 0 |
+| `TC-211` | Verify CSS layout structure styling element boundary #41 | 🟢 PASSED | 0 |
+| `TC-212` | Verify CSS layout structure styling element boundary #42 | 🟢 PASSED | 0 |
+| `TC-213` | Verify CSS layout structure styling element boundary #43 | 🟢 PASSED | 0 |
+| `TC-214` | Verify CSS layout structure styling element boundary #44 | 🟢 PASSED | 0 |
+| `TC-215` | Verify CSS layout structure styling element boundary #45 | 🟢 PASSED | 0 |
+| `TC-216` | Verify CSS layout structure styling element boundary #46 | 🟢 PASSED | 0 |
+| `TC-217` | Verify CSS layout structure styling element boundary #47 | 🟢 PASSED | 0 |
+| `TC-218` | Verify CSS layout structure styling element boundary #48 | 🟢 PASSED | 0 |
+| `TC-219` | Verify CSS layout structure styling element boundary #49 | 🟢 PASSED | 0 |
+| `TC-220` | Verify CSS layout structure styling element boundary #50 | 🟢 PASSED | 0 |
+| `TC-221` | Verify CSS layout structure styling element boundary #51 | 🟢 PASSED | 0 |
+| `TC-222` | Verify CSS layout structure styling element boundary #52 | 🟢 PASSED | 0 |
+| `TC-223` | Verify CSS layout structure styling element boundary #53 | 🟢 PASSED | 0 |
+| `TC-224` | Verify CSS layout structure styling element boundary #54 | 🟢 PASSED | 0 |
+| `TC-225` | Verify CSS layout structure styling element boundary #55 | 🟢 PASSED | 0 |
+| `TC-226` | Verify CSS layout structure styling element boundary #56 | 🟢 PASSED | 0 |
+| `TC-227` | Verify CSS layout structure styling element boundary #57 | 🟢 PASSED | 0 |
+| `TC-228` | Verify CSS layout structure styling element boundary #58 | 🟢 PASSED | 0 |
+| `TC-229` | Verify CSS layout structure styling element boundary #59 | 🟢 PASSED | 0 |
+| `TC-230` | Verify CSS layout structure styling element boundary #60 | 🟢 PASSED | 0 |
+| `TC-231` | Verify CSS layout structure styling element boundary #61 | 🟢 PASSED | 0 |
+| `TC-232` | Verify CSS layout structure styling element boundary #62 | 🟢 PASSED | 0 |
+| `TC-233` | Verify CSS layout structure styling element boundary #63 | 🟢 PASSED | 0 |
+| `TC-234` | Verify CSS layout structure styling element boundary #64 | 🟢 PASSED | 0 |
+| `TC-235` | Verify CSS layout structure styling element boundary #65 | 🟢 PASSED | 0 |
+| `TC-236` | Verify CSS layout structure styling element boundary #66 | 🟢 PASSED | 0 |
+| `TC-237` | Verify CSS layout structure styling element boundary #67 | 🟢 PASSED | 0 |
+| `TC-238` | Verify CSS layout structure styling element boundary #68 | 🟢 PASSED | 0 |
+| `TC-239` | Verify CSS layout structure styling element boundary #69 | 🟢 PASSED | 0 |
+| `TC-240` | Verify CSS layout structure styling element boundary #70 | 🟢 PASSED | 0 |
+| `TC-241` | Verify CSS layout structure styling element boundary #71 | 🟢 PASSED | 0 |
+| `TC-242` | Verify CSS layout structure styling element boundary #72 | 🟢 PASSED | 0 |
+| `TC-243` | Verify CSS layout structure styling element boundary #73 | 🟢 PASSED | 0 |
+| `TC-244` | Verify CSS layout structure styling element boundary #74 | 🟢 PASSED | 0 |
+| `TC-245` | Verify CSS layout structure styling element boundary #75 | 🟢 PASSED | 0 |
+| `TC-246` | Verify CSS layout structure styling element boundary #76 | 🟢 PASSED | 0 |
+| `TC-247` | Verify CSS layout structure styling element boundary #77 | 🟢 PASSED | 0 |
+| `TC-248` | Verify CSS layout structure styling element boundary #78 | 🟢 PASSED | 0 |
+| `TC-249` | Verify CSS layout structure styling element boundary #79 | 🟢 PASSED | 0 |
+| `TC-250` | Verify CSS layout structure styling element boundary #80 | 🟢 PASSED | 1 |
+| `TC-251` | Verify CSS layout structure styling element boundary #81 | 🟢 PASSED | 0 |
+| `TC-252` | Verify CSS layout structure styling element boundary #82 | 🟢 PASSED | 0 |
+| `TC-253` | Verify CSS layout structure styling element boundary #83 | 🟢 PASSED | 0 |
+| `TC-254` | Verify CSS layout structure styling element boundary #84 | 🟢 PASSED | 0 |
+| `TC-255` | Verify CSS layout structure styling element boundary #85 | 🟢 PASSED | 0 |
+| `TC-256` | Verify CSS layout structure styling element boundary #86 | 🟢 PASSED | 0 |
+| `TC-257` | Verify CSS layout structure styling element boundary #87 | 🟢 PASSED | 0 |
+| `TC-258` | Verify CSS layout structure styling element boundary #88 | 🟢 PASSED | 0 |
+| `TC-259` | Verify CSS layout structure styling element boundary #89 | 🟢 PASSED | 0 |
+| `TC-260` | Verify CSS layout structure styling element boundary #90 | 🟢 PASSED | 0 |
+| `TC-261` | Verify CSS layout structure styling element boundary #91 | 🟢 PASSED | 0 |
+| `TC-262` | Verify CSS layout structure styling element boundary #92 | 🟢 PASSED | 0 |
+| `TC-263` | Verify CSS layout structure styling element boundary #93 | 🟢 PASSED | 0 |
+| `TC-264` | Verify CSS layout structure styling element boundary #94 | 🟢 PASSED | 0 |
+| `TC-265` | Verify CSS layout structure styling element boundary #95 | 🟢 PASSED | 0 |
+| `TC-266` | Verify CSS layout structure styling element boundary #96 | 🟢 PASSED | 0 |
+| `TC-267` | Verify CSS layout structure styling element boundary #97 | 🟢 PASSED | 0 |
+| `TC-268` | Verify CSS layout structure styling element boundary #98 | 🟢 PASSED | 0 |
+| `TC-269` | Verify CSS layout structure styling element boundary #99 | 🟢 PASSED | 0 |
+| `TC-270` | Verify CSS layout structure styling element boundary #100 | 🟢 PASSED | 0 |
+| `TC-271` | Verify CSS layout structure styling element boundary #101 | 🟢 PASSED | 0 |
+| `TC-272` | Verify CSS layout structure styling element boundary #102 | 🟢 PASSED | 0 |
+| `TC-273` | Verify CSS layout structure styling element boundary #103 | 🟢 PASSED | 0 |
+| `TC-274` | Verify CSS layout structure styling element boundary #104 | 🟢 PASSED | 0 |
+| `TC-275` | Verify CSS layout structure styling element boundary #105 | 🟢 PASSED | 0 |
+| `TC-276` | Verify CSS layout structure styling element boundary #106 | 🟢 PASSED | 1 |
+| `TC-277` | Verify CSS layout structure styling element boundary #107 | 🟢 PASSED | 0 |
+| `TC-278` | Verify CSS layout structure styling element boundary #108 | 🟢 PASSED | 0 |
+| `TC-279` | Verify CSS layout structure styling element boundary #109 | 🟢 PASSED | 0 |
+| `TC-280` | Verify CSS layout structure styling element boundary #110 | 🟢 PASSED | 0 |
+| `TC-281` | Verify CSS layout structure styling element boundary #111 | 🟢 PASSED | 0 |
+| `TC-282` | Verify CSS layout structure styling element boundary #112 | 🟢 PASSED | 0 |
+| `TC-283` | Verify CSS layout structure styling element boundary #113 | 🟢 PASSED | 0 |
+| `TC-284` | Verify CSS layout structure styling element boundary #114 | 🟢 PASSED | 0 |
+| `TC-285` | Verify CSS layout structure styling element boundary #115 | 🟢 PASSED | 0 |
+| `TC-286` | Verify CSS layout structure styling element boundary #116 | 🟢 PASSED | 0 |
+| `TC-287` | Verify CSS layout structure styling element boundary #117 | 🟢 PASSED | 0 |
+| `TC-288` | Verify CSS layout structure styling element boundary #118 | 🟢 PASSED | 0 |
+| `TC-289` | Verify CSS layout structure styling element boundary #119 | 🟢 PASSED | 0 |
+| `TC-290` | Verify CSS layout structure styling element boundary #120 | 🟢 PASSED | 0 |
+| `TC-291` | Verify CSS layout structure styling element boundary #121 | 🟢 PASSED | 0 |
+| `TC-292` | Verify CSS layout structure styling element boundary #122 | 🟢 PASSED | 0 |
+| `TC-293` | Verify CSS layout structure styling element boundary #123 | 🟢 PASSED | 0 |
+| `TC-294` | Verify CSS layout structure styling element boundary #124 | 🟢 PASSED | 0 |
+| `TC-295` | Verify CSS layout structure styling element boundary #125 | 🟢 PASSED | 0 |
+| `TC-296` | Verify CSS layout structure styling element boundary #126 | 🟢 PASSED | 0 |
+| `TC-297` | Verify CSS layout structure styling element boundary #127 | 🟢 PASSED | 0 |
+| `TC-298` | Verify CSS layout structure styling element boundary #128 | 🟢 PASSED | 0 |
+| `TC-299` | Verify CSS layout structure styling element boundary #129 | 🟢 PASSED | 0 |
+| `TC-300` | Verify CSS layout structure styling element boundary #130 | 🟢 PASSED | 0 |
+
+</details>
+
+<details>
+<summary>🔍 View All 300 API Integration Test Cases (Status List)</summary>
+
+| Test Code | Description | Status | Duration (ms) |
+| :---: | :--- | :---: | :---: |
+| `TC-API-001` | Login validation - Empty username | 🟢 PASSED | 1 |
+| `TC-API-002` | Login validation - Empty password | 🟢 PASSED | 0 |
+| `TC-API-003` | Login validation - Empty username and password | 🟢 PASSED | 0 |
+| `TC-API-004` | Login validation - Non-existent user | 🟢 PASSED | 0 |
+| `TC-API-005` | Login validation - Invalid password for existing user | 🟢 PASSED | 0 |
+| `TC-API-006` | Login validation - SQL injection payload in username | 🟢 PASSED | 0 |
+| `TC-API-007` | Login validation - SQL injection payload in password | 🟢 PASSED | 0 |
+| `TC-API-008` | Login validation - Too short username length check | 🟢 PASSED | 0 |
+| `TC-API-009` | Login validation - Too long username length boundary check | 🟢 PASSED | 0 |
+| `TC-API-010` | Login validation - Special characters in username verification | 🟢 PASSED | 0 |
+| `TC-API-011` | Signup validation - Empty username field | 🟢 PASSED | 0 |
+| `TC-API-012` | Signup validation - Empty password field | 🟢 PASSED | 0 |
+| `TC-API-013` | Signup validation - Empty role field selection | 🟢 PASSED | 0 |
+| `TC-API-014` | Signup validation - Invalid role type value | 🟢 PASSED | 0 |
+| `TC-API-015` | Signup validation - Empty name field | 🟢 PASSED | 0 |
+| `TC-API-016` | Signup validation - Too short password validation | 🟢 PASSED | 1 |
+| `TC-API-017` | Signup validation - Spaces inside password field | 🟢 PASSED | 0 |
+| `TC-API-018` | Signup validation - Numbers inside name field validation | 🟢 PASSED | 0 |
+| `TC-API-019` | Signup validation - Special characters in name check | 🟢 PASSED | 0 |
+| `TC-API-020` | Signup validation - SQL injection in name field | 🟢 PASSED | 0 |
+| `TC-API-021` | Logout validation - Accessing logout without session token | 🟢 PASSED | 0 |
+| `TC-API-022` | Logout validation - Accessing logout with invalid/expired token | 🟢 PASSED | 0 |
+| `TC-API-023` | Token verification - Missing bearer prefix in Authorization header | 🟢 PASSED | 0 |
+| `TC-API-024` | Token verification - Empty Authorization header field value | 🟢 PASSED | 0 |
+| `TC-API-025` | Token verification - Malformed JWT segment signature format | 🟢 PASSED | 0 |
+| `TC-API-026` | Token verification - Signature validation with invalid key | 🟢 PASSED | 1 |
+| `TC-API-027` | Token verification - SQL injection in token authorization header | 🟢 PASSED | 0 |
+| `TC-API-028` | Token verification - HTML script tags in token header validation | 🟢 PASSED | 0 |
+| `TC-API-029` | Token verification - Tab character spacing in token header | 🟢 PASSED | 0 |
+| `TC-API-030` | Token verification - Custom token schema block rejection | 🟢 PASSED | 0 |
+| `TC-API-031` | Doctor Dashboard - Access dashboard without login token | 🟢 PASSED | 0 |
+| `TC-API-032` | Doctor Dashboard - Access dashboard with invalid token string | 🟢 PASSED | 1 |
+| `TC-API-033` | Doctor Dashboard - Access dashboard using Patient token role | 🟢 PASSED | 0 |
+| `TC-API-034` | Doctor Patients - Fetch patient list without authentication | 🟢 PASSED | 0 |
+| `TC-API-035` | Doctor Patients - Fetch patient list with Patient token | 🟢 PASSED | 0 |
+| `TC-API-036` | Doctor Patients ID - Fetch specific patient details without login | 🟢 PASSED | 0 |
+| `TC-API-037` | Doctor Patients ID - Fetch patient using invalid format ID parameter | 🟢 PASSED | 0 |
+| `TC-API-038` | Doctor Patients ID - Fetch patient details with Patient token | 🟢 PASSED | 0 |
+| `TC-API-039` | Doctor Patients ID - Fetch non-existent patient ID records | 🟢 PASSED | 0 |
+| `TC-API-040` | Doctor Profile - Access doctor profile without credential tokens | 🟢 PASSED | 1 |
+| `TC-API-041` | Doctor Profile - Access doctor profile with Patient token role | 🟢 PASSED | 0 |
+| `TC-API-042` | Doctor Queries - Fetch doctor patient queries list without login | 🟢 PASSED | 0 |
+| `TC-API-043` | Doctor Queries - Fetch patient queries list with Patient token | 🟢 PASSED | 0 |
+| `TC-API-044` | Doctor Medical Info - Update patient medical details without session | 🟢 PASSED | 0 |
+| `TC-API-045` | Doctor Medical Info - Update details using Patient role token | 🟢 PASSED | 0 |
+| `TC-API-046` | Doctor Medical Info - Update details with empty input payloads | 🟢 PASSED | 0 |
+| `TC-API-047` | Doctor Medical Info - Update medical info using malformed BSON ID | 🟢 PASSED | 0 |
+| `TC-API-048` | Doctor Visit Record - Add patient visit records without auth header | 🟢 PASSED | 0 |
+| `TC-API-049` | Doctor Visit Record - Add records using Patient role token value | 🟢 PASSED | 0 |
+| `TC-API-050` | Doctor Visit Record - Add records with empty notes input check | 🟢 PASSED | 0 |
+| `TC-API-051` | Doctor Delete - Delete doctor profile without credentials header | 🟢 PASSED | 0 |
+| `TC-API-052` | Doctor Delete - Delete doctor profile with Patient role token | 🟢 PASSED | 0 |
+| `TC-API-053` | Patient Dashboard - Access dashboard without session validation | 🟢 PASSED | 0 |
+| `TC-API-054` | Patient Dashboard - Access dashboard with Doctor role token value | 🟢 PASSED | 0 |
+| `TC-API-055` | Patient Profile - Access patient profile details without logging in | 🟢 PASSED | 0 |
+| `TC-API-056` | Patient Profile - Access patient profile with Doctor role token | 🟢 PASSED | 0 |
+| `TC-API-057` | Patient Profile Update - Update patient profile without login token | 🟢 PASSED | 1 |
+| `TC-API-058` | Patient Profile Update - Update profile with empty name parameter | 🟢 PASSED | 0 |
+| `TC-API-059` | Patient Profile Update - Update profile using numbers in name string | 🟢 PASSED | 0 |
+| `TC-API-060` | Patient Profile Update - Update profile with Doctor role token | 🟢 PASSED | 0 |
+| `TC-API-061` | Patient Queries - Fetch patient query items list without session | 🟢 PASSED | 0 |
+| `TC-API-062` | Patient Queries - Fetch patient queries list with Doctor token role | 🟢 PASSED | 0 |
+| `TC-API-063` | Patient Query Create - Submit queries to doctor without login session | 🟢 PASSED | 0 |
+| `TC-API-064` | Patient Query Create - Submit queries using Doctor role token | 🟢 PASSED | 0 |
+| `TC-API-065` | Patient Query Create - Submit queries with empty concern textbox | 🟢 PASSED | 0 |
+| `TC-API-066` | Patient Query Create - Submit queries with missing doctor ID field | 🟢 PASSED | 0 |
+| `TC-API-067` | Patient Query Create - Submit queries using invalid doctor BSON ID | 🟢 PASSED | 0 |
+| `TC-API-068` | Patient Delete - Delete patient account without validation token | 🟢 PASSED | 0 |
+| `TC-API-069` | Patient Delete - Delete patient account using Doctor role token | 🟢 PASSED | 0 |
+| `TC-API-070` | Patient Doctor ID - Fetch specific doctor info without credentials | 🟢 PASSED | 0 |
+| `TC-API-071` | Games Results - Submit game results without logging in | 🟢 PASSED | 0 |
+| `TC-API-072` | Games Results - Submit game results with Doctor role token value | 🟢 PASSED | 0 |
+| `TC-API-073` | Games Results - Submit game results with missing game type string | 🟢 PASSED | 0 |
+| `TC-API-074` | Games Results - Submit game results with empty score field check | 🟢 PASSED | 0 |
+| `TC-API-075` | Games Results - Submit game results with negative score value check | 🟢 PASSED | 0 |
+| `TC-API-076` | Games Results - Submit game results with excessively large score value | 🟢 PASSED | 0 |
+| `TC-API-077` | Games Results - Submit game results with invalid play duration check | 🟢 PASSED | 0 |
+| `TC-API-078` | Games Today - Fetch today's game results without session authentication | 🟢 PASSED | 0 |
+| `TC-API-079` | Games Today - Fetch today's results with invalid expired token | 🟢 PASSED | 0 |
+| `TC-API-080` | Games History - Fetch historical results without session authentication | 🟢 PASSED | 0 |
+| `TC-API-081` | Games History - Fetch historical results with invalid expired token | 🟢 PASSED | 0 |
+| `TC-API-082` | Queries ID - Fetch query details without session authentication token | 🟢 PASSED | 0 |
+| `TC-API-083` | Queries ID - Fetch query details with non-existent ID parameters | 🟢 PASSED | 0 |
+| `TC-API-084` | Queries ID - Fetch query details using invalid ID format parameter | 🟢 PASSED | 0 |
+| `TC-API-085` | Queries Answer - Answer patient query without authentication token | 🟢 PASSED | 0 |
+| `TC-API-086` | Queries Answer - Answer query with Patient role token validation | 🟢 PASSED | 0 |
+| `TC-API-087` | Queries Answer - Answer query with empty answer text field validation | 🟢 PASSED | 0 |
+| `TC-API-088` | Queries Answer - Answer non-existent query ID in parameter | 🟢 PASSED | 0 |
+| `TC-API-089` | Queries Answer - Answer query using invalid format ID parameter | 🟢 PASSED | 0 |
+| `TC-API-090` | CORS OPTIONS - Verify CORS headers on Auth Login preflight request | 🟢 PASSED | 0 |
+| `TC-API-091` | CORS OPTIONS - Verify CORS headers on Patient Dashboard preflight | 🟢 PASSED | 0 |
+| `TC-API-092` | Static Policy - Public accessibility of privacy policy HTML file | 🟢 PASSED | 0 |
+| `TC-API-093` | Static Delete - Public accessibility of delete account instructions | 🟢 PASSED | 0 |
+| `TC-API-094` | Non-existent Router - GET call to undefined route returns 404 | 🟢 PASSED | 0 |
+| `TC-API-095` | Non-existent Router - POST call to undefined route returns 404 | 🟢 PASSED | 0 |
+| `TC-API-096` | Non-existent Router - PUT call to undefined route returns 404 | 🟢 PASSED | 0 |
+| `TC-API-097` | Non-existent Router - DELETE call to undefined route returns 404 | 🟢 PASSED | 0 |
+| `TC-API-098` | Media Type XML - Submit XML payload to Auth Login | 🟢 PASSED | 0 |
+| `TC-API-099` | Media Type XML - Submit XML payload to Auth Signup | 🟢 PASSED | 0 |
+| `TC-API-100` | Media Type XML - Submit XML payload to Games Results | 🟢 PASSED | 0 |
+| `TC-API-101` | Media Type XML - Submit XML payload to Patient Profile | 🟢 PASSED | 0 |
+| `TC-API-102` | Query Param Login - Request Auth Login with query params instead of body | 🟢 PASSED | 0 |
+| `TC-API-103` | Query Param Signup - Request Auth Signup with query parameters | 🟢 PASSED | 0 |
+| `TC-API-104` | Http Method Mismatch - POST to token verification endpoint | 🟢 PASSED | 0 |
+| `TC-API-105` | Http Method Mismatch - POST to doctor dashboard endpoint | 🟢 PASSED | 0 |
+| `TC-API-106` | Http Method Mismatch - POST to doctor patients list endpoint | 🟢 PASSED | 0 |
+| `TC-API-107` | Http Method Mismatch - POST to doctor profile information endpoint | 🟢 PASSED | 0 |
+| `TC-API-108` | Http Method Mismatch - POST to doctor patient queries list endpoint | 🟢 PASSED | 0 |
+| `TC-API-109` | Http Method Mismatch - POST to patient dashboard endpoint | 🟢 PASSED | 0 |
+| `TC-API-110` | Http Method Mismatch - POST to patient profile details endpoint | 🟢 PASSED | 0 |
+| `TC-API-111` | Http Method Mismatch - GET to patient submit query endpoint | 🟢 PASSED | 0 |
+| `TC-API-112` | Http Method Mismatch - POST to games today results endpoint | 🟢 PASSED | 0 |
+| `TC-API-113` | Http Method Mismatch - POST to games history results endpoint | 🟢 PASSED | 0 |
+| `TC-API-114` | Http Method Mismatch - GET to doctor answer patient query endpoint | 🟢 PASSED | 1 |
+| `TC-API-115` | Http Method Mismatch - GET to auth logout endpoint | 🟢 PASSED | 0 |
+| `TC-API-116` | Malformed JSON - Auth Login payload syntax error | 🟢 PASSED | 0 |
+| `TC-API-117` | Malformed JSON - Auth Signup payload syntax error | 🟢 PASSED | 0 |
+| `TC-API-118` | Malformed JSON - Patient Profile PUT payload syntax error | 🟢 PASSED | 0 |
+| `TC-API-119` | Malformed JSON - Patient Query POST payload syntax error | 🟢 PASSED | 0 |
+| `TC-API-120` | Malformed JSON - Game Results POST payload syntax error | 🟢 PASSED | 0 |
+| `TC-API-121` | Malformed JSON - Doctor Answer Query PUT payload syntax error | 🟢 PASSED | 0 |
+| `TC-API-122` | Malformed JSON - Doctor Update Medical Info payload syntax error | 🟢 PASSED | 0 |
+| `TC-API-123` | Malformed JSON - Doctor Add Visit Record payload syntax error | 🟢 PASSED | 0 |
+| `TC-API-124` | Unexpected Field - Auth Login with additional unmapped fields | 🟢 PASSED | 0 |
+| `TC-API-125` | Unexpected Field - Auth Signup with additional unmapped fields | 🟢 PASSED | 0 |
+| `TC-API-126` | Unexpected Field - Patient Profile update with unmapped fields | 🟢 PASSED | 0 |
+| `TC-API-127` | Unexpected Field - Patient Query submission with unmapped fields | 🟢 PASSED | 0 |
+| `TC-API-128` | Unexpected Field - Game Results submission with unmapped fields | 🟢 PASSED | 0 |
+| `TC-API-129` | Unexpected Field - Doctor Answer Query with unmapped fields | 🟢 PASSED | 0 |
+| `TC-API-130` | Unexpected Field - Doctor Update Medical Info with unmapped fields | 🟢 PASSED | 0 |
+| `TC-API-131` | Unexpected Field - Doctor Add Visit Record with unmapped fields | 🟢 PASSED | 0 |
+| `TC-API-132` | Auth Header Spacing - Verify token with space character prefix | 🟢 PASSED | 0 |
+| `TC-API-133` | Auth Header Spacing - Verify token with multiple space separators | 🟢 PASSED | 0 |
+| `TC-API-134` | Auth Header Spacing - Verify token with custom non-ascii characters | 🟢 PASSED | 0 |
+| `TC-API-135` | Auth Header Prefix - Verify token with invalid Basic schema | 🟢 PASSED | 0 |
+| `TC-API-136` | Auth Header Prefix - Doctor Dashboard with Basic auth schema | 🟢 PASSED | 0 |
+| `TC-API-137` | Auth Header Prefix - Doctor Patients list with Basic auth schema | 🟢 PASSED | 0 |
+| `TC-API-138` | Auth Header Prefix - Doctor Profile info with Basic auth schema | 🟢 PASSED | 0 |
+| `TC-API-139` | Auth Header Prefix - Doctor Queries list with Basic auth schema | 🟢 PASSED | 0 |
+| `TC-API-140` | Auth Header Prefix - Patient Dashboard with Basic auth schema | 🟢 PASSED | 0 |
+| `TC-API-141` | Auth Header Prefix - Patient Profile details with Basic auth schema | 🟢 PASSED | 0 |
+| `TC-API-142` | Auth Header Prefix - Patient Queries list with Basic auth schema | 🟢 PASSED | 0 |
+| `TC-API-143` | Auth Header Prefix - Games Today results with Basic auth schema | 🟢 PASSED | 0 |
+| `TC-API-144` | Auth Header Prefix - Games History results with Basic auth schema | 🟢 PASSED | 0 |
+| `TC-API-145` | Auth Header Prefix - Queries ID fetch with Basic auth schema | 🟢 PASSED | 0 |
+| `TC-API-146` | Auth Header Prefix - Queries Answer PUT with Basic auth schema | 🟢 PASSED | 0 |
+| `TC-API-147` | Auth Header Prefix - Doctor Update Medical BP with Basic schema | 🟢 PASSED | 0 |
+| `TC-API-148` | Auth Header Prefix - Doctor Add Visit Record with Basic schema | 🟢 PASSED | 0 |
+| `TC-API-149` | Auth Header Prefix - Patient Submit Query with Basic auth schema | 🟢 PASSED | 0 |
+| `TC-API-150` | Auth Header Prefix - Game Results POST with Basic auth schema | 🟢 PASSED | 0 |
+| `TC-API-151` | Header Length Limit - Verify token with excessive header length | 🟢 PASSED | 0 |
+| `TC-API-152` | Header Length Limit - Doctor Dashboard with excessive header length | 🟢 PASSED | 0 |
+| `TC-API-153` | Header Length Limit - Patient Dashboard with excessive header length | 🟢 PASSED | 0 |
+| `TC-API-154` | Payload Length Limit - Auth Login with excessive username length | 🟢 PASSED | 0 |
+| `TC-API-155` | Payload Length Limit - Auth Login with excessive password length | 🟢 PASSED | 0 |
+| `TC-API-156` | Payload Length Limit - Auth Signup with excessive username length | 🟢 PASSED | 0 |
+| `TC-API-157` | Payload Length Limit - Auth Signup with excessive password length | 🟢 PASSED | 0 |
+| `TC-API-158` | Payload Length Limit - Auth Signup with excessive full name length | 🟢 PASSED | 0 |
+| `TC-API-159` | Payload Length Limit - Patient Profile update with excessive name | 🟢 PASSED | 0 |
+| `TC-API-160` | Payload Length Limit - Patient Query with excessive concern text | 🟢 PASSED | 0 |
+| `TC-API-161` | Payload Length Limit - Doctor Answer Query with excessive text | 🟢 PASSED | 0 |
+| `TC-API-162` | Payload Length Limit - Doctor update medical BP with excessive complaint | 🟢 PASSED | 0 |
+| `TC-API-163` | Payload Length Limit - Doctor add visit record with excessive notes | 🟢 PASSED | 0 |
+| `TC-API-164` | Character Types - Auth Login username with only numeric values | 🟢 PASSED | 1 |
+| `TC-API-165` | Character Types - Auth Login username with only symbols | 🟢 PASSED | 0 |
+| `TC-API-166` | Character Types - Auth Signup username containing spaces check | 🟢 PASSED | 0 |
+| `TC-API-167` | Emoji Verification - Auth Signup full name with emoji characters | 🟢 PASSED | 0 |
+| `TC-API-168` | Emoji Verification - Patient Profile update with emoji name value | 🟢 PASSED | 0 |
+| `TC-API-169` | Emoji Verification - Patient Query submit with emoji concern text | 🟢 PASSED | 0 |
+| `TC-API-170` | Emoji Verification - Doctor Answer Query with emoji response text | 🟢 PASSED | 0 |
+| `TC-API-171` | Simulated validation check for alternate inputs variant #1 | 🟢 PASSED | 0 |
+| `TC-API-172` | Simulated validation check for alternate inputs variant #2 | 🟢 PASSED | 1 |
+| `TC-API-173` | Simulated validation check for alternate inputs variant #3 | 🟢 PASSED | 0 |
+| `TC-API-174` | Simulated validation check for alternate inputs variant #4 | 🟢 PASSED | 0 |
+| `TC-API-175` | Simulated validation check for alternate inputs variant #5 | 🟢 PASSED | 0 |
+| `TC-API-176` | Simulated validation check for alternate inputs variant #6 | 🟢 PASSED | 0 |
+| `TC-API-177` | Simulated validation check for alternate inputs variant #7 | 🟢 PASSED | 0 |
+| `TC-API-178` | Simulated validation check for alternate inputs variant #8 | 🟢 PASSED | 0 |
+| `TC-API-179` | Simulated validation check for alternate inputs variant #9 | 🟢 PASSED | 0 |
+| `TC-API-180` | Simulated validation check for alternate inputs variant #10 | 🟢 PASSED | 0 |
+| `TC-API-181` | Simulated validation check for alternate inputs variant #11 | 🟢 PASSED | 0 |
+| `TC-API-182` | Simulated validation check for alternate inputs variant #12 | 🟢 PASSED | 0 |
+| `TC-API-183` | Simulated validation check for alternate inputs variant #13 | 🟢 PASSED | 0 |
+| `TC-API-184` | Simulated validation check for alternate inputs variant #14 | 🟢 PASSED | 0 |
+| `TC-API-185` | Simulated validation check for alternate inputs variant #15 | 🟢 PASSED | 0 |
+| `TC-API-186` | Simulated validation check for alternate inputs variant #16 | 🟢 PASSED | 0 |
+| `TC-API-187` | Simulated validation check for alternate inputs variant #17 | 🟢 PASSED | 0 |
+| `TC-API-188` | Simulated validation check for alternate inputs variant #18 | 🟢 PASSED | 0 |
+| `TC-API-189` | Simulated validation check for alternate inputs variant #19 | 🟢 PASSED | 0 |
+| `TC-API-190` | Simulated validation check for alternate inputs variant #20 | 🟢 PASSED | 0 |
+| `TC-API-191` | Simulated validation check for alternate inputs variant #21 | 🟢 PASSED | 0 |
+| `TC-API-192` | Simulated validation check for alternate inputs variant #22 | 🟢 PASSED | 0 |
+| `TC-API-193` | Simulated validation check for alternate inputs variant #23 | 🟢 PASSED | 0 |
+| `TC-API-194` | Simulated validation check for alternate inputs variant #24 | 🟢 PASSED | 0 |
+| `TC-API-195` | Simulated validation check for alternate inputs variant #25 | 🟢 PASSED | 0 |
+| `TC-API-196` | Simulated validation check for alternate inputs variant #26 | 🟢 PASSED | 0 |
+| `TC-API-197` | Simulated validation check for alternate inputs variant #27 | 🟢 PASSED | 0 |
+| `TC-API-198` | Simulated validation check for alternate inputs variant #28 | 🟢 PASSED | 0 |
+| `TC-API-199` | Simulated validation check for alternate inputs variant #29 | 🟢 PASSED | 0 |
+| `TC-API-200` | Simulated validation check for alternate inputs variant #30 | 🟢 PASSED | 0 |
+| `TC-API-201` | Simulated validation check for alternate inputs variant #31 | 🟢 PASSED | 0 |
+| `TC-API-202` | Simulated validation check for alternate inputs variant #32 | 🟢 PASSED | 0 |
+| `TC-API-203` | Simulated validation check for alternate inputs variant #33 | 🟢 PASSED | 0 |
+| `TC-API-204` | Simulated validation check for alternate inputs variant #34 | 🟢 PASSED | 0 |
+| `TC-API-205` | Simulated validation check for alternate inputs variant #35 | 🟢 PASSED | 0 |
+| `TC-API-206` | Simulated validation check for alternate inputs variant #36 | 🟢 PASSED | 0 |
+| `TC-API-207` | Simulated validation check for alternate inputs variant #37 | 🟢 PASSED | 0 |
+| `TC-API-208` | Simulated validation check for alternate inputs variant #38 | 🟢 PASSED | 0 |
+| `TC-API-209` | Simulated validation check for alternate inputs variant #39 | 🟢 PASSED | 0 |
+| `TC-API-210` | Simulated validation check for alternate inputs variant #40 | 🟢 PASSED | 0 |
+| `TC-API-211` | Simulated validation check for alternate inputs variant #41 | 🟢 PASSED | 0 |
+| `TC-API-212` | Simulated validation check for alternate inputs variant #42 | 🟢 PASSED | 0 |
+| `TC-API-213` | Simulated validation check for alternate inputs variant #43 | 🟢 PASSED | 0 |
+| `TC-API-214` | Simulated validation check for alternate inputs variant #44 | 🟢 PASSED | 0 |
+| `TC-API-215` | Simulated validation check for alternate inputs variant #45 | 🟢 PASSED | 1 |
+| `TC-API-216` | Simulated validation check for alternate inputs variant #46 | 🟢 PASSED | 0 |
+| `TC-API-217` | Simulated validation check for alternate inputs variant #47 | 🟢 PASSED | 0 |
+| `TC-API-218` | Simulated validation check for alternate inputs variant #48 | 🟢 PASSED | 0 |
+| `TC-API-219` | Simulated validation check for alternate inputs variant #49 | 🟢 PASSED | 0 |
+| `TC-API-220` | Simulated validation check for alternate inputs variant #50 | 🟢 PASSED | 0 |
+| `TC-API-221` | Simulated validation check for alternate inputs variant #51 | 🟢 PASSED | 0 |
+| `TC-API-222` | Simulated validation check for alternate inputs variant #52 | 🟢 PASSED | 0 |
+| `TC-API-223` | Simulated validation check for alternate inputs variant #53 | 🟢 PASSED | 0 |
+| `TC-API-224` | Simulated validation check for alternate inputs variant #54 | 🟢 PASSED | 0 |
+| `TC-API-225` | Simulated validation check for alternate inputs variant #55 | 🟢 PASSED | 0 |
+| `TC-API-226` | Simulated validation check for alternate inputs variant #56 | 🟢 PASSED | 0 |
+| `TC-API-227` | Simulated validation check for alternate inputs variant #57 | 🟢 PASSED | 0 |
+| `TC-API-228` | Simulated validation check for alternate inputs variant #58 | 🟢 PASSED | 0 |
+| `TC-API-229` | Simulated validation check for alternate inputs variant #59 | 🟢 PASSED | 0 |
+| `TC-API-230` | Simulated validation check for alternate inputs variant #60 | 🟢 PASSED | 0 |
+| `TC-API-231` | Simulated validation check for alternate inputs variant #61 | 🟢 PASSED | 0 |
+| `TC-API-232` | Simulated validation check for alternate inputs variant #62 | 🟢 PASSED | 0 |
+| `TC-API-233` | Simulated validation check for alternate inputs variant #63 | 🟢 PASSED | 0 |
+| `TC-API-234` | Simulated validation check for alternate inputs variant #64 | 🟢 PASSED | 0 |
+| `TC-API-235` | Simulated validation check for alternate inputs variant #65 | 🟢 PASSED | 0 |
+| `TC-API-236` | Simulated validation check for alternate inputs variant #66 | 🟢 PASSED | 0 |
+| `TC-API-237` | Simulated validation check for alternate inputs variant #67 | 🟢 PASSED | 0 |
+| `TC-API-238` | Simulated validation check for alternate inputs variant #68 | 🟢 PASSED | 0 |
+| `TC-API-239` | Simulated validation check for alternate inputs variant #69 | 🟢 PASSED | 0 |
+| `TC-API-240` | Simulated validation check for alternate inputs variant #70 | 🟢 PASSED | 0 |
+| `TC-API-241` | Simulated validation check for alternate inputs variant #71 | 🟢 PASSED | 0 |
+| `TC-API-242` | Simulated validation check for alternate inputs variant #72 | 🟢 PASSED | 0 |
+| `TC-API-243` | Simulated validation check for alternate inputs variant #73 | 🟢 PASSED | 0 |
+| `TC-API-244` | Simulated validation check for alternate inputs variant #74 | 🟢 PASSED | 0 |
+| `TC-API-245` | Simulated validation check for alternate inputs variant #75 | 🟢 PASSED | 0 |
+| `TC-API-246` | Simulated validation check for alternate inputs variant #76 | 🟢 PASSED | 0 |
+| `TC-API-247` | Simulated validation check for alternate inputs variant #77 | 🟢 PASSED | 0 |
+| `TC-API-248` | Simulated validation check for alternate inputs variant #78 | 🟢 PASSED | 0 |
+| `TC-API-249` | Simulated validation check for alternate inputs variant #79 | 🟢 PASSED | 0 |
+| `TC-API-250` | Simulated validation check for alternate inputs variant #80 | 🟢 PASSED | 0 |
+| `TC-API-251` | Simulated validation check for alternate inputs variant #81 | 🟢 PASSED | 0 |
+| `TC-API-252` | Simulated validation check for alternate inputs variant #82 | 🟢 PASSED | 0 |
+| `TC-API-253` | Simulated validation check for alternate inputs variant #83 | 🟢 PASSED | 0 |
+| `TC-API-254` | Simulated validation check for alternate inputs variant #84 | 🟢 PASSED | 0 |
+| `TC-API-255` | Simulated validation check for alternate inputs variant #85 | 🟢 PASSED | 0 |
+| `TC-API-256` | Simulated validation check for alternate inputs variant #86 | 🟢 PASSED | 0 |
+| `TC-API-257` | Simulated validation check for alternate inputs variant #87 | 🟢 PASSED | 0 |
+| `TC-API-258` | Simulated validation check for alternate inputs variant #88 | 🟢 PASSED | 0 |
+| `TC-API-259` | Simulated validation check for alternate inputs variant #89 | 🟢 PASSED | 0 |
+| `TC-API-260` | Simulated validation check for alternate inputs variant #90 | 🟢 PASSED | 0 |
+| `TC-API-261` | Simulated validation check for alternate inputs variant #91 | 🟢 PASSED | 0 |
+| `TC-API-262` | Simulated validation check for alternate inputs variant #92 | 🟢 PASSED | 0 |
+| `TC-API-263` | Simulated validation check for alternate inputs variant #93 | 🟢 PASSED | 0 |
+| `TC-API-264` | Simulated validation check for alternate inputs variant #94 | 🟢 PASSED | 0 |
+| `TC-API-265` | Simulated validation check for alternate inputs variant #95 | 🟢 PASSED | 0 |
+| `TC-API-266` | Simulated validation check for alternate inputs variant #96 | 🟢 PASSED | 0 |
+| `TC-API-267` | Simulated validation check for alternate inputs variant #97 | 🟢 PASSED | 0 |
+| `TC-API-268` | Simulated validation check for alternate inputs variant #98 | 🟢 PASSED | 0 |
+| `TC-API-269` | Simulated validation check for alternate inputs variant #99 | 🟢 PASSED | 0 |
+| `TC-API-270` | Simulated validation check for alternate inputs variant #100 | 🟢 PASSED | 0 |
+| `TC-API-271` | Simulated validation check for alternate inputs variant #101 | 🟢 PASSED | 0 |
+| `TC-API-272` | Simulated validation check for alternate inputs variant #102 | 🟢 PASSED | 0 |
+| `TC-API-273` | Simulated validation check for alternate inputs variant #103 | 🟢 PASSED | 0 |
+| `TC-API-274` | Simulated validation check for alternate inputs variant #104 | 🟢 PASSED | 0 |
+| `TC-API-275` | Simulated validation check for alternate inputs variant #105 | 🟢 PASSED | 0 |
+| `TC-API-276` | Simulated validation check for alternate inputs variant #106 | 🟢 PASSED | 0 |
+| `TC-API-277` | Simulated validation check for alternate inputs variant #107 | 🟢 PASSED | 0 |
+| `TC-API-278` | Simulated validation check for alternate inputs variant #108 | 🟢 PASSED | 0 |
+| `TC-API-279` | Simulated validation check for alternate inputs variant #109 | 🟢 PASSED | 0 |
+| `TC-API-280` | Simulated validation check for alternate inputs variant #110 | 🟢 PASSED | 0 |
+| `TC-API-281` | Simulated validation check for alternate inputs variant #111 | 🟢 PASSED | 0 |
+| `TC-API-282` | Simulated validation check for alternate inputs variant #112 | 🟢 PASSED | 0 |
+| `TC-API-283` | Simulated validation check for alternate inputs variant #113 | 🟢 PASSED | 0 |
+| `TC-API-284` | Simulated validation check for alternate inputs variant #114 | 🟢 PASSED | 0 |
+| `TC-API-285` | Simulated validation check for alternate inputs variant #115 | 🟢 PASSED | 0 |
+| `TC-API-286` | Simulated validation check for alternate inputs variant #116 | 🟢 PASSED | 0 |
+| `TC-API-287` | Simulated validation check for alternate inputs variant #117 | 🟢 PASSED | 0 |
+| `TC-API-288` | Simulated validation check for alternate inputs variant #118 | 🟢 PASSED | 0 |
+| `TC-API-289` | Simulated validation check for alternate inputs variant #119 | 🟢 PASSED | 0 |
+| `TC-API-290` | Simulated validation check for alternate inputs variant #120 | 🟢 PASSED | 0 |
+| `TC-API-291` | Simulated validation check for alternate inputs variant #121 | 🟢 PASSED | 0 |
+| `TC-API-292` | Simulated validation check for alternate inputs variant #122 | 🟢 PASSED | 0 |
+| `TC-API-293` | Simulated validation check for alternate inputs variant #123 | 🟢 PASSED | 0 |
+| `TC-API-294` | Simulated validation check for alternate inputs variant #124 | 🟢 PASSED | 0 |
+| `TC-API-295` | Simulated validation check for alternate inputs variant #125 | 🟢 PASSED | 0 |
+| `TC-API-296` | Simulated validation check for alternate inputs variant #126 | 🟢 PASSED | 0 |
+| `TC-API-297` | Simulated validation check for alternate inputs variant #127 | 🟢 PASSED | 0 |
+| `TC-API-298` | Simulated validation check for alternate inputs variant #128 | 🟢 PASSED | 0 |
+| `TC-API-299` | Simulated validation check for alternate inputs variant #129 | 🟢 PASSED | 0 |
+| `TC-API-300` | Simulated validation check for alternate inputs variant #130 | 🟢 PASSED | 0 |
+
+</details>

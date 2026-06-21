@@ -1,0 +1,15 @@
+{
+  "targetUrl": "https://p01--ambieye--6s9l5yxyj7q6.code.run/privacy-policy",
+  "totalRequests": 50,
+  "successes": 37,
+  "failures": 13,
+  "totalDurationMs": 32415,
+  "avgLatencyMs": 2529.56,
+  "minLatencyMs": 426,
+  "maxLatencyMs": 4011,
+  "throughputReqSec": 1.14,
+  "p50LatencyMs": 2816,
+  "p90LatencyMs": 4011,
+  "p99LatencyMs": 4011,
+  "status": "Degraded"
+}

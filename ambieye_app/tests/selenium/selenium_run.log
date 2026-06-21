@@ -1,0 +1,1761 @@
+
+> ambieye-selenium-tests@1.0.0 test
+> mocha e2e_300_selenium.test.js --timeout 100000
+
+
+
+  AmbiEye 300 E2E Selenium Tests
+Selenium WebDriver initialized successfully.
+    ✔ TC-001 Choose role page navigation
+    ✔ TC-002 Verify Patient role card exists
+    ✔ TC-003 Verify Doctor role card exists
+    ✔ TC-004 Verify Choose Role page heading is visible
+    ✔ TC-005 Verify app logo is displayed on role page
+    ✔ TC-006 Choose Patient role triggers redirect
+    ✔ TC-007 Back button behavior on role selection screen
+    ✔ TC-008 Verify layout container style tags on role screen
+    ✔ TC-009 Verify patient card description text is readable
+    ✔ TC-010 Verify doctor card description text is readable
+    ✔ TC-011 Verify Sign in title is visible on login page
+    ✔ TC-012 Verify username input placeholder exists
+    ✔ TC-013 Verify password input placeholder exists
+    ✔ TC-014 Verify Sign In action button is visible
+    ✔ TC-015 Verify Back link is present on login form
+    ✔ TC-016 Password field secure text entry type attribute
+    ✔ TC-017 Login validation with empty username input
+    ✔ TC-018 Verify empty username error banner display
+    ✔ TC-019 Login validation with empty password input
+    ✔ TC-020 Verify empty password error banner display
+    ✔ TC-021 Login validation with both inputs empty
+    ✔ TC-022 Verify empty fields error message content
+    ✔ TC-023 Login validation with non-existent username
+    ✔ TC-024 Verify non-existent user error banner content
+    ✔ TC-025 Login validation with wrong password for existing user
+    ✔ TC-026 Verify wrong password error banner content
+    ✔ TC-027 Focus behavior of username field on page load
+    ✔ TC-028 Verify form borders and container responsive layout
+    ✔ TC-029 SQL injection username safety verification
+    ✔ TC-030 Special characters username validation check
+    ✔ TC-031 Verify home button is present in patient navbar
+    ✔ TC-032 Verify games navigation link exists in navbar
+    ✔ TC-033 Verify queries navigation link exists in navbar
+    ✔ TC-034 Verify settings navigation link exists in navbar
+    ✔ TC-035 Verify logout navigation link exists in navbar
+    ✔ TC-036 Verify greeting message includes user name mahit
+    ✔ TC-037 Dashboard main title label layout matching
+    ✔ TC-038 Verify patient dashboard widgets are rendering
+    ✔ TC-039 Verify eye tracker status indicator widget
+    ✔ TC-040 Verify recent games log widget loading
+    ✔ TC-041 Verify set reminder button is visible
+    ✔ TC-042 Click set reminder button triggers modal open
+    ✔ TC-043 Verify reminder title input placeholder in modal
+    ✔ TC-044 Submit reminder modal with valid title content
+    ✔ TC-045 Verify new reminder item is visible in list
+    ✔ TC-046 Click edit reminder opens update form modal
+    ✔ TC-047 Update reminder title and submit changes
+    ✔ TC-048 Verify updated reminder title is visible in list
+    ✔ TC-049 Click delete reminder button clears item
+    ✔ TC-050 Verify deleted reminder is removed from document
+    ✔ TC-051 Verify game categories panel is visible
+    ✔ TC-052 Verify view all games navigation action
+    ✔ TC-053 Verify pending queries card summary content
+    ✔ TC-054 Verify recent health alerts block display
+    ✔ TC-055 Verify dashboard charts container elements
+    ✔ TC-056 Verify navigation responsiveness on dashboard menu
+    ✔ TC-057 Verify dashboard background theme container
+    ✔ TC-058 Verify notification alerts indicator icon
+    ✔ TC-059 Verify quick stats score box rendering
+    ✔ TC-060 Verify doctor recommendation notes panel
+    ✔ TC-061 Verify Vision Games header content description
+    ✔ TC-062 Verify category filter tabs panel exists
+    ✔ TC-063 Verify Movement category tab visibility
+    ✔ TC-064 Verify Focus category tab visibility
+    ✔ TC-065 Filter exercises by Movement tab selection
+    ✔ TC-066 Verify exercise item card layout tags rendering
+    ✔ TC-067 Verify Clockwise exercise descriptions readable
+    ✔ TC-068 Verify game thumbnail image container presence
+    ✔ TC-069 Verify Start Game action button element present
+    ✔ TC-070 Clicking Start Game opens game interface panel
+    ✔ TC-071 Verify game canvas element initialization
+    ✔ TC-072 Verify Close button in game screen modal
+    ✔ TC-073 Verify instructions modal displays game rules
+    ✔ TC-074 Verify daily streak multiplier widget rendering
+    ✔ TC-075 Verify total play time logger display indicator
+    ✔ TC-076 Verify game points system total score rendering
+    ✔ TC-077 Verify high score tag badge display indicator
+    ✔ TC-078 Verify play history table rendering correct info
+    ✔ TC-079 Verify today play sessions summary label content
+    ✔ TC-080 Verify game progress milestone reward icons
+    ✔ TC-081 Verify My Queries section title header loading
+    ✔ TC-082 Verify Ask a Question button is clickable
+    ✔ TC-083 Verify queries text area placeholder content
+    ✔ TC-084 Verify priority select tags High option exists
+    ✔ TC-085 Verify priority select tags Medium option exists
+    ✔ TC-086 Verify priority select tags Low option exists
+    ✔ TC-087 Verify Submit query form button is visible
+    ✔ TC-088 Submit query form displays alert confirm window
+    ✔ TC-089 Verify query concern list is updated after post
+    ✔ TC-090 Verify status tag is displayed as Awaiting response
+    ✔ TC-091 Verify queries query date stamp text rendered
+    ✔ TC-092 Verify query concern description text is correct
+    ✔ TC-093 Verify doctor assigned name label exists in query
+    ✔ TC-094 Verify query response container shows answer box
+    ✔ TC-095 Click cancel query form clears inputs properly
+    ✔ TC-096 Verify character count validation indicator query
+    ✔ TC-097 Verify attachment icon is rendered inside queries
+    ✔ TC-098 Verify query history sorting option select dropdown
+    ✔ TC-099 Verify search bar inside queries list filters items
+    ✔ TC-100 Verify queries count total indicator badge exists
+    ✔ TC-101 Verify ACCOUNT group header label settings page
+    ✔ TC-102 Verify Edit Profile action triggers modal open
+    ✔ TC-103 Verify profile name input placeholder text exists
+    ✔ TC-104 Update profile full name text field and submit
+    ✔ TC-105 Verify profile save changes displays alert dialog
+    ✔ TC-106 Verify updated full name matches on settings page
+    ✔ TC-107 Verify OpenCV Server config card is displayed
+    ✔ TC-108 Verify OpenCV server IP input placeholder text
+    ✔ TC-109 Update OpenCV server IP address value and submit
+    ✔ TC-110 Verify server IP configuration alert shows up
+    ✔ TC-111 Verify Logout menu action button is present
+    ✔ TC-112 Click Logout shows confirmation alert dialog box
+    ✔ TC-113 Accepting logout alerts redirects back to login
+    ✔ TC-114 Verify password reset settings panel is visible
+    ✔ TC-115 Verify theme switch light/dark mode select button
+    ✔ TC-116 Verify backup configuration export data settings
+    ✔ TC-117 Verify delete account option settings panel card
+    ✔ TC-118 Verify software version number stamp is printed
+    ✔ TC-119 Verify patient unique registration code is visible
+    ✔ TC-120 Verify help and documentation button settings page
+    ✔ TC-121 Check UI word presence - AmbiEye
+    ✔ TC-122 Check UI word presence - Patient
+    ✔ TC-123 Check UI word presence - Doctor
+    ✔ TC-124 Check UI word presence - Home
+    ✔ TC-125 Check UI word presence - Login
+    ✔ TC-126 Check UI word presence - Username
+    ✔ TC-127 Check UI word presence - Password
+    ✔ TC-128 Check UI word presence - Settings
+    ✔ TC-129 Check UI word presence - Queries
+    ✔ TC-130 Check UI word presence - Dashboard
+    ✔ TC-131 Check UI word presence - Role
+    ✔ TC-132 Check UI word presence - Choose
+    ✔ TC-133 Check UI word presence - Sign In
+    1) TC-134 Check UI word presence - Cancel
+    ✔ TC-135 Check UI word presence - Edit
+    2) TC-136 Check UI word presence - Delete
+    3) TC-137 Check UI word presence - Add
+    ✔ TC-138 Check UI word presence - Submit
+    ✔ TC-139 Check UI word presence - Close
+    ✔ TC-140 Check UI word presence - Back
+    ✔ TC-141 Check UI word presence - Server
+    ✔ TC-142 Check UI word presence - IP
+    4) TC-143 Check UI word presence - Port
+    5) TC-144 Check UI word presence - Distant
+    ✔ TC-145 Check UI word presence - Vision
+    6) TC-146 Check UI word presence - BP
+    7) TC-147 Check UI word presence - Complaint
+    8) TC-148 Check UI word presence - Medical
+    9) TC-149 Check UI word presence - Record
+    10) TC-150 Check UI word presence - Visit
+    11) TC-151 Check UI word presence - Notes
+    12) TC-152 Check UI word presence - Answer
+    ✔ TC-153 Check UI word presence - Response
+    13) TC-154 Check UI word presence - Pending
+    ✔ TC-155 Check UI word presence - Awaiting
+    14) TC-156 Check UI word presence - Responded
+    ✔ TC-157 Check UI word presence - High
+    ✔ TC-158 Check UI word presence - Medium
+    ✔ TC-159 Check UI word presence - Low
+    ✔ TC-160 Check UI word presence - Priority
+    ✔ TC-161 Check UI word presence - Concern
+    ✔ TC-162 Check UI word presence - Question
+    ✔ TC-163 Check UI word presence - Game
+    ✔ TC-164 Check UI word presence - Movement
+    ✔ TC-165 Check UI word presence - Clockwise
+    15) TC-166 Check UI word presence - Filter
+    16) TC-167 Check UI word presence - Category
+    17) TC-168 Check UI word presence - View All
+    ✔ TC-169 Check UI word presence - Privacy Policy
+    ✔ TC-170 Check UI word presence - Code
+    ✔ TC-171 Verify CSS layout structure styling element boundary #1
+    ✔ TC-172 Verify CSS layout structure styling element boundary #2
+    ✔ TC-173 Verify CSS layout structure styling element boundary #3
+    ✔ TC-174 Verify CSS layout structure styling element boundary #4
+    ✔ TC-175 Verify CSS layout structure styling element boundary #5
+    ✔ TC-176 Verify CSS layout structure styling element boundary #6
+    ✔ TC-177 Verify CSS layout structure styling element boundary #7
+    ✔ TC-178 Verify CSS layout structure styling element boundary #8
+    ✔ TC-179 Verify CSS layout structure styling element boundary #9
+    ✔ TC-180 Verify CSS layout structure styling element boundary #10
+    ✔ TC-181 Verify CSS layout structure styling element boundary #11
+    ✔ TC-182 Verify CSS layout structure styling element boundary #12
+    ✔ TC-183 Verify CSS layout structure styling element boundary #13
+    ✔ TC-184 Verify CSS layout structure styling element boundary #14
+    ✔ TC-185 Verify CSS layout structure styling element boundary #15
+    ✔ TC-186 Verify CSS layout structure styling element boundary #16
+    ✔ TC-187 Verify CSS layout structure styling element boundary #17
+    ✔ TC-188 Verify CSS layout structure styling element boundary #18
+    ✔ TC-189 Verify CSS layout structure styling element boundary #19
+    ✔ TC-190 Verify CSS layout structure styling element boundary #20
+    ✔ TC-191 Verify CSS layout structure styling element boundary #21
+    ✔ TC-192 Verify CSS layout structure styling element boundary #22
+    ✔ TC-193 Verify CSS layout structure styling element boundary #23
+    ✔ TC-194 Verify CSS layout structure styling element boundary #24
+    ✔ TC-195 Verify CSS layout structure styling element boundary #25
+    ✔ TC-196 Verify CSS layout structure styling element boundary #26
+    ✔ TC-197 Verify CSS layout structure styling element boundary #27
+    ✔ TC-198 Verify CSS layout structure styling element boundary #28
+    ✔ TC-199 Verify CSS layout structure styling element boundary #29
+    ✔ TC-200 Verify CSS layout structure styling element boundary #30
+    ✔ TC-201 Verify CSS layout structure styling element boundary #31
+    ✔ TC-202 Verify CSS layout structure styling element boundary #32
+    ✔ TC-203 Verify CSS layout structure styling element boundary #33
+    ✔ TC-204 Verify CSS layout structure styling element boundary #34
+    ✔ TC-205 Verify CSS layout structure styling element boundary #35
+    ✔ TC-206 Verify CSS layout structure styling element boundary #36
+    ✔ TC-207 Verify CSS layout structure styling element boundary #37
+    ✔ TC-208 Verify CSS layout structure styling element boundary #38
+    ✔ TC-209 Verify CSS layout structure styling element boundary #39
+    ✔ TC-210 Verify CSS layout structure styling element boundary #40
+    ✔ TC-211 Verify CSS layout structure styling element boundary #41
+    ✔ TC-212 Verify CSS layout structure styling element boundary #42
+    ✔ TC-213 Verify CSS layout structure styling element boundary #43
+    ✔ TC-214 Verify CSS layout structure styling element boundary #44
+    ✔ TC-215 Verify CSS layout structure styling element boundary #45
+    ✔ TC-216 Verify CSS layout structure styling element boundary #46
+    ✔ TC-217 Verify CSS layout structure styling element boundary #47
+    ✔ TC-218 Verify CSS layout structure styling element boundary #48
+    ✔ TC-219 Verify CSS layout structure styling element boundary #49
+    ✔ TC-220 Verify CSS layout structure styling element boundary #50
+    ✔ TC-221 Verify CSS layout structure styling element boundary #51
+    ✔ TC-222 Verify CSS layout structure styling element boundary #52
+    ✔ TC-223 Verify CSS layout structure styling element boundary #53
+    ✔ TC-224 Verify CSS layout structure styling element boundary #54
+    ✔ TC-225 Verify CSS layout structure styling element boundary #55
+    ✔ TC-226 Verify CSS layout structure styling element boundary #56
+    ✔ TC-227 Verify CSS layout structure styling element boundary #57
+    ✔ TC-228 Verify CSS layout structure styling element boundary #58
+    ✔ TC-229 Verify CSS layout structure styling element boundary #59
+    ✔ TC-230 Verify CSS layout structure styling element boundary #60
+    ✔ TC-231 Verify CSS layout structure styling element boundary #61
+    ✔ TC-232 Verify CSS layout structure styling element boundary #62
+    ✔ TC-233 Verify CSS layout structure styling element boundary #63
+    ✔ TC-234 Verify CSS layout structure styling element boundary #64
+    ✔ TC-235 Verify CSS layout structure styling element boundary #65
+    ✔ TC-236 Verify CSS layout structure styling element boundary #66
+    ✔ TC-237 Verify CSS layout structure styling element boundary #67
+    ✔ TC-238 Verify CSS layout structure styling element boundary #68
+    ✔ TC-239 Verify CSS layout structure styling element boundary #69
+    ✔ TC-240 Verify CSS layout structure styling element boundary #70
+    ✔ TC-241 Verify CSS layout structure styling element boundary #71
+    ✔ TC-242 Verify CSS layout structure styling element boundary #72
+    ✔ TC-243 Verify CSS layout structure styling element boundary #73
+    ✔ TC-244 Verify CSS layout structure styling element boundary #74
+    ✔ TC-245 Verify CSS layout structure styling element boundary #75
+    ✔ TC-246 Verify CSS layout structure styling element boundary #76
+    ✔ TC-247 Verify CSS layout structure styling element boundary #77
+    ✔ TC-248 Verify CSS layout structure styling element boundary #78
+    ✔ TC-249 Verify CSS layout structure styling element boundary #79
+    ✔ TC-250 Verify CSS layout structure styling element boundary #80
+    ✔ TC-251 Verify CSS layout structure styling element boundary #81
+    ✔ TC-252 Verify CSS layout structure styling element boundary #82
+    ✔ TC-253 Verify CSS layout structure styling element boundary #83
+    ✔ TC-254 Verify CSS layout structure styling element boundary #84
+    ✔ TC-255 Verify CSS layout structure styling element boundary #85
+    ✔ TC-256 Verify CSS layout structure styling element boundary #86
+    ✔ TC-257 Verify CSS layout structure styling element boundary #87
+    ✔ TC-258 Verify CSS layout structure styling element boundary #88
+    ✔ TC-259 Verify CSS layout structure styling element boundary #89
+    ✔ TC-260 Verify CSS layout structure styling element boundary #90
+    ✔ TC-261 Verify CSS layout structure styling element boundary #91
+    ✔ TC-262 Verify CSS layout structure styling element boundary #92
+    ✔ TC-263 Verify CSS layout structure styling element boundary #93
+    ✔ TC-264 Verify CSS layout structure styling element boundary #94
+    ✔ TC-265 Verify CSS layout structure styling element boundary #95
+    ✔ TC-266 Verify CSS layout structure styling element boundary #96
+    ✔ TC-267 Verify CSS layout structure styling element boundary #97
+    ✔ TC-268 Verify CSS layout structure styling element boundary #98
+    ✔ TC-269 Verify CSS layout structure styling element boundary #99
+    ✔ TC-270 Verify CSS layout structure styling element boundary #100
+    ✔ TC-271 Verify CSS layout structure styling element boundary #101
+    ✔ TC-272 Verify CSS layout structure styling element boundary #102
+    ✔ TC-273 Verify CSS layout structure styling element boundary #103
+    ✔ TC-274 Verify CSS layout structure styling element boundary #104
+    ✔ TC-275 Verify CSS layout structure styling element boundary #105
+    ✔ TC-276 Verify CSS layout structure styling element boundary #106
+    ✔ TC-277 Verify CSS layout structure styling element boundary #107
+    ✔ TC-278 Verify CSS layout structure styling element boundary #108
+    ✔ TC-279 Verify CSS layout structure styling element boundary #109
+    ✔ TC-280 Verify CSS layout structure styling element boundary #110
+    ✔ TC-281 Verify CSS layout structure styling element boundary #111
+    ✔ TC-282 Verify CSS layout structure styling element boundary #112
+    ✔ TC-283 Verify CSS layout structure styling element boundary #113
+    ✔ TC-284 Verify CSS layout structure styling element boundary #114
+    ✔ TC-285 Verify CSS layout structure styling element boundary #115
+    ✔ TC-286 Verify CSS layout structure styling element boundary #116
+    ✔ TC-287 Verify CSS layout structure styling element boundary #117
+    ✔ TC-288 Verify CSS layout structure styling element boundary #118
+    ✔ TC-289 Verify CSS layout structure styling element boundary #119
+    ✔ TC-290 Verify CSS layout structure styling element boundary #120
+    ✔ TC-291 Verify CSS layout structure styling element boundary #121
+    ✔ TC-292 Verify CSS layout structure styling element boundary #122
+    ✔ TC-293 Verify CSS layout structure styling element boundary #123
+    ✔ TC-294 Verify CSS layout structure styling element boundary #124
+    ✔ TC-295 Verify CSS layout structure styling element boundary #125
+    ✔ TC-296 Verify CSS layout structure styling element boundary #126
+    ✔ TC-297 Verify CSS layout structure styling element boundary #127
+    ✔ TC-298 Verify CSS layout structure styling element boundary #128
+    ✔ TC-299 Verify CSS layout structure styling element boundary #129
+    ✔ TC-300 Verify CSS layout structure styling element boundary #130
+Saved 300 Selenium test results to selenium_results.json
+
+
+  283 passing (1s)
+  17 failing
+
+  1) AmbiEye 300 E2E Selenium Tests
+       TC-134 Check UI word presence - Cancel:
+     AssertionError [ERR_ASSERTION]: The input did not match the regular expression /Cancel/i. Input:
+
+'\n' +
+  '      <html>\n' +
+  '        <head>\n' +
+  '          <title>AmbiEye Platform</title>\n' +
+  '        </head>\n' +
+  '        <body>\n' +
+  '          <!-- Navbar buttons -->\n' +
+  '          <div class="navbar">\n' +
+  '            <button id="nav-home">Home</button>\n' +
+  '            <button id="nav-games">Games</button>\n' +
+  '            <button id="nav-queries">Queries</button>\n' +
+  '            <button id="nav-settings">Settings</button>\n' +
+  '            <button id="nav-logout">Logout</button>\n' +
+  '            <div class="logo">AmbiEye Logo</div>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Role selection screen -->\n' +
+  '          <div class="role-selection">\n' +
+  '            <h1>Choose your role</h1>\n' +
+  '            <div class="card" role="button">Patient</div>\n' +
+  '            <div class="card" role="button">Doctor</div>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Login form screen -->\n' +
+  '          <div class="login-form">\n' +
+  '            <h2>Sign in to continue</h2>\n' +
+  '            <input placeholder="Enter your username" value="mahit" />\n' +
+  '            <input placeholder="Enter your password" type="password" value="Meheer17" />\n' +
+  '            <button class="btn-signin">Sign In</button>\n' +
+  '            <a href="/role">Back</a>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Patient Dashboard screen -->\n' +
+  '          <div class="dashboard-patient">\n' +
+  '            <h2>Good day, mahit</h2>\n' +
+  '            <h3>Vision Games</h3>\n' +
+  '            <div class="game-categories">\n' +
+  '              <span class="tab">Movement</span>\n' +
+  '              <span class="tab">Focus</span>\n' +
+  '            </div>\n' +
+  '            <div class="game-list">\n' +
+  '              <div class="game-card">Clockwise Exercise</div>\n' +
+  '              <button class="btn-start">Start Game</button>\n' +
+  '              <button class="btn-close">Close</button>\n' +
+  '            </div>\n' +
+  '            \n' +
+  '            <!-- Patient queries -->\n' +
+  '            <div class="queries-section">\n' +
+  '              <h3>My Queries</h3>\n' +
+  '              <button class="btn-ask">Ask a Question</button>\n' +
+  '              <textarea placeholder="Describe your concern or question..."></textarea>\n' +
+  '              <span class="status-tag">Awaiting response</span>\n' +
+  '              <span class="priority">High</span>\n' +
+  '              <span class="priority">Medium</span>\n' +
+  '              <span class="priority">Low</span>\n' +
+  '              <button class="btn-submit">Submit</button>\n' +
+  '            </div>\n' +
+  '\n' +
+  '            <!-- Patient settings -->\n' +
+  '            <div class="settings-section">\n' +
+  '              <h2>ACCOUNT</h2>\n' +
+  '              <button class="btn-edit-profile">Edit Profile</button>\n' +
+  '              <input placeholder="Enter your full name" value="Mahi" />\n' +
+  '              <div class="opencv-config">OpenCV Server IP</div>\n' +
+  '              <input placeholder="e.g. 192.168.1.42" value="192.168.1.150" />\n' +
+  '            </div>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Privacy and footer -->\n' +
+  '          <div class="footer">\n' +
+  '            <a href="/privacy-policy">Privacy Policy</a>\n' +
+  '            <span class="code-stamp">Version Code: 1.0.0</span>\n' +
+  '          </div>\n' +
+  '        </body>\n' +
+  '      </html>\n' +
+  '    '
+
+      at Object.run (e2e_300_selenium.test.js:525:91)
+      at Context.<anonymous> (e2e_300_selenium.test.js:580:16)
+      at process.processImmediate (node:internal/timers:483:21)
+
+  2) AmbiEye 300 E2E Selenium Tests
+       TC-136 Check UI word presence - Delete:
+     AssertionError [ERR_ASSERTION]: The input did not match the regular expression /Delete/i. Input:
+
+'\n' +
+  '      <html>\n' +
+  '        <head>\n' +
+  '          <title>AmbiEye Platform</title>\n' +
+  '        </head>\n' +
+  '        <body>\n' +
+  '          <!-- Navbar buttons -->\n' +
+  '          <div class="navbar">\n' +
+  '            <button id="nav-home">Home</button>\n' +
+  '            <button id="nav-games">Games</button>\n' +
+  '            <button id="nav-queries">Queries</button>\n' +
+  '            <button id="nav-settings">Settings</button>\n' +
+  '            <button id="nav-logout">Logout</button>\n' +
+  '            <div class="logo">AmbiEye Logo</div>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Role selection screen -->\n' +
+  '          <div class="role-selection">\n' +
+  '            <h1>Choose your role</h1>\n' +
+  '            <div class="card" role="button">Patient</div>\n' +
+  '            <div class="card" role="button">Doctor</div>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Login form screen -->\n' +
+  '          <div class="login-form">\n' +
+  '            <h2>Sign in to continue</h2>\n' +
+  '            <input placeholder="Enter your username" value="mahit" />\n' +
+  '            <input placeholder="Enter your password" type="password" value="Meheer17" />\n' +
+  '            <button class="btn-signin">Sign In</button>\n' +
+  '            <a href="/role">Back</a>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Patient Dashboard screen -->\n' +
+  '          <div class="dashboard-patient">\n' +
+  '            <h2>Good day, mahit</h2>\n' +
+  '            <h3>Vision Games</h3>\n' +
+  '            <div class="game-categories">\n' +
+  '              <span class="tab">Movement</span>\n' +
+  '              <span class="tab">Focus</span>\n' +
+  '            </div>\n' +
+  '            <div class="game-list">\n' +
+  '              <div class="game-card">Clockwise Exercise</div>\n' +
+  '              <button class="btn-start">Start Game</button>\n' +
+  '              <button class="btn-close">Close</button>\n' +
+  '            </div>\n' +
+  '            \n' +
+  '            <!-- Patient queries -->\n' +
+  '            <div class="queries-section">\n' +
+  '              <h3>My Queries</h3>\n' +
+  '              <button class="btn-ask">Ask a Question</button>\n' +
+  '              <textarea placeholder="Describe your concern or question..."></textarea>\n' +
+  '              <span class="status-tag">Awaiting response</span>\n' +
+  '              <span class="priority">High</span>\n' +
+  '              <span class="priority">Medium</span>\n' +
+  '              <span class="priority">Low</span>\n' +
+  '              <button class="btn-submit">Submit</button>\n' +
+  '            </div>\n' +
+  '\n' +
+  '            <!-- Patient settings -->\n' +
+  '            <div class="settings-section">\n' +
+  '              <h2>ACCOUNT</h2>\n' +
+  '              <button class="btn-edit-profile">Edit Profile</button>\n' +
+  '              <input placeholder="Enter your full name" value="Mahi" />\n' +
+  '              <div class="opencv-config">OpenCV Server IP</div>\n' +
+  '              <input placeholder="e.g. 192.168.1.42" value="192.168.1.150" />\n' +
+  '            </div>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Privacy and footer -->\n' +
+  '          <div class="footer">\n' +
+  '            <a href="/privacy-policy">Privacy Policy</a>\n' +
+  '            <span class="code-stamp">Version Code: 1.0.0</span>\n' +
+  '          </div>\n' +
+  '        </body>\n' +
+  '      </html>\n' +
+  '    '
+
+      at Object.run (e2e_300_selenium.test.js:527:91)
+      at Context.<anonymous> (e2e_300_selenium.test.js:580:16)
+      at process.processImmediate (node:internal/timers:483:21)
+
+  3) AmbiEye 300 E2E Selenium Tests
+       TC-137 Check UI word presence - Add:
+     AssertionError [ERR_ASSERTION]: The input did not match the regular expression /Add/i. Input:
+
+'\n' +
+  '      <html>\n' +
+  '        <head>\n' +
+  '          <title>AmbiEye Platform</title>\n' +
+  '        </head>\n' +
+  '        <body>\n' +
+  '          <!-- Navbar buttons -->\n' +
+  '          <div class="navbar">\n' +
+  '            <button id="nav-home">Home</button>\n' +
+  '            <button id="nav-games">Games</button>\n' +
+  '            <button id="nav-queries">Queries</button>\n' +
+  '            <button id="nav-settings">Settings</button>\n' +
+  '            <button id="nav-logout">Logout</button>\n' +
+  '            <div class="logo">AmbiEye Logo</div>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Role selection screen -->\n' +
+  '          <div class="role-selection">\n' +
+  '            <h1>Choose your role</h1>\n' +
+  '            <div class="card" role="button">Patient</div>\n' +
+  '            <div class="card" role="button">Doctor</div>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Login form screen -->\n' +
+  '          <div class="login-form">\n' +
+  '            <h2>Sign in to continue</h2>\n' +
+  '            <input placeholder="Enter your username" value="mahit" />\n' +
+  '            <input placeholder="Enter your password" type="password" value="Meheer17" />\n' +
+  '            <button class="btn-signin">Sign In</button>\n' +
+  '            <a href="/role">Back</a>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Patient Dashboard screen -->\n' +
+  '          <div class="dashboard-patient">\n' +
+  '            <h2>Good day, mahit</h2>\n' +
+  '            <h3>Vision Games</h3>\n' +
+  '            <div class="game-categories">\n' +
+  '              <span class="tab">Movement</span>\n' +
+  '              <span class="tab">Focus</span>\n' +
+  '            </div>\n' +
+  '            <div class="game-list">\n' +
+  '              <div class="game-card">Clockwise Exercise</div>\n' +
+  '              <button class="btn-start">Start Game</button>\n' +
+  '              <button class="btn-close">Close</button>\n' +
+  '            </div>\n' +
+  '            \n' +
+  '            <!-- Patient queries -->\n' +
+  '            <div class="queries-section">\n' +
+  '              <h3>My Queries</h3>\n' +
+  '              <button class="btn-ask">Ask a Question</button>\n' +
+  '              <textarea placeholder="Describe your concern or question..."></textarea>\n' +
+  '              <span class="status-tag">Awaiting response</span>\n' +
+  '              <span class="priority">High</span>\n' +
+  '              <span class="priority">Medium</span>\n' +
+  '              <span class="priority">Low</span>\n' +
+  '              <button class="btn-submit">Submit</button>\n' +
+  '            </div>\n' +
+  '\n' +
+  '            <!-- Patient settings -->\n' +
+  '            <div class="settings-section">\n' +
+  '              <h2>ACCOUNT</h2>\n' +
+  '              <button class="btn-edit-profile">Edit Profile</button>\n' +
+  '              <input placeholder="Enter your full name" value="Mahi" />\n' +
+  '              <div class="opencv-config">OpenCV Server IP</div>\n' +
+  '              <input placeholder="e.g. 192.168.1.42" value="192.168.1.150" />\n' +
+  '            </div>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Privacy and footer -->\n' +
+  '          <div class="footer">\n' +
+  '            <a href="/privacy-policy">Privacy Policy</a>\n' +
+  '            <span class="code-stamp">Version Code: 1.0.0</span>\n' +
+  '          </div>\n' +
+  '        </body>\n' +
+  '      </html>\n' +
+  '    '
+
+      at Object.run (e2e_300_selenium.test.js:528:88)
+      at Context.<anonymous> (e2e_300_selenium.test.js:580:16)
+      at process.processImmediate (node:internal/timers:483:21)
+
+  4) AmbiEye 300 E2E Selenium Tests
+       TC-143 Check UI word presence - Port:
+     AssertionError [ERR_ASSERTION]: The input did not match the regular expression /Port/i. Input:
+
+'\n' +
+  '      <html>\n' +
+  '        <head>\n' +
+  '          <title>AmbiEye Platform</title>\n' +
+  '        </head>\n' +
+  '        <body>\n' +
+  '          <!-- Navbar buttons -->\n' +
+  '          <div class="navbar">\n' +
+  '            <button id="nav-home">Home</button>\n' +
+  '            <button id="nav-games">Games</button>\n' +
+  '            <button id="nav-queries">Queries</button>\n' +
+  '            <button id="nav-settings">Settings</button>\n' +
+  '            <button id="nav-logout">Logout</button>\n' +
+  '            <div class="logo">AmbiEye Logo</div>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Role selection screen -->\n' +
+  '          <div class="role-selection">\n' +
+  '            <h1>Choose your role</h1>\n' +
+  '            <div class="card" role="button">Patient</div>\n' +
+  '            <div class="card" role="button">Doctor</div>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Login form screen -->\n' +
+  '          <div class="login-form">\n' +
+  '            <h2>Sign in to continue</h2>\n' +
+  '            <input placeholder="Enter your username" value="mahit" />\n' +
+  '            <input placeholder="Enter your password" type="password" value="Meheer17" />\n' +
+  '            <button class="btn-signin">Sign In</button>\n' +
+  '            <a href="/role">Back</a>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Patient Dashboard screen -->\n' +
+  '          <div class="dashboard-patient">\n' +
+  '            <h2>Good day, mahit</h2>\n' +
+  '            <h3>Vision Games</h3>\n' +
+  '            <div class="game-categories">\n' +
+  '              <span class="tab">Movement</span>\n' +
+  '              <span class="tab">Focus</span>\n' +
+  '            </div>\n' +
+  '            <div class="game-list">\n' +
+  '              <div class="game-card">Clockwise Exercise</div>\n' +
+  '              <button class="btn-start">Start Game</button>\n' +
+  '              <button class="btn-close">Close</button>\n' +
+  '            </div>\n' +
+  '            \n' +
+  '            <!-- Patient queries -->\n' +
+  '            <div class="queries-section">\n' +
+  '              <h3>My Queries</h3>\n' +
+  '              <button class="btn-ask">Ask a Question</button>\n' +
+  '              <textarea placeholder="Describe your concern or question..."></textarea>\n' +
+  '              <span class="status-tag">Awaiting response</span>\n' +
+  '              <span class="priority">High</span>\n' +
+  '              <span class="priority">Medium</span>\n' +
+  '              <span class="priority">Low</span>\n' +
+  '              <button class="btn-submit">Submit</button>\n' +
+  '            </div>\n' +
+  '\n' +
+  '            <!-- Patient settings -->\n' +
+  '            <div class="settings-section">\n' +
+  '              <h2>ACCOUNT</h2>\n' +
+  '              <button class="btn-edit-profile">Edit Profile</button>\n' +
+  '              <input placeholder="Enter your full name" value="Mahi" />\n' +
+  '              <div class="opencv-config">OpenCV Server IP</div>\n' +
+  '              <input placeholder="e.g. 192.168.1.42" value="192.168.1.150" />\n' +
+  '            </div>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Privacy and footer -->\n' +
+  '          <div class="footer">\n' +
+  '            <a href="/privacy-policy">Privacy Policy</a>\n' +
+  '            <span class="code-stamp">Version Code: 1.0.0</span>\n' +
+  '          </div>\n' +
+  '        </body>\n' +
+  '      </html>\n' +
+  '    '
+
+      at Object.run (e2e_300_selenium.test.js:534:89)
+      at Context.<anonymous> (e2e_300_selenium.test.js:580:16)
+      at process.processImmediate (node:internal/timers:483:21)
+
+  5) AmbiEye 300 E2E Selenium Tests
+       TC-144 Check UI word presence - Distant:
+     AssertionError [ERR_ASSERTION]: The input did not match the regular expression /Distant/i. Input:
+
+'\n' +
+  '      <html>\n' +
+  '        <head>\n' +
+  '          <title>AmbiEye Platform</title>\n' +
+  '        </head>\n' +
+  '        <body>\n' +
+  '          <!-- Navbar buttons -->\n' +
+  '          <div class="navbar">\n' +
+  '            <button id="nav-home">Home</button>\n' +
+  '            <button id="nav-games">Games</button>\n' +
+  '            <button id="nav-queries">Queries</button>\n' +
+  '            <button id="nav-settings">Settings</button>\n' +
+  '            <button id="nav-logout">Logout</button>\n' +
+  '            <div class="logo">AmbiEye Logo</div>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Role selection screen -->\n' +
+  '          <div class="role-selection">\n' +
+  '            <h1>Choose your role</h1>\n' +
+  '            <div class="card" role="button">Patient</div>\n' +
+  '            <div class="card" role="button">Doctor</div>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Login form screen -->\n' +
+  '          <div class="login-form">\n' +
+  '            <h2>Sign in to continue</h2>\n' +
+  '            <input placeholder="Enter your username" value="mahit" />\n' +
+  '            <input placeholder="Enter your password" type="password" value="Meheer17" />\n' +
+  '            <button class="btn-signin">Sign In</button>\n' +
+  '            <a href="/role">Back</a>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Patient Dashboard screen -->\n' +
+  '          <div class="dashboard-patient">\n' +
+  '            <h2>Good day, mahit</h2>\n' +
+  '            <h3>Vision Games</h3>\n' +
+  '            <div class="game-categories">\n' +
+  '              <span class="tab">Movement</span>\n' +
+  '              <span class="tab">Focus</span>\n' +
+  '            </div>\n' +
+  '            <div class="game-list">\n' +
+  '              <div class="game-card">Clockwise Exercise</div>\n' +
+  '              <button class="btn-start">Start Game</button>\n' +
+  '              <button class="btn-close">Close</button>\n' +
+  '            </div>\n' +
+  '            \n' +
+  '            <!-- Patient queries -->\n' +
+  '            <div class="queries-section">\n' +
+  '              <h3>My Queries</h3>\n' +
+  '              <button class="btn-ask">Ask a Question</button>\n' +
+  '              <textarea placeholder="Describe your concern or question..."></textarea>\n' +
+  '              <span class="status-tag">Awaiting response</span>\n' +
+  '              <span class="priority">High</span>\n' +
+  '              <span class="priority">Medium</span>\n' +
+  '              <span class="priority">Low</span>\n' +
+  '              <button class="btn-submit">Submit</button>\n' +
+  '            </div>\n' +
+  '\n' +
+  '            <!-- Patient settings -->\n' +
+  '            <div class="settings-section">\n' +
+  '              <h2>ACCOUNT</h2>\n' +
+  '              <button class="btn-edit-profile">Edit Profile</button>\n' +
+  '              <input placeholder="Enter your full name" value="Mahi" />\n' +
+  '              <div class="opencv-config">OpenCV Server IP</div>\n' +
+  '              <input placeholder="e.g. 192.168.1.42" value="192.168.1.150" />\n' +
+  '            </div>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Privacy and footer -->\n' +
+  '          <div class="footer">\n' +
+  '            <a href="/privacy-policy">Privacy Policy</a>\n' +
+  '            <span class="code-stamp">Version Code: 1.0.0</span>\n' +
+  '          </div>\n' +
+  '        </body>\n' +
+  '      </html>\n' +
+  '    '
+
+      at Object.run (e2e_300_selenium.test.js:535:92)
+      at Context.<anonymous> (e2e_300_selenium.test.js:580:16)
+      at process.processImmediate (node:internal/timers:483:21)
+
+  6) AmbiEye 300 E2E Selenium Tests
+       TC-146 Check UI word presence - BP:
+     AssertionError [ERR_ASSERTION]: The input did not match the regular expression /BP/i. Input:
+
+'\n' +
+  '      <html>\n' +
+  '        <head>\n' +
+  '          <title>AmbiEye Platform</title>\n' +
+  '        </head>\n' +
+  '        <body>\n' +
+  '          <!-- Navbar buttons -->\n' +
+  '          <div class="navbar">\n' +
+  '            <button id="nav-home">Home</button>\n' +
+  '            <button id="nav-games">Games</button>\n' +
+  '            <button id="nav-queries">Queries</button>\n' +
+  '            <button id="nav-settings">Settings</button>\n' +
+  '            <button id="nav-logout">Logout</button>\n' +
+  '            <div class="logo">AmbiEye Logo</div>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Role selection screen -->\n' +
+  '          <div class="role-selection">\n' +
+  '            <h1>Choose your role</h1>\n' +
+  '            <div class="card" role="button">Patient</div>\n' +
+  '            <div class="card" role="button">Doctor</div>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Login form screen -->\n' +
+  '          <div class="login-form">\n' +
+  '            <h2>Sign in to continue</h2>\n' +
+  '            <input placeholder="Enter your username" value="mahit" />\n' +
+  '            <input placeholder="Enter your password" type="password" value="Meheer17" />\n' +
+  '            <button class="btn-signin">Sign In</button>\n' +
+  '            <a href="/role">Back</a>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Patient Dashboard screen -->\n' +
+  '          <div class="dashboard-patient">\n' +
+  '            <h2>Good day, mahit</h2>\n' +
+  '            <h3>Vision Games</h3>\n' +
+  '            <div class="game-categories">\n' +
+  '              <span class="tab">Movement</span>\n' +
+  '              <span class="tab">Focus</span>\n' +
+  '            </div>\n' +
+  '            <div class="game-list">\n' +
+  '              <div class="game-card">Clockwise Exercise</div>\n' +
+  '              <button class="btn-start">Start Game</button>\n' +
+  '              <button class="btn-close">Close</button>\n' +
+  '            </div>\n' +
+  '            \n' +
+  '            <!-- Patient queries -->\n' +
+  '            <div class="queries-section">\n' +
+  '              <h3>My Queries</h3>\n' +
+  '              <button class="btn-ask">Ask a Question</button>\n' +
+  '              <textarea placeholder="Describe your concern or question..."></textarea>\n' +
+  '              <span class="status-tag">Awaiting response</span>\n' +
+  '              <span class="priority">High</span>\n' +
+  '              <span class="priority">Medium</span>\n' +
+  '              <span class="priority">Low</span>\n' +
+  '              <button class="btn-submit">Submit</button>\n' +
+  '            </div>\n' +
+  '\n' +
+  '            <!-- Patient settings -->\n' +
+  '            <div class="settings-section">\n' +
+  '              <h2>ACCOUNT</h2>\n' +
+  '              <button class="btn-edit-profile">Edit Profile</button>\n' +
+  '              <input placeholder="Enter your full name" value="Mahi" />\n' +
+  '              <div class="opencv-config">OpenCV Server IP</div>\n' +
+  '              <input placeholder="e.g. 192.168.1.42" value="192.168.1.150" />\n' +
+  '            </div>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Privacy and footer -->\n' +
+  '          <div class="footer">\n' +
+  '            <a href="/privacy-policy">Privacy Policy</a>\n' +
+  '            <span class="code-stamp">Version Code: 1.0.0</span>\n' +
+  '          </div>\n' +
+  '        </body>\n' +
+  '      </html>\n' +
+  '    '
+
+      at Object.run (e2e_300_selenium.test.js:537:87)
+      at Context.<anonymous> (e2e_300_selenium.test.js:580:16)
+      at process.processImmediate (node:internal/timers:483:21)
+
+  7) AmbiEye 300 E2E Selenium Tests
+       TC-147 Check UI word presence - Complaint:
+     AssertionError [ERR_ASSERTION]: The input did not match the regular expression /Complaint/i. Input:
+
+'\n' +
+  '      <html>\n' +
+  '        <head>\n' +
+  '          <title>AmbiEye Platform</title>\n' +
+  '        </head>\n' +
+  '        <body>\n' +
+  '          <!-- Navbar buttons -->\n' +
+  '          <div class="navbar">\n' +
+  '            <button id="nav-home">Home</button>\n' +
+  '            <button id="nav-games">Games</button>\n' +
+  '            <button id="nav-queries">Queries</button>\n' +
+  '            <button id="nav-settings">Settings</button>\n' +
+  '            <button id="nav-logout">Logout</button>\n' +
+  '            <div class="logo">AmbiEye Logo</div>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Role selection screen -->\n' +
+  '          <div class="role-selection">\n' +
+  '            <h1>Choose your role</h1>\n' +
+  '            <div class="card" role="button">Patient</div>\n' +
+  '            <div class="card" role="button">Doctor</div>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Login form screen -->\n' +
+  '          <div class="login-form">\n' +
+  '            <h2>Sign in to continue</h2>\n' +
+  '            <input placeholder="Enter your username" value="mahit" />\n' +
+  '            <input placeholder="Enter your password" type="password" value="Meheer17" />\n' +
+  '            <button class="btn-signin">Sign In</button>\n' +
+  '            <a href="/role">Back</a>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Patient Dashboard screen -->\n' +
+  '          <div class="dashboard-patient">\n' +
+  '            <h2>Good day, mahit</h2>\n' +
+  '            <h3>Vision Games</h3>\n' +
+  '            <div class="game-categories">\n' +
+  '              <span class="tab">Movement</span>\n' +
+  '              <span class="tab">Focus</span>\n' +
+  '            </div>\n' +
+  '            <div class="game-list">\n' +
+  '              <div class="game-card">Clockwise Exercise</div>\n' +
+  '              <button class="btn-start">Start Game</button>\n' +
+  '              <button class="btn-close">Close</button>\n' +
+  '            </div>\n' +
+  '            \n' +
+  '            <!-- Patient queries -->\n' +
+  '            <div class="queries-section">\n' +
+  '              <h3>My Queries</h3>\n' +
+  '              <button class="btn-ask">Ask a Question</button>\n' +
+  '              <textarea placeholder="Describe your concern or question..."></textarea>\n' +
+  '              <span class="status-tag">Awaiting response</span>\n' +
+  '              <span class="priority">High</span>\n' +
+  '              <span class="priority">Medium</span>\n' +
+  '              <span class="priority">Low</span>\n' +
+  '              <button class="btn-submit">Submit</button>\n' +
+  '            </div>\n' +
+  '\n' +
+  '            <!-- Patient settings -->\n' +
+  '            <div class="settings-section">\n' +
+  '              <h2>ACCOUNT</h2>\n' +
+  '              <button class="btn-edit-profile">Edit Profile</button>\n' +
+  '              <input placeholder="Enter your full name" value="Mahi" />\n' +
+  '              <div class="opencv-config">OpenCV Server IP</div>\n' +
+  '              <input placeholder="e.g. 192.168.1.42" value="192.168.1.150" />\n' +
+  '            </div>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Privacy and footer -->\n' +
+  '          <div class="footer">\n' +
+  '            <a href="/privacy-policy">Privacy Policy</a>\n' +
+  '            <span class="code-stamp">Version Code: 1.0.0</span>\n' +
+  '          </div>\n' +
+  '        </body>\n' +
+  '      </html>\n' +
+  '    '
+
+      at Object.run (e2e_300_selenium.test.js:538:94)
+      at Context.<anonymous> (e2e_300_selenium.test.js:580:16)
+      at process.processImmediate (node:internal/timers:483:21)
+
+  8) AmbiEye 300 E2E Selenium Tests
+       TC-148 Check UI word presence - Medical:
+     AssertionError [ERR_ASSERTION]: The input did not match the regular expression /Medical/i. Input:
+
+'\n' +
+  '      <html>\n' +
+  '        <head>\n' +
+  '          <title>AmbiEye Platform</title>\n' +
+  '        </head>\n' +
+  '        <body>\n' +
+  '          <!-- Navbar buttons -->\n' +
+  '          <div class="navbar">\n' +
+  '            <button id="nav-home">Home</button>\n' +
+  '            <button id="nav-games">Games</button>\n' +
+  '            <button id="nav-queries">Queries</button>\n' +
+  '            <button id="nav-settings">Settings</button>\n' +
+  '            <button id="nav-logout">Logout</button>\n' +
+  '            <div class="logo">AmbiEye Logo</div>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Role selection screen -->\n' +
+  '          <div class="role-selection">\n' +
+  '            <h1>Choose your role</h1>\n' +
+  '            <div class="card" role="button">Patient</div>\n' +
+  '            <div class="card" role="button">Doctor</div>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Login form screen -->\n' +
+  '          <div class="login-form">\n' +
+  '            <h2>Sign in to continue</h2>\n' +
+  '            <input placeholder="Enter your username" value="mahit" />\n' +
+  '            <input placeholder="Enter your password" type="password" value="Meheer17" />\n' +
+  '            <button class="btn-signin">Sign In</button>\n' +
+  '            <a href="/role">Back</a>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Patient Dashboard screen -->\n' +
+  '          <div class="dashboard-patient">\n' +
+  '            <h2>Good day, mahit</h2>\n' +
+  '            <h3>Vision Games</h3>\n' +
+  '            <div class="game-categories">\n' +
+  '              <span class="tab">Movement</span>\n' +
+  '              <span class="tab">Focus</span>\n' +
+  '            </div>\n' +
+  '            <div class="game-list">\n' +
+  '              <div class="game-card">Clockwise Exercise</div>\n' +
+  '              <button class="btn-start">Start Game</button>\n' +
+  '              <button class="btn-close">Close</button>\n' +
+  '            </div>\n' +
+  '            \n' +
+  '            <!-- Patient queries -->\n' +
+  '            <div class="queries-section">\n' +
+  '              <h3>My Queries</h3>\n' +
+  '              <button class="btn-ask">Ask a Question</button>\n' +
+  '              <textarea placeholder="Describe your concern or question..."></textarea>\n' +
+  '              <span class="status-tag">Awaiting response</span>\n' +
+  '              <span class="priority">High</span>\n' +
+  '              <span class="priority">Medium</span>\n' +
+  '              <span class="priority">Low</span>\n' +
+  '              <button class="btn-submit">Submit</button>\n' +
+  '            </div>\n' +
+  '\n' +
+  '            <!-- Patient settings -->\n' +
+  '            <div class="settings-section">\n' +
+  '              <h2>ACCOUNT</h2>\n' +
+  '              <button class="btn-edit-profile">Edit Profile</button>\n' +
+  '              <input placeholder="Enter your full name" value="Mahi" />\n' +
+  '              <div class="opencv-config">OpenCV Server IP</div>\n' +
+  '              <input placeholder="e.g. 192.168.1.42" value="192.168.1.150" />\n' +
+  '            </div>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Privacy and footer -->\n' +
+  '          <div class="footer">\n' +
+  '            <a href="/privacy-policy">Privacy Policy</a>\n' +
+  '            <span class="code-stamp">Version Code: 1.0.0</span>\n' +
+  '          </div>\n' +
+  '        </body>\n' +
+  '      </html>\n' +
+  '    '
+
+      at Object.run (e2e_300_selenium.test.js:539:92)
+      at Context.<anonymous> (e2e_300_selenium.test.js:580:16)
+      at process.processImmediate (node:internal/timers:483:21)
+
+  9) AmbiEye 300 E2E Selenium Tests
+       TC-149 Check UI word presence - Record:
+     AssertionError [ERR_ASSERTION]: The input did not match the regular expression /Record/i. Input:
+
+'\n' +
+  '      <html>\n' +
+  '        <head>\n' +
+  '          <title>AmbiEye Platform</title>\n' +
+  '        </head>\n' +
+  '        <body>\n' +
+  '          <!-- Navbar buttons -->\n' +
+  '          <div class="navbar">\n' +
+  '            <button id="nav-home">Home</button>\n' +
+  '            <button id="nav-games">Games</button>\n' +
+  '            <button id="nav-queries">Queries</button>\n' +
+  '            <button id="nav-settings">Settings</button>\n' +
+  '            <button id="nav-logout">Logout</button>\n' +
+  '            <div class="logo">AmbiEye Logo</div>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Role selection screen -->\n' +
+  '          <div class="role-selection">\n' +
+  '            <h1>Choose your role</h1>\n' +
+  '            <div class="card" role="button">Patient</div>\n' +
+  '            <div class="card" role="button">Doctor</div>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Login form screen -->\n' +
+  '          <div class="login-form">\n' +
+  '            <h2>Sign in to continue</h2>\n' +
+  '            <input placeholder="Enter your username" value="mahit" />\n' +
+  '            <input placeholder="Enter your password" type="password" value="Meheer17" />\n' +
+  '            <button class="btn-signin">Sign In</button>\n' +
+  '            <a href="/role">Back</a>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Patient Dashboard screen -->\n' +
+  '          <div class="dashboard-patient">\n' +
+  '            <h2>Good day, mahit</h2>\n' +
+  '            <h3>Vision Games</h3>\n' +
+  '            <div class="game-categories">\n' +
+  '              <span class="tab">Movement</span>\n' +
+  '              <span class="tab">Focus</span>\n' +
+  '            </div>\n' +
+  '            <div class="game-list">\n' +
+  '              <div class="game-card">Clockwise Exercise</div>\n' +
+  '              <button class="btn-start">Start Game</button>\n' +
+  '              <button class="btn-close">Close</button>\n' +
+  '            </div>\n' +
+  '            \n' +
+  '            <!-- Patient queries -->\n' +
+  '            <div class="queries-section">\n' +
+  '              <h3>My Queries</h3>\n' +
+  '              <button class="btn-ask">Ask a Question</button>\n' +
+  '              <textarea placeholder="Describe your concern or question..."></textarea>\n' +
+  '              <span class="status-tag">Awaiting response</span>\n' +
+  '              <span class="priority">High</span>\n' +
+  '              <span class="priority">Medium</span>\n' +
+  '              <span class="priority">Low</span>\n' +
+  '              <button class="btn-submit">Submit</button>\n' +
+  '            </div>\n' +
+  '\n' +
+  '            <!-- Patient settings -->\n' +
+  '            <div class="settings-section">\n' +
+  '              <h2>ACCOUNT</h2>\n' +
+  '              <button class="btn-edit-profile">Edit Profile</button>\n' +
+  '              <input placeholder="Enter your full name" value="Mahi" />\n' +
+  '              <div class="opencv-config">OpenCV Server IP</div>\n' +
+  '              <input placeholder="e.g. 192.168.1.42" value="192.168.1.150" />\n' +
+  '            </div>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Privacy and footer -->\n' +
+  '          <div class="footer">\n' +
+  '            <a href="/privacy-policy">Privacy Policy</a>\n' +
+  '            <span class="code-stamp">Version Code: 1.0.0</span>\n' +
+  '          </div>\n' +
+  '        </body>\n' +
+  '      </html>\n' +
+  '    '
+
+      at Object.run (e2e_300_selenium.test.js:540:91)
+      at Context.<anonymous> (e2e_300_selenium.test.js:580:16)
+      at process.processImmediate (node:internal/timers:483:21)
+
+  10) AmbiEye 300 E2E Selenium Tests
+       TC-150 Check UI word presence - Visit:
+     AssertionError [ERR_ASSERTION]: The input did not match the regular expression /Visit/i. Input:
+
+'\n' +
+  '      <html>\n' +
+  '        <head>\n' +
+  '          <title>AmbiEye Platform</title>\n' +
+  '        </head>\n' +
+  '        <body>\n' +
+  '          <!-- Navbar buttons -->\n' +
+  '          <div class="navbar">\n' +
+  '            <button id="nav-home">Home</button>\n' +
+  '            <button id="nav-games">Games</button>\n' +
+  '            <button id="nav-queries">Queries</button>\n' +
+  '            <button id="nav-settings">Settings</button>\n' +
+  '            <button id="nav-logout">Logout</button>\n' +
+  '            <div class="logo">AmbiEye Logo</div>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Role selection screen -->\n' +
+  '          <div class="role-selection">\n' +
+  '            <h1>Choose your role</h1>\n' +
+  '            <div class="card" role="button">Patient</div>\n' +
+  '            <div class="card" role="button">Doctor</div>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Login form screen -->\n' +
+  '          <div class="login-form">\n' +
+  '            <h2>Sign in to continue</h2>\n' +
+  '            <input placeholder="Enter your username" value="mahit" />\n' +
+  '            <input placeholder="Enter your password" type="password" value="Meheer17" />\n' +
+  '            <button class="btn-signin">Sign In</button>\n' +
+  '            <a href="/role">Back</a>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Patient Dashboard screen -->\n' +
+  '          <div class="dashboard-patient">\n' +
+  '            <h2>Good day, mahit</h2>\n' +
+  '            <h3>Vision Games</h3>\n' +
+  '            <div class="game-categories">\n' +
+  '              <span class="tab">Movement</span>\n' +
+  '              <span class="tab">Focus</span>\n' +
+  '            </div>\n' +
+  '            <div class="game-list">\n' +
+  '              <div class="game-card">Clockwise Exercise</div>\n' +
+  '              <button class="btn-start">Start Game</button>\n' +
+  '              <button class="btn-close">Close</button>\n' +
+  '            </div>\n' +
+  '            \n' +
+  '            <!-- Patient queries -->\n' +
+  '            <div class="queries-section">\n' +
+  '              <h3>My Queries</h3>\n' +
+  '              <button class="btn-ask">Ask a Question</button>\n' +
+  '              <textarea placeholder="Describe your concern or question..."></textarea>\n' +
+  '              <span class="status-tag">Awaiting response</span>\n' +
+  '              <span class="priority">High</span>\n' +
+  '              <span class="priority">Medium</span>\n' +
+  '              <span class="priority">Low</span>\n' +
+  '              <button class="btn-submit">Submit</button>\n' +
+  '            </div>\n' +
+  '\n' +
+  '            <!-- Patient settings -->\n' +
+  '            <div class="settings-section">\n' +
+  '              <h2>ACCOUNT</h2>\n' +
+  '              <button class="btn-edit-profile">Edit Profile</button>\n' +
+  '              <input placeholder="Enter your full name" value="Mahi" />\n' +
+  '              <div class="opencv-config">OpenCV Server IP</div>\n' +
+  '              <input placeholder="e.g. 192.168.1.42" value="192.168.1.150" />\n' +
+  '            </div>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Privacy and footer -->\n' +
+  '          <div class="footer">\n' +
+  '            <a href="/privacy-policy">Privacy Policy</a>\n' +
+  '            <span class="code-stamp">Version Code: 1.0.0</span>\n' +
+  '          </div>\n' +
+  '        </body>\n' +
+  '      </html>\n' +
+  '    '
+
+      at Object.run (e2e_300_selenium.test.js:541:90)
+      at Context.<anonymous> (e2e_300_selenium.test.js:580:16)
+      at process.processImmediate (node:internal/timers:483:21)
+
+  11) AmbiEye 300 E2E Selenium Tests
+       TC-151 Check UI word presence - Notes:
+     AssertionError [ERR_ASSERTION]: The input did not match the regular expression /Notes/i. Input:
+
+'\n' +
+  '      <html>\n' +
+  '        <head>\n' +
+  '          <title>AmbiEye Platform</title>\n' +
+  '        </head>\n' +
+  '        <body>\n' +
+  '          <!-- Navbar buttons -->\n' +
+  '          <div class="navbar">\n' +
+  '            <button id="nav-home">Home</button>\n' +
+  '            <button id="nav-games">Games</button>\n' +
+  '            <button id="nav-queries">Queries</button>\n' +
+  '            <button id="nav-settings">Settings</button>\n' +
+  '            <button id="nav-logout">Logout</button>\n' +
+  '            <div class="logo">AmbiEye Logo</div>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Role selection screen -->\n' +
+  '          <div class="role-selection">\n' +
+  '            <h1>Choose your role</h1>\n' +
+  '            <div class="card" role="button">Patient</div>\n' +
+  '            <div class="card" role="button">Doctor</div>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Login form screen -->\n' +
+  '          <div class="login-form">\n' +
+  '            <h2>Sign in to continue</h2>\n' +
+  '            <input placeholder="Enter your username" value="mahit" />\n' +
+  '            <input placeholder="Enter your password" type="password" value="Meheer17" />\n' +
+  '            <button class="btn-signin">Sign In</button>\n' +
+  '            <a href="/role">Back</a>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Patient Dashboard screen -->\n' +
+  '          <div class="dashboard-patient">\n' +
+  '            <h2>Good day, mahit</h2>\n' +
+  '            <h3>Vision Games</h3>\n' +
+  '            <div class="game-categories">\n' +
+  '              <span class="tab">Movement</span>\n' +
+  '              <span class="tab">Focus</span>\n' +
+  '            </div>\n' +
+  '            <div class="game-list">\n' +
+  '              <div class="game-card">Clockwise Exercise</div>\n' +
+  '              <button class="btn-start">Start Game</button>\n' +
+  '              <button class="btn-close">Close</button>\n' +
+  '            </div>\n' +
+  '            \n' +
+  '            <!-- Patient queries -->\n' +
+  '            <div class="queries-section">\n' +
+  '              <h3>My Queries</h3>\n' +
+  '              <button class="btn-ask">Ask a Question</button>\n' +
+  '              <textarea placeholder="Describe your concern or question..."></textarea>\n' +
+  '              <span class="status-tag">Awaiting response</span>\n' +
+  '              <span class="priority">High</span>\n' +
+  '              <span class="priority">Medium</span>\n' +
+  '              <span class="priority">Low</span>\n' +
+  '              <button class="btn-submit">Submit</button>\n' +
+  '            </div>\n' +
+  '\n' +
+  '            <!-- Patient settings -->\n' +
+  '            <div class="settings-section">\n' +
+  '              <h2>ACCOUNT</h2>\n' +
+  '              <button class="btn-edit-profile">Edit Profile</button>\n' +
+  '              <input placeholder="Enter your full name" value="Mahi" />\n' +
+  '              <div class="opencv-config">OpenCV Server IP</div>\n' +
+  '              <input placeholder="e.g. 192.168.1.42" value="192.168.1.150" />\n' +
+  '            </div>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Privacy and footer -->\n' +
+  '          <div class="footer">\n' +
+  '            <a href="/privacy-policy">Privacy Policy</a>\n' +
+  '            <span class="code-stamp">Version Code: 1.0.0</span>\n' +
+  '          </div>\n' +
+  '        </body>\n' +
+  '      </html>\n' +
+  '    '
+
+      at Object.run (e2e_300_selenium.test.js:542:90)
+      at Context.<anonymous> (e2e_300_selenium.test.js:580:16)
+      at process.processImmediate (node:internal/timers:483:21)
+
+  12) AmbiEye 300 E2E Selenium Tests
+       TC-152 Check UI word presence - Answer:
+     AssertionError [ERR_ASSERTION]: The input did not match the regular expression /Answer/i. Input:
+
+'\n' +
+  '      <html>\n' +
+  '        <head>\n' +
+  '          <title>AmbiEye Platform</title>\n' +
+  '        </head>\n' +
+  '        <body>\n' +
+  '          <!-- Navbar buttons -->\n' +
+  '          <div class="navbar">\n' +
+  '            <button id="nav-home">Home</button>\n' +
+  '            <button id="nav-games">Games</button>\n' +
+  '            <button id="nav-queries">Queries</button>\n' +
+  '            <button id="nav-settings">Settings</button>\n' +
+  '            <button id="nav-logout">Logout</button>\n' +
+  '            <div class="logo">AmbiEye Logo</div>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Role selection screen -->\n' +
+  '          <div class="role-selection">\n' +
+  '            <h1>Choose your role</h1>\n' +
+  '            <div class="card" role="button">Patient</div>\n' +
+  '            <div class="card" role="button">Doctor</div>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Login form screen -->\n' +
+  '          <div class="login-form">\n' +
+  '            <h2>Sign in to continue</h2>\n' +
+  '            <input placeholder="Enter your username" value="mahit" />\n' +
+  '            <input placeholder="Enter your password" type="password" value="Meheer17" />\n' +
+  '            <button class="btn-signin">Sign In</button>\n' +
+  '            <a href="/role">Back</a>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Patient Dashboard screen -->\n' +
+  '          <div class="dashboard-patient">\n' +
+  '            <h2>Good day, mahit</h2>\n' +
+  '            <h3>Vision Games</h3>\n' +
+  '            <div class="game-categories">\n' +
+  '              <span class="tab">Movement</span>\n' +
+  '              <span class="tab">Focus</span>\n' +
+  '            </div>\n' +
+  '            <div class="game-list">\n' +
+  '              <div class="game-card">Clockwise Exercise</div>\n' +
+  '              <button class="btn-start">Start Game</button>\n' +
+  '              <button class="btn-close">Close</button>\n' +
+  '            </div>\n' +
+  '            \n' +
+  '            <!-- Patient queries -->\n' +
+  '            <div class="queries-section">\n' +
+  '              <h3>My Queries</h3>\n' +
+  '              <button class="btn-ask">Ask a Question</button>\n' +
+  '              <textarea placeholder="Describe your concern or question..."></textarea>\n' +
+  '              <span class="status-tag">Awaiting response</span>\n' +
+  '              <span class="priority">High</span>\n' +
+  '              <span class="priority">Medium</span>\n' +
+  '              <span class="priority">Low</span>\n' +
+  '              <button class="btn-submit">Submit</button>\n' +
+  '            </div>\n' +
+  '\n' +
+  '            <!-- Patient settings -->\n' +
+  '            <div class="settings-section">\n' +
+  '              <h2>ACCOUNT</h2>\n' +
+  '              <button class="btn-edit-profile">Edit Profile</button>\n' +
+  '              <input placeholder="Enter your full name" value="Mahi" />\n' +
+  '              <div class="opencv-config">OpenCV Server IP</div>\n' +
+  '              <input placeholder="e.g. 192.168.1.42" value="192.168.1.150" />\n' +
+  '            </div>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Privacy and footer -->\n' +
+  '          <div class="footer">\n' +
+  '            <a href="/privacy-policy">Privacy Policy</a>\n' +
+  '            <span class="code-stamp">Version Code: 1.0.0</span>\n' +
+  '          </div>\n' +
+  '        </body>\n' +
+  '      </html>\n' +
+  '    '
+
+      at Object.run (e2e_300_selenium.test.js:543:91)
+      at Context.<anonymous> (e2e_300_selenium.test.js:580:16)
+      at process.processImmediate (node:internal/timers:483:21)
+
+  13) AmbiEye 300 E2E Selenium Tests
+       TC-154 Check UI word presence - Pending:
+     AssertionError [ERR_ASSERTION]: The input did not match the regular expression /Pending/i. Input:
+
+'\n' +
+  '      <html>\n' +
+  '        <head>\n' +
+  '          <title>AmbiEye Platform</title>\n' +
+  '        </head>\n' +
+  '        <body>\n' +
+  '          <!-- Navbar buttons -->\n' +
+  '          <div class="navbar">\n' +
+  '            <button id="nav-home">Home</button>\n' +
+  '            <button id="nav-games">Games</button>\n' +
+  '            <button id="nav-queries">Queries</button>\n' +
+  '            <button id="nav-settings">Settings</button>\n' +
+  '            <button id="nav-logout">Logout</button>\n' +
+  '            <div class="logo">AmbiEye Logo</div>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Role selection screen -->\n' +
+  '          <div class="role-selection">\n' +
+  '            <h1>Choose your role</h1>\n' +
+  '            <div class="card" role="button">Patient</div>\n' +
+  '            <div class="card" role="button">Doctor</div>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Login form screen -->\n' +
+  '          <div class="login-form">\n' +
+  '            <h2>Sign in to continue</h2>\n' +
+  '            <input placeholder="Enter your username" value="mahit" />\n' +
+  '            <input placeholder="Enter your password" type="password" value="Meheer17" />\n' +
+  '            <button class="btn-signin">Sign In</button>\n' +
+  '            <a href="/role">Back</a>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Patient Dashboard screen -->\n' +
+  '          <div class="dashboard-patient">\n' +
+  '            <h2>Good day, mahit</h2>\n' +
+  '            <h3>Vision Games</h3>\n' +
+  '            <div class="game-categories">\n' +
+  '              <span class="tab">Movement</span>\n' +
+  '              <span class="tab">Focus</span>\n' +
+  '            </div>\n' +
+  '            <div class="game-list">\n' +
+  '              <div class="game-card">Clockwise Exercise</div>\n' +
+  '              <button class="btn-start">Start Game</button>\n' +
+  '              <button class="btn-close">Close</button>\n' +
+  '            </div>\n' +
+  '            \n' +
+  '            <!-- Patient queries -->\n' +
+  '            <div class="queries-section">\n' +
+  '              <h3>My Queries</h3>\n' +
+  '              <button class="btn-ask">Ask a Question</button>\n' +
+  '              <textarea placeholder="Describe your concern or question..."></textarea>\n' +
+  '              <span class="status-tag">Awaiting response</span>\n' +
+  '              <span class="priority">High</span>\n' +
+  '              <span class="priority">Medium</span>\n' +
+  '              <span class="priority">Low</span>\n' +
+  '              <button class="btn-submit">Submit</button>\n' +
+  '            </div>\n' +
+  '\n' +
+  '            <!-- Patient settings -->\n' +
+  '            <div class="settings-section">\n' +
+  '              <h2>ACCOUNT</h2>\n' +
+  '              <button class="btn-edit-profile">Edit Profile</button>\n' +
+  '              <input placeholder="Enter your full name" value="Mahi" />\n' +
+  '              <div class="opencv-config">OpenCV Server IP</div>\n' +
+  '              <input placeholder="e.g. 192.168.1.42" value="192.168.1.150" />\n' +
+  '            </div>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Privacy and footer -->\n' +
+  '          <div class="footer">\n' +
+  '            <a href="/privacy-policy">Privacy Policy</a>\n' +
+  '            <span class="code-stamp">Version Code: 1.0.0</span>\n' +
+  '          </div>\n' +
+  '        </body>\n' +
+  '      </html>\n' +
+  '    '
+
+      at Object.run (e2e_300_selenium.test.js:545:92)
+      at Context.<anonymous> (e2e_300_selenium.test.js:580:16)
+      at process.processImmediate (node:internal/timers:483:21)
+
+  14) AmbiEye 300 E2E Selenium Tests
+       TC-156 Check UI word presence - Responded:
+     AssertionError [ERR_ASSERTION]: The input did not match the regular expression /Responded/i. Input:
+
+'\n' +
+  '      <html>\n' +
+  '        <head>\n' +
+  '          <title>AmbiEye Platform</title>\n' +
+  '        </head>\n' +
+  '        <body>\n' +
+  '          <!-- Navbar buttons -->\n' +
+  '          <div class="navbar">\n' +
+  '            <button id="nav-home">Home</button>\n' +
+  '            <button id="nav-games">Games</button>\n' +
+  '            <button id="nav-queries">Queries</button>\n' +
+  '            <button id="nav-settings">Settings</button>\n' +
+  '            <button id="nav-logout">Logout</button>\n' +
+  '            <div class="logo">AmbiEye Logo</div>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Role selection screen -->\n' +
+  '          <div class="role-selection">\n' +
+  '            <h1>Choose your role</h1>\n' +
+  '            <div class="card" role="button">Patient</div>\n' +
+  '            <div class="card" role="button">Doctor</div>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Login form screen -->\n' +
+  '          <div class="login-form">\n' +
+  '            <h2>Sign in to continue</h2>\n' +
+  '            <input placeholder="Enter your username" value="mahit" />\n' +
+  '            <input placeholder="Enter your password" type="password" value="Meheer17" />\n' +
+  '            <button class="btn-signin">Sign In</button>\n' +
+  '            <a href="/role">Back</a>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Patient Dashboard screen -->\n' +
+  '          <div class="dashboard-patient">\n' +
+  '            <h2>Good day, mahit</h2>\n' +
+  '            <h3>Vision Games</h3>\n' +
+  '            <div class="game-categories">\n' +
+  '              <span class="tab">Movement</span>\n' +
+  '              <span class="tab">Focus</span>\n' +
+  '            </div>\n' +
+  '            <div class="game-list">\n' +
+  '              <div class="game-card">Clockwise Exercise</div>\n' +
+  '              <button class="btn-start">Start Game</button>\n' +
+  '              <button class="btn-close">Close</button>\n' +
+  '            </div>\n' +
+  '            \n' +
+  '            <!-- Patient queries -->\n' +
+  '            <div class="queries-section">\n' +
+  '              <h3>My Queries</h3>\n' +
+  '              <button class="btn-ask">Ask a Question</button>\n' +
+  '              <textarea placeholder="Describe your concern or question..."></textarea>\n' +
+  '              <span class="status-tag">Awaiting response</span>\n' +
+  '              <span class="priority">High</span>\n' +
+  '              <span class="priority">Medium</span>\n' +
+  '              <span class="priority">Low</span>\n' +
+  '              <button class="btn-submit">Submit</button>\n' +
+  '            </div>\n' +
+  '\n' +
+  '            <!-- Patient settings -->\n' +
+  '            <div class="settings-section">\n' +
+  '              <h2>ACCOUNT</h2>\n' +
+  '              <button class="btn-edit-profile">Edit Profile</button>\n' +
+  '              <input placeholder="Enter your full name" value="Mahi" />\n' +
+  '              <div class="opencv-config">OpenCV Server IP</div>\n' +
+  '              <input placeholder="e.g. 192.168.1.42" value="192.168.1.150" />\n' +
+  '            </div>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Privacy and footer -->\n' +
+  '          <div class="footer">\n' +
+  '            <a href="/privacy-policy">Privacy Policy</a>\n' +
+  '            <span class="code-stamp">Version Code: 1.0.0</span>\n' +
+  '          </div>\n' +
+  '        </body>\n' +
+  '      </html>\n' +
+  '    '
+
+      at Object.run (e2e_300_selenium.test.js:547:94)
+      at Context.<anonymous> (e2e_300_selenium.test.js:580:16)
+      at process.processImmediate (node:internal/timers:483:21)
+
+  15) AmbiEye 300 E2E Selenium Tests
+       TC-166 Check UI word presence - Filter:
+     AssertionError [ERR_ASSERTION]: The input did not match the regular expression /Filter/i. Input:
+
+'\n' +
+  '      <html>\n' +
+  '        <head>\n' +
+  '          <title>AmbiEye Platform</title>\n' +
+  '        </head>\n' +
+  '        <body>\n' +
+  '          <!-- Navbar buttons -->\n' +
+  '          <div class="navbar">\n' +
+  '            <button id="nav-home">Home</button>\n' +
+  '            <button id="nav-games">Games</button>\n' +
+  '            <button id="nav-queries">Queries</button>\n' +
+  '            <button id="nav-settings">Settings</button>\n' +
+  '            <button id="nav-logout">Logout</button>\n' +
+  '            <div class="logo">AmbiEye Logo</div>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Role selection screen -->\n' +
+  '          <div class="role-selection">\n' +
+  '            <h1>Choose your role</h1>\n' +
+  '            <div class="card" role="button">Patient</div>\n' +
+  '            <div class="card" role="button">Doctor</div>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Login form screen -->\n' +
+  '          <div class="login-form">\n' +
+  '            <h2>Sign in to continue</h2>\n' +
+  '            <input placeholder="Enter your username" value="mahit" />\n' +
+  '            <input placeholder="Enter your password" type="password" value="Meheer17" />\n' +
+  '            <button class="btn-signin">Sign In</button>\n' +
+  '            <a href="/role">Back</a>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Patient Dashboard screen -->\n' +
+  '          <div class="dashboard-patient">\n' +
+  '            <h2>Good day, mahit</h2>\n' +
+  '            <h3>Vision Games</h3>\n' +
+  '            <div class="game-categories">\n' +
+  '              <span class="tab">Movement</span>\n' +
+  '              <span class="tab">Focus</span>\n' +
+  '            </div>\n' +
+  '            <div class="game-list">\n' +
+  '              <div class="game-card">Clockwise Exercise</div>\n' +
+  '              <button class="btn-start">Start Game</button>\n' +
+  '              <button class="btn-close">Close</button>\n' +
+  '            </div>\n' +
+  '            \n' +
+  '            <!-- Patient queries -->\n' +
+  '            <div class="queries-section">\n' +
+  '              <h3>My Queries</h3>\n' +
+  '              <button class="btn-ask">Ask a Question</button>\n' +
+  '              <textarea placeholder="Describe your concern or question..."></textarea>\n' +
+  '              <span class="status-tag">Awaiting response</span>\n' +
+  '              <span class="priority">High</span>\n' +
+  '              <span class="priority">Medium</span>\n' +
+  '              <span class="priority">Low</span>\n' +
+  '              <button class="btn-submit">Submit</button>\n' +
+  '            </div>\n' +
+  '\n' +
+  '            <!-- Patient settings -->\n' +
+  '            <div class="settings-section">\n' +
+  '              <h2>ACCOUNT</h2>\n' +
+  '              <button class="btn-edit-profile">Edit Profile</button>\n' +
+  '              <input placeholder="Enter your full name" value="Mahi" />\n' +
+  '              <div class="opencv-config">OpenCV Server IP</div>\n' +
+  '              <input placeholder="e.g. 192.168.1.42" value="192.168.1.150" />\n' +
+  '            </div>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Privacy and footer -->\n' +
+  '          <div class="footer">\n' +
+  '            <a href="/privacy-policy">Privacy Policy</a>\n' +
+  '            <span class="code-stamp">Version Code: 1.0.0</span>\n' +
+  '          </div>\n' +
+  '        </body>\n' +
+  '      </html>\n' +
+  '    '
+
+      at Object.run (e2e_300_selenium.test.js:557:91)
+      at Context.<anonymous> (e2e_300_selenium.test.js:580:16)
+      at process.processImmediate (node:internal/timers:483:21)
+
+  16) AmbiEye 300 E2E Selenium Tests
+       TC-167 Check UI word presence - Category:
+     AssertionError [ERR_ASSERTION]: The input did not match the regular expression /Category/i. Input:
+
+'\n' +
+  '      <html>\n' +
+  '        <head>\n' +
+  '          <title>AmbiEye Platform</title>\n' +
+  '        </head>\n' +
+  '        <body>\n' +
+  '          <!-- Navbar buttons -->\n' +
+  '          <div class="navbar">\n' +
+  '            <button id="nav-home">Home</button>\n' +
+  '            <button id="nav-games">Games</button>\n' +
+  '            <button id="nav-queries">Queries</button>\n' +
+  '            <button id="nav-settings">Settings</button>\n' +
+  '            <button id="nav-logout">Logout</button>\n' +
+  '            <div class="logo">AmbiEye Logo</div>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Role selection screen -->\n' +
+  '          <div class="role-selection">\n' +
+  '            <h1>Choose your role</h1>\n' +
+  '            <div class="card" role="button">Patient</div>\n' +
+  '            <div class="card" role="button">Doctor</div>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Login form screen -->\n' +
+  '          <div class="login-form">\n' +
+  '            <h2>Sign in to continue</h2>\n' +
+  '            <input placeholder="Enter your username" value="mahit" />\n' +
+  '            <input placeholder="Enter your password" type="password" value="Meheer17" />\n' +
+  '            <button class="btn-signin">Sign In</button>\n' +
+  '            <a href="/role">Back</a>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Patient Dashboard screen -->\n' +
+  '          <div class="dashboard-patient">\n' +
+  '            <h2>Good day, mahit</h2>\n' +
+  '            <h3>Vision Games</h3>\n' +
+  '            <div class="game-categories">\n' +
+  '              <span class="tab">Movement</span>\n' +
+  '              <span class="tab">Focus</span>\n' +
+  '            </div>\n' +
+  '            <div class="game-list">\n' +
+  '              <div class="game-card">Clockwise Exercise</div>\n' +
+  '              <button class="btn-start">Start Game</button>\n' +
+  '              <button class="btn-close">Close</button>\n' +
+  '            </div>\n' +
+  '            \n' +
+  '            <!-- Patient queries -->\n' +
+  '            <div class="queries-section">\n' +
+  '              <h3>My Queries</h3>\n' +
+  '              <button class="btn-ask">Ask a Question</button>\n' +
+  '              <textarea placeholder="Describe your concern or question..."></textarea>\n' +
+  '              <span class="status-tag">Awaiting response</span>\n' +
+  '              <span class="priority">High</span>\n' +
+  '              <span class="priority">Medium</span>\n' +
+  '              <span class="priority">Low</span>\n' +
+  '              <button class="btn-submit">Submit</button>\n' +
+  '            </div>\n' +
+  '\n' +
+  '            <!-- Patient settings -->\n' +
+  '            <div class="settings-section">\n' +
+  '              <h2>ACCOUNT</h2>\n' +
+  '              <button class="btn-edit-profile">Edit Profile</button>\n' +
+  '              <input placeholder="Enter your full name" value="Mahi" />\n' +
+  '              <div class="opencv-config">OpenCV Server IP</div>\n' +
+  '              <input placeholder="e.g. 192.168.1.42" value="192.168.1.150" />\n' +
+  '            </div>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Privacy and footer -->\n' +
+  '          <div class="footer">\n' +
+  '            <a href="/privacy-policy">Privacy Policy</a>\n' +
+  '            <span class="code-stamp">Version Code: 1.0.0</span>\n' +
+  '          </div>\n' +
+  '        </body>\n' +
+  '      </html>\n' +
+  '    '
+
+      at Object.run (e2e_300_selenium.test.js:558:93)
+      at Context.<anonymous> (e2e_300_selenium.test.js:580:16)
+      at process.processImmediate (node:internal/timers:483:21)
+
+  17) AmbiEye 300 E2E Selenium Tests
+       TC-168 Check UI word presence - View All:
+     AssertionError [ERR_ASSERTION]: The input did not match the regular expression /View/i. Input:
+
+'\n' +
+  '      <html>\n' +
+  '        <head>\n' +
+  '          <title>AmbiEye Platform</title>\n' +
+  '        </head>\n' +
+  '        <body>\n' +
+  '          <!-- Navbar buttons -->\n' +
+  '          <div class="navbar">\n' +
+  '            <button id="nav-home">Home</button>\n' +
+  '            <button id="nav-games">Games</button>\n' +
+  '            <button id="nav-queries">Queries</button>\n' +
+  '            <button id="nav-settings">Settings</button>\n' +
+  '            <button id="nav-logout">Logout</button>\n' +
+  '            <div class="logo">AmbiEye Logo</div>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Role selection screen -->\n' +
+  '          <div class="role-selection">\n' +
+  '            <h1>Choose your role</h1>\n' +
+  '            <div class="card" role="button">Patient</div>\n' +
+  '            <div class="card" role="button">Doctor</div>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Login form screen -->\n' +
+  '          <div class="login-form">\n' +
+  '            <h2>Sign in to continue</h2>\n' +
+  '            <input placeholder="Enter your username" value="mahit" />\n' +
+  '            <input placeholder="Enter your password" type="password" value="Meheer17" />\n' +
+  '            <button class="btn-signin">Sign In</button>\n' +
+  '            <a href="/role">Back</a>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Patient Dashboard screen -->\n' +
+  '          <div class="dashboard-patient">\n' +
+  '            <h2>Good day, mahit</h2>\n' +
+  '            <h3>Vision Games</h3>\n' +
+  '            <div class="game-categories">\n' +
+  '              <span class="tab">Movement</span>\n' +
+  '              <span class="tab">Focus</span>\n' +
+  '            </div>\n' +
+  '            <div class="game-list">\n' +
+  '              <div class="game-card">Clockwise Exercise</div>\n' +
+  '              <button class="btn-start">Start Game</button>\n' +
+  '              <button class="btn-close">Close</button>\n' +
+  '            </div>\n' +
+  '            \n' +
+  '            <!-- Patient queries -->\n' +
+  '            <div class="queries-section">\n' +
+  '              <h3>My Queries</h3>\n' +
+  '              <button class="btn-ask">Ask a Question</button>\n' +
+  '              <textarea placeholder="Describe your concern or question..."></textarea>\n' +
+  '              <span class="status-tag">Awaiting response</span>\n' +
+  '              <span class="priority">High</span>\n' +
+  '              <span class="priority">Medium</span>\n' +
+  '              <span class="priority">Low</span>\n' +
+  '              <button class="btn-submit">Submit</button>\n' +
+  '            </div>\n' +
+  '\n' +
+  '            <!-- Patient settings -->\n' +
+  '            <div class="settings-section">\n' +
+  '              <h2>ACCOUNT</h2>\n' +
+  '              <button class="btn-edit-profile">Edit Profile</button>\n' +
+  '              <input placeholder="Enter your full name" value="Mahi" />\n' +
+  '              <div class="opencv-config">OpenCV Server IP</div>\n' +
+  '              <input placeholder="e.g. 192.168.1.42" value="192.168.1.150" />\n' +
+  '            </div>\n' +
+  '          </div>\n' +
+  '\n' +
+  '          <!-- Privacy and footer -->\n' +
+  '          <div class="footer">\n' +
+  '            <a href="/privacy-policy">Privacy Policy</a>\n' +
+  '            <span class="code-stamp">Version Code: 1.0.0</span>\n' +
+  '          </div>\n' +
+  '        </body>\n' +
+  '      </html>\n' +
+  '    '
+
+      at Object.run (e2e_300_selenium.test.js:559:93)
+      at Context.<anonymous> (e2e_300_selenium.test.js:580:16)
+      at process.processImmediate (node:internal/timers:483:21)
+
+
+
