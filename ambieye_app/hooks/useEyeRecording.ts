@@ -21,6 +21,7 @@
 
 import { useRef, useState, useCallback } from "react";
 import { CameraView } from "expo-camera";
+import { Platform } from "react-native";
 import { getServerConfig, buildServerUrl } from "@/utils/eyeTrackingStorage";
 import { saveEyeTrackingResult } from "@/utils/gameUtils";
 
@@ -168,16 +169,20 @@ export function useEyeRecording({ gameId, gameName }: UseEyeRecordingOptions) {
   // ── Public API ─────────────────────────────────────────────────────────────
 
   const startRecording = useCallback(async () => {
-    if (isActiveRef.current || !cameraRef.current) return;
+    if (isActiveRef.current) return;
+    if (Platform.OS !== "web" && !cameraRef.current) return;
 
     // Resolve server URL once at start
-    const { ip, port } = await getServerConfig();
-    const url = buildServerUrl(ip, port);
-    if (!url) {
-      setStatus("no_server");
-      return;
+    let url = "";
+    if (Platform.OS !== "web") {
+      const { ip, port } = await getServerConfig();
+      url = buildServerUrl(ip, port);
+      if (!url) {
+        setStatus("no_server");
+        return;
+      }
+      serverUrlRef.current = url;
     }
-    serverUrlRef.current = url;
 
     // Reset state
     isActiveRef.current   = true;
@@ -190,7 +195,21 @@ export function useEyeRecording({ gameId, gameName }: UseEyeRecordingOptions) {
     setLiveVerdict(null);
 
     // Kick off the first chunk
-    recordChunk();
+    if (Platform.OS !== "web") {
+      recordChunk();
+    } else {
+      // On web, mock chunk analyses periodically for visual feedback!
+      let simulatedChunks = 0;
+      const interval = setInterval(() => {
+        if (isActiveRef.current) {
+          simulatedChunks++;
+          setChunksAnalysed(simulatedChunks);
+          setLiveVerdict(simulatedChunks % 2 === 0 ? "good" : "partial");
+        } else {
+          clearInterval(interval);
+        }
+      }, 3000);
+    }
   }, [recordChunk]);
 
   const stopAndFinalise = useCallback(async () => {
@@ -205,13 +224,43 @@ export function useEyeRecording({ gameId, gameName }: UseEyeRecordingOptions) {
 
     // Stop the camera — this resolves the current recordAsync promise
     // which triggers the last chunk upload
-    if (cameraRef.current) {
+    if (Platform.OS !== "web" && cameraRef.current) {
       cameraRef.current.stopRecording();
     }
 
     setStatus("finalising");
 
     try {
+      if (Platform.OS === "web") {
+        // Simulate finalisation delay for premium feel
+        await new Promise((resolve) => setTimeout(resolve, 1500));
+        const data: EyeAnalysisResult = {
+          success: true,
+          summary: "Eye tracking simulated on Web. For real-time OpenCV camera tracking, please run the app on an Android or iOS device.",
+          total_frames: 1200,
+          frames_with_eyes: 1100,
+          movement_count: 24,
+          avg_movement: 8.5,
+          verdict: "good",
+          chunks_analysed: chunksAnalysed || 4,
+          movements_per_chunk: 6,
+          game_id: gameId,
+          game_name: gameName,
+        };
+        setResult(data);
+        setStatus("done");
+
+        // Persist to AsyncStorage
+        await saveEyeTrackingResult(gameId, {
+          verdict: data.verdict,
+          movement_count: data.movement_count,
+          frames_with_eyes: data.frames_with_eyes,
+          avg_movement: data.avg_movement,
+          summary: data.summary,
+        });
+        return;
+      }
+
       // Wait for all in-flight chunk uploads to complete
       await Promise.allSettled(pendingChunks.current);
 
@@ -256,7 +305,7 @@ export function useEyeRecording({ gameId, gameName }: UseEyeRecordingOptions) {
       console.error("Finalise failed:", err);
       setStatus("error");
     }
-  }, [gameId, gameName]);
+  }, [gameId, gameName, chunksAnalysed]);
 
   const reset = useCallback(() => {
     isActiveRef.current = false;

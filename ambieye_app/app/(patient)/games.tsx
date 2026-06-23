@@ -166,7 +166,7 @@ export default function GamesScreen() {
   };
 
   const handleNavigateToGame = (gameLink: string) => {
-    router.push(`./(stack)/${gameLink}`);
+    router.push(`/(patient)/(stack)/${gameLink}`);
   };
 
   const categories = [
