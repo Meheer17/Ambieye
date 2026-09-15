@@ -33,21 +33,21 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     // If authenticated but in auth group or user type selection, redirect to appropriate role home
     if (isAuthenticated && (inAuthGroup || segments[0] === 'user-type')) {
       if (userType === 'doctor') {
-        router.replace('/(doctor)/');
+        router.replace('/(doctor)');
       } else {
-        router.replace('/(patient)/');
+        router.replace('/(patient)');
       }
       return;
     }
 
     // If authenticated but in wrong role group, redirect
     if (isAuthenticated && userType === 'doctor' && inPatientGroup) {
-      router.replace('/(doctor)/');
+      router.replace('/(doctor)');
       return;
     }
 
     if (isAuthenticated && userType === 'patient' && inDoctorGroup) {
-      router.replace('/(patient)/');
+      router.replace('/(patient)');
       return;
     }
 

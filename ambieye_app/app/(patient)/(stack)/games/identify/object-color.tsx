@@ -41,7 +41,7 @@ export default function ObjectColorGame() {
   const [gameStartTime, setGameStartTime] = useState(0);
   const [roundStartTime, setRoundStartTime] = useState(0);
   const [elapsedTime, setElapsedTime] = useState(0);
-  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const setupRound = () => {
     // Check if we've already completed all rounds
@@ -82,7 +82,7 @@ export default function ObjectColorGame() {
     if (gameActive && roundStartTime > 0) {
       timerRef.current = setInterval(() => {
         setElapsedTime(Date.now() - roundStartTime);
-      }, 100) as unknown as NodeJS.Timeout;
+      }, 100);
     }
 
     return () => {

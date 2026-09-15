@@ -13,8 +13,7 @@ import { useAuth } from "@/hooks/useAuth";
 import Feather from "@expo/vector-icons/Feather";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { useRouter, useLocalSearchParams } from "expo-router";
-import { useFocusEffect } from "@react-navigation/native";
+import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import { Colors, BorderRadius, Shadows } from "@/constants/theme";
 
 export default function GamesScreen() {
@@ -166,7 +165,7 @@ export default function GamesScreen() {
   };
 
   const handleNavigateToGame = (gameLink: string) => {
-    router.push(`/(patient)/(stack)/${gameLink}`);
+    router.push(`/(patient)/(stack)/${gameLink}` as any);
   };
 
   const categories = [

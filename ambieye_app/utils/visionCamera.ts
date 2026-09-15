@@ -1,4 +1,4 @@
-type VisionCameraModule = typeof import("react-native-vision-camera");
+type VisionCameraModule = any;
 
 let cachedModule: VisionCameraModule | null | undefined;
 

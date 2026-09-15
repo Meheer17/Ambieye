@@ -30,6 +30,10 @@ interface GameData {
   game: string;
   score: number;
   time: number;
+  details?: {
+    eyeTracking?: any;
+    [key: string]: any;
+  };
 }
 
 interface DayGameData {

@@ -21,11 +21,10 @@ import AntDesign from "@expo/vector-icons/AntDesign";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import Ionicons from "@expo/vector-icons/Ionicons";
 import DateTimePicker from "@react-native-community/datetimepicker";
-import { router } from "expo-router";
+import { router, useFocusEffect } from "expo-router";
 import { patientService, Query } from "@/services/api/patientService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { VisitRecord } from "@/services/api/doctorService";
-import { useFocusEffect } from "@react-navigation/native";
 import EyeTrackingBadge from "@/components/EyeTrackingBadge";
 
 export default function PatientHome() {

@@ -103,8 +103,8 @@ export default function SignUpScreen() {
       fatherName, motherName, address,
     });
     if (success) {
-      if (userType === "doctor") router.replace("/(doctor)/");
-      else router.replace("/(patient)/");
+      if (userType === "doctor") router.replace("/(doctor)");
+      else router.replace("/(patient)");
     }
   };
 

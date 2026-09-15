@@ -45,9 +45,9 @@ export default function LoginScreen() {
     const success = await login(username, password);
     if (success) {
       if (userType === "doctor") {
-        router.replace("/(doctor)/");
+        router.replace("/(doctor)");
       } else {
-        router.replace("/(patient)/");
+        router.replace("/(patient)");
       }
     }
   };

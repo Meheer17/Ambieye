@@ -47,13 +47,9 @@
         }
       ],
       "@react-native-community/datetimepicker",
-      "expo-web-browser"
+      "expo-web-browser",
+      "expo-status-bar"
     ],
-    "splash": {
-      "image": "./assets/images/logowithbg.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#0D0145"
-    },
     "experiments": {
       "typedRoutes": true
     },

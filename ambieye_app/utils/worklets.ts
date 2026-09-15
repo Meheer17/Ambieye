@@ -1,4 +1,4 @@
-type WorkletsModule = typeof import("react-native-worklets-core");
+type WorkletsModule = any;
 
 type WorkletsApi = {
   createRunOnJS?: <T extends (...args: any[]) => void>(fn: T) => T;
