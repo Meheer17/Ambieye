@@ -170,11 +170,11 @@ export default function LoginScreen() {
     const success = await login(username, password);
     if (success) {
       if (isCaregiver) {
-        router.replace("/(caregiver)/" as any);
+        router.replace("/(caregiver)" as any);
       } else if (isDoctor) {
-        router.replace("/(doctor)/" as any);
+        router.replace("/(doctor)" as any);
       } else {
-        router.replace("/(patient)/" as any);
+        router.replace("/(patient)" as any);
       }
     }
   };

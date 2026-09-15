@@ -130,8 +130,8 @@ export default function SignUpScreen() {
       fatherName, motherName, address,
     });
     if (success) {
-      if (activeRoleType === "doctor") router.replace("/(doctor)/" as any);
-      else router.replace("/(patient)/" as any);
+      if (activeRoleType === "doctor") router.replace("/(doctor)" as any);
+      else router.replace("/(patient)" as any);
     }
   };
 

@@ -34,9 +34,11 @@ export default function SplashScreen() {
       const timer = setTimeout(() => {
         if (isAuthenticated && userType) {
           if (userType === "doctor") {
-            router.replace("/(doctor)/" as any);
+            router.replace("/(doctor)" as any);
+          } else if (userType === "caregiver") {
+            router.replace("/(caregiver)" as any);
           } else {
-            router.replace("/(patient)/" as any);
+            router.replace("/(patient)" as any);
           }
         } else if (userType) {
           router.replace("/auth/login");

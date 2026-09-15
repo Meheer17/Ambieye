@@ -4,12 +4,18 @@ import {
   DefaultTheme,
   ThemeProvider,
 } from "@react-navigation/native";
-import { useFonts } from "expo-font";
 import { Stack } from "expo-router";
+import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { Platform, Alert } from "react-native";
+
+import { useColorScheme } from "@/hooks/useColorScheme";
+import { AuthProvider } from "@/contexts/AuthContext";
+import { AuthGate } from "@/components/AuthGate";
+import { LanguageProvider } from "@/constants/i18n";
+import { MobileDeviceContainer } from "@/components/MobileDeviceContainer";
 
 if (Platform.OS === "web") {
   Alert.alert = (title, message, buttons) => {
@@ -42,13 +48,6 @@ if (Platform.OS === "web") {
     }
   };
 }
-
-import { useColorScheme } from "@/hooks/useColorScheme";
-import { AuthProvider } from "@/contexts/AuthContext";
-import { AuthGate } from "@/components/AuthGate";
-import { LanguageProvider } from "@/constants/i18n";
-import { MobileDeviceContainer } from "@/components/MobileDeviceContainer";
-
 // Prevent the splash screen from auto-hiding
 SplashScreen.preventAutoHideAsync();
 

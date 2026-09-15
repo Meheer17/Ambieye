@@ -34,28 +34,28 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
     // If authenticated but in auth group (login/signup), redirect to appropriate role home
     if (isAuthenticated && inAuthGroup) {
       if (userType === 'doctor') {
-        router.replace('/(doctor)/' as any);
+        router.replace('/(doctor)' as any);
       } else if (userType === 'caregiver') {
-        router.replace('/(caregiver)/' as any);
+        router.replace('/(caregiver)' as any);
       } else {
-        router.replace('/(patient)/' as any);
+        router.replace('/(patient)' as any);
       }
       return;
     }
 
     // If authenticated but in wrong role group, redirect
     if (isAuthenticated && userType === 'doctor' && (inPatientGroup || inCaregiverGroup)) {
-      router.replace('/(doctor)/' as any);
+      router.replace('/(doctor)' as any);
       return;
     }
 
     if (isAuthenticated && userType === 'caregiver' && (inDoctorGroup || inPatientGroup)) {
-      router.replace('/(caregiver)/' as any);
+      router.replace('/(caregiver)' as any);
       return;
     }
 
     if (isAuthenticated && userType === 'patient' && (inDoctorGroup || inCaregiverGroup)) {
-      router.replace('/(patient)/' as any);
+      router.replace('/(patient)' as any);
       return;
     }
 

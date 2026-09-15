@@ -9,14 +9,14 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import Feather from "@expo/vector-icons/Feather";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { useRouter, useLocalSearchParams } from "expo-router";
-import { useFocusEffect } from "@react-navigation/native";
+import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTranslation } from "@/constants/i18n";
 import { VoiceAssistant } from "@/utils/voiceAssistant";
 import { useAuth } from "@/hooks/useAuth";
 import { dementiaCareStorage } from "@/utils/dementiaCareStorage";
 import { CaregiverActivitiesScreen } from "@/components/caregiver/CaregiverActivitiesScreen";
+import { Colors, BorderRadius, Shadows } from "@/constants/theme";
 
 export default function GamesScreen() {
   const router = useRouter();
@@ -251,10 +251,11 @@ export default function GamesScreen() {
     ],
   };
 
-  const handleLaunchGame = (link: string, title: string) => {
-    VoiceAssistant.speak(title, currentLang);
+  const handleLaunchGame = (link: string, title?: string) => {
+    if (title) VoiceAssistant.speak(title, currentLang);
     router.push(`/(patient)/(stack)/${link}` as any);
   };
+  const handleNavigateToGame = (gameLink: string) => handleLaunchGame(gameLink);
 
   const currentCategoryGames = gamesData[activeCategory];
 
