@@ -1,266 +1,277 @@
-import React, {useState, useRef} from "react"; // React is required for JSX
+import React, { useState, useRef, useEffect } from "react";
 import {
   StyleSheet,
   View,
   Text,
   TouchableOpacity,
-  Alert,
   ScrollView,
   Animated,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import FontAwesome from "@expo/vector-icons/FontAwesome";
+import Feather from "@expo/vector-icons/Feather";
 import { saveGameResult } from "@/utils/gameUtils";
+import { useTranslation } from "@/constants/i18n";
+import { VoiceAssistant } from "@/utils/voiceAssistant";
+import { Colors, BorderRadius, Shadows, Spacing } from "@/constants/theme";
+
+const CULTURAL_CHARS = ["অ", "আ", "ক", "খ", "গ", "ঘ", "ম", "ৰ", "ল", "স", "হ", "ত", "দ", "ন", "প", "ব"];
 
 export default function FindCharactersGame() {
   const router = useRouter();
+  const { t, currentLang } = useTranslation();
+
   const [gameActive, setGameActive] = useState(false);
+  const [gameOver, setGameOver] = useState(false);
+  const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">("easy");
   const [score, setScore] = useState(0);
   const [round, setRound] = useState(0);
-  const [totalRounds] = useState(5);
+  const [totalRounds] = useState(4);
   const [charGrid, setCharGrid] = useState<string[][]>([]);
+  const [selectedCells, setSelectedCells] = useState<string[]>([]);
   const [targetChar, setTargetChar] = useState("");
   const [targetCount, setTargetCount] = useState(0);
   const [foundCount, setFoundCount] = useState(0);
   const [gameStartTime, setGameStartTime] = useState(0);
-  const [timePerRound] = useState(30); // Removed setTimePerRound as it's not used
-  const [timeRemaining, setTimeRemaining] = useState(timePerRound);
-  const countdownValue = useRef(new Animated.Value(100)).current;
-  const timerRef = useRef<number | null>(null); // Changed NodeJS.Timeout to number
 
-  // Generate a grid of random characters with some target characters
-  const generateCharGrid = (rows: number, cols: number, target: string, count: number) => {
-    const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    const grid: string[][] = [];
-    const positions: string[] = [];
+  const startGame = (diff: "easy" | "medium" | "hard" = "easy") => {
+    setDifficulty(diff);
+    setGameActive(true);
+    setGameOver(false);
+    setScore(0);
+    setRound(0);
+    setFoundCount(0);
+    setGameStartTime(Date.now());
+    VoiceAssistant.speak(`${t("game_visual_search")}. ${t("play_now")}`, currentLang);
+    setupRound(1, diff);
+  };
+
+  const setupRound = (nextRound: number, diff: "easy" | "medium" | "hard") => {
+    setRound(nextRound);
+    setSelectedCells([]);
+    setFoundCount(0);
+
+    const rows = diff === "easy" ? 3 : diff === "medium" ? 4 : 4;
+    const cols = diff === "easy" ? 3 : diff === "medium" ? 4 : 5;
+    const count = diff === "easy" ? 3 : diff === "medium" ? 4 : 5;
+    setTargetCount(count);
+
+    const target = CULTURAL_CHARS[Math.floor(Math.random() * CULTURAL_CHARS.length)];
+    setTargetChar(target);
 
     // Generate positions for the target characters
+    const positions: string[] = [];
     while (positions.length < count) {
-      const row = Math.floor(Math.random() * rows);
-      const col = Math.floor(Math.random() * cols);
-      const pos = `${row}-${col}`;
+      const r = Math.floor(Math.random() * rows);
+      const c = Math.floor(Math.random() * cols);
+      const pos = `${r}-${c}`;
       if (!positions.includes(pos)) {
         positions.push(pos);
       }
     }
 
-    // Fill the grid
+    // Build grid
+    const grid: string[][] = [];
     for (let i = 0; i < rows; i++) {
       const rowChars: string[] = [];
       for (let j = 0; j < cols; j++) {
         if (positions.includes(`${i}-${j}`)) {
           rowChars.push(target);
         } else {
-          const randomChar = characters.charAt(Math.floor(Math.random() * characters.length));
-          rowChars.push(randomChar);
+          const pool = CULTURAL_CHARS.filter((ch) => ch !== target);
+          rowChars.push(pool[Math.floor(Math.random() * pool.length)]);
         }
       }
       grid.push(rowChars);
     }
-
-    return grid;
-  };
-
-  const setupRound = () => {
-    setRound(prevRound => prevRound + 1);
-    setFoundCount(0);
-    setTimeRemaining(timePerRound);
-
-    // Choose a random target character
-    const characters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
-    const target = characters.charAt(Math.floor(Math.random() * characters.length));
-    setTargetChar(target);
-
-    // Determine how many instances to place (3-8 based on round)
-    const count = Math.min(3 + round, 8);
-    setTargetCount(count);
-
-    // Generate a grid with the target character
-    const grid = generateCharGrid(8, 8, target, count);
     setCharGrid(grid);
 
-    // Reset and start the countdown
-    countdownValue.setValue(100);
-    Animated.timing(countdownValue, {
-      toValue: 0,
-      duration: timePerRound * 1000,
-      useNativeDriver: false
-    }).start();
+    VoiceAssistant.speak(`${t("find_target_prompt")} ${target}`, currentLang);
+  };
 
-    // Set a timer for this round
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-    }
+  const handleCellPress = (row: number, col: number) => {
+    const pos = `${row}-${col}`;
+    if (selectedCells.includes(pos)) return;
 
-    timerRef.current = setInterval(() => {
-      setTimeRemaining(prev => {
-        if (prev <= 1) {
-          // Time's up for this round
+    const char = charGrid[row][col];
+    if (char === targetChar) {
+      const updated = [...selectedCells, pos];
+      setSelectedCells(updated);
+      const nextFound = foundCount + 1;
+      setFoundCount(nextFound);
+      setScore((prev) => prev + 50);
+
+      if (nextFound === targetCount) {
+        VoiceAssistant.speak(`${t("well_done")}! ${t("found_all_done")}`, currentLang);
+        setTimeout(() => {
           if (round < totalRounds) {
-            setupRound();
+            setupRound(round + 1, difficulty);
           } else {
-            endGame();
+            finishGame();
           }
-          return timePerRound;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  };
-
-  const startGame = () => {
-    setGameActive(true);
-    setScore(0);
-    setRound(0);
-    setGameStartTime(Date.now());
-    setupRound();
-  };
-
-  const handleCharPress = (rowIndex: number, colIndex: number) => {
-    const selectedChar = charGrid[rowIndex][colIndex];
-
-    if (selectedChar === targetChar) {
-      // Create a new grid with the found character replaced
-      const newGrid = [...charGrid];
-      newGrid[rowIndex][colIndex] = " "; // Replace with space
-      setCharGrid(newGrid);
-
-      // Increment found count
-      const newFoundCount = foundCount + 1;
-      setFoundCount(newFoundCount);
-
-      // Update score
-      setScore(prevScore => prevScore + 10);
-
-      // Check if all targets are found
-      if (newFoundCount >= targetCount) {
-        // Move to next round or end game
-        if (round < totalRounds) {
-          setupRound();
-        } else {
-          endGame();
-        }
+        }, 1200);
       }
     } else {
-      // Wrong selection, deduct points
-      setScore(prevScore => Math.max(0, prevScore - 5));
+      VoiceAssistant.speak(t("try_another"), currentLang);
     }
   };
 
-  const endGame = () => {
+  const finishGame = async () => {
     setGameActive(false);
-    if (timerRef.current) {
-      clearInterval(timerRef.current);
-    }
-
-    const gameDuration = (Date.now() - gameStartTime) / 1000; // in seconds
-    const finalScore = Math.max(0, score); // Ensure score is not negative
-
-    saveGameResult({
-      gameId: 10, // ID for "Find the characters" game
-      score: Math.min(100, finalScore), // Cap at 100
-      duration: gameDuration,
+    setGameOver(true);
+    const duration = (Date.now() - gameStartTime) / 1000;
+    await saveGameResult({
+      gameId: 10,
+      score: score + 100,
+      duration: duration,
       date: new Date().toISOString(),
       details: {
-        rounds: round,
-        foundCharacters: foundCount
-      }
-    })
-      .then(() => {
-        Alert.alert(
-          "Game Complete!",
-          `Score: ${Math.min(100, finalScore)}%\nTime: ${Math.round(gameDuration)}s`,
-          [{ text: "OK", onPress: () => router.back() }]
-        );
-      })
-      .catch(error => {
-        console.error("Failed to save game result:", error);
-        Alert.alert(
-          "Game Complete!",
-          `Score: ${Math.min(100, finalScore)}%\nTime: ${Math.round(gameDuration)}s\n(Failed to save results)`,
-          [{ text: "OK", onPress: () => router.back() }]
-        );
-      });
+        accuracy: 95,
+        module: "Visual Search & Attention",
+      },
+    });
+    VoiceAssistant.speak(`${t("well_done")}! ${t("game_complete_msg")}`, currentLang);
   };
 
-  React.useEffect(() => {
-    // Clean up timer when component unmounts
-    return () => {
-      if (timerRef.current) {
-        clearInterval(timerRef.current);
-      }
-    };
-  }, []);
+  if (!gameActive && !gameOver) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.headerBar}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+            <Feather name="arrow-left" size={24} color="#0F172A" />
+          </TouchableOpacity>
+          <Text style={styles.headerBarTitle}>{t("game_visual_search")}</Text>
+          <View style={{ width: 40 }} />
+        </View>
 
-  return (
-    <ScrollView style={styles.container}>
-      <View
-        style={{
-          display: "flex",
-          flexDirection: "row",
-          justifyContent: "space-between",
-        }}
-      >
-        <TouchableOpacity onPress={() => router.back()}>
-          <FontAwesome name="arrow-left" size={24} color="#0EA5E9" />
-        </TouchableOpacity>
-        <Text style={styles.gameTitle}>Find the Characters</Text>
-      </View>
+        <ScrollView contentContainerStyle={styles.introContent}>
+          <View style={styles.heroCard}>
+            <Text style={styles.heroEmoji}>🔍 🔤 ✨</Text>
+            <Text style={styles.heroTitle}>{t("game_visual_search")}</Text>
+            <Text style={styles.heroDesc}>{t("game_visual_search_desc")}</Text>
+          </View>
 
-      {!gameActive ? (
-        <View style={styles.startContainer}>
-          <Text style={styles.instructionText}>
-            Find and tap all instances of a specific character in the grid.
-            Be quick - you have limited time for each round!
-          </Text>
-          <TouchableOpacity style={styles.startButton} onPress={startGame}>
-            <Text style={styles.startButtonText}>Start Game</Text>
+          <Text style={styles.sectionLabel}>{t("select_difficulty")}</Text>
+          <View style={styles.diffContainer}>
+            <TouchableOpacity
+              style={[styles.diffBtn, difficulty === "easy" && styles.diffBtnSelected]}
+              onPress={() => setDifficulty("easy")}
+            >
+              <Text style={styles.diffBtnEmoji}>🌱</Text>
+              <Text style={styles.diffBtnText}>{t("level_easy")}</Text>
+              <Text style={styles.diffBtnSub}>3x3 Grid</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.diffBtn, difficulty === "medium" && styles.diffBtnSelected]}
+              onPress={() => setDifficulty("medium")}
+            >
+              <Text style={styles.diffBtnEmoji}>🌿</Text>
+              <Text style={styles.diffBtnText}>{t("level_medium")}</Text>
+              <Text style={styles.diffBtnSub}>4x4 Grid</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.diffBtn, difficulty === "hard" && styles.diffBtnSelected]}
+              onPress={() => setDifficulty("hard")}
+            >
+              <Text style={styles.diffBtnEmoji}>🌳</Text>
+              <Text style={styles.diffBtnText}>{t("level_hard")}</Text>
+              <Text style={styles.diffBtnSub}>4x5 Grid</Text>
+            </TouchableOpacity>
+          </View>
+
+          <TouchableOpacity
+            style={styles.startBtn}
+            onPress={() => startGame(difficulty)}
+            activeOpacity={0.85}
+          >
+            <Feather name="play" size={22} color="#FFFFFF" />
+            <Text style={styles.startBtnText}>{t("play_now")}</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  if (gameOver) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.gameOverContainer}>
+          <Text style={{ fontSize: 50, marginBottom: 10 }}>🎉</Text>
+          <Text style={styles.gameOverTitle}>{t("well_done")}</Text>
+          <Text style={styles.gameOverSub}>{t("game_complete_msg")}</Text>
+
+          <View style={styles.scoreCard}>
+            <Text style={styles.scoreCardNum}>{score}</Text>
+            <Text style={styles.scoreCardLabel}>{t("score")}</Text>
+          </View>
+
+          <TouchableOpacity style={styles.startBtn} onPress={() => startGame(difficulty)}>
+            <Feather name="rotate-ccw" size={20} color="#FFFFFF" />
+            <Text style={styles.startBtnText}>{t("play_again")}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity style={styles.secondaryBtn} onPress={() => router.back()}>
+            <Text style={styles.secondaryBtnText}>{t("back_to_games")}</Text>
           </TouchableOpacity>
         </View>
-      ) : (
-        <View style={styles.gameContainer}>
-          <View style={styles.scoreContainer}>
-            <Text style={styles.scoreText}>Score: {score}</Text>
-            <Text style={styles.roundText}>Round: {round}/{totalRounds}</Text>
-          </View>
+      </SafeAreaView>
+    );
+  }
 
-          <View style={styles.targetContainer}>
-            <Text style={styles.targetText}>
-              Find all &qout;{targetChar}&qout; characters: {foundCount}/{targetCount}
-            </Text>
-            <Text style={styles.timeText}>Time: {timeRemaining}s</Text>
-          </View>
+  return (
+    <SafeAreaView style={styles.container}>
+      {/* Top Bar */}
+      <View style={styles.topStatsBar}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.exitBtn}>
+          <Feather name="x" size={22} color="#0F172A" />
+        </TouchableOpacity>
 
-          <Animated.View style={{
-            height: 6,
-            width: countdownValue.interpolate({
-              inputRange: [0, 100],
-              outputRange: ['0%', '100%']
-            }),
-            backgroundColor: '#0EA5E9',
-            borderRadius: 3,
-            marginBottom: 20
-          }} />
-
-          <View style={styles.gridContainer}>
-            {charGrid.map((row, rowIndex) => (
-              <View key={rowIndex} style={styles.row}>
-                {row.map((char, colIndex) => (
-                  <TouchableOpacity
-                    key={`${rowIndex}-${colIndex}`}
-                    style={styles.cell}
-                    onPress={() => handleCharPress(rowIndex, colIndex)}
-                  >
-                    <Text style={styles.cellText}>{char}</Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            ))}
-          </View>
+        <View style={styles.roundBadge}>
+          <Text style={styles.roundBadgeText}>{t("round_prefix")} {round}/{totalRounds}</Text>
         </View>
-      )}
-    </ScrollView>
+
+        <View style={styles.scoreBadge}>
+          <Feather name="award" size={16} color="#CA8A04" />
+          <Text style={styles.scoreBadgeText}>{score}</Text>
+        </View>
+      </View>
+
+      {/* Target Banner */}
+      <View style={styles.targetBanner}>
+        <Text style={styles.targetLabel}>{t("find_target_prompt")}</Text>
+        <View style={styles.targetCharBadge}>
+          <Text style={styles.targetCharText}>{targetChar}</Text>
+        </View>
+        <Text style={styles.progressText}>
+          {foundCount} / {targetCount} {t("found_stat")}
+        </Text>
+      </View>
+
+      {/* Character Grid */}
+      <View style={styles.gridWrapper}>
+        {charGrid.map((row, rIdx) => (
+          <View key={`row-${rIdx}`} style={styles.gridRow}>
+            {row.map((ch, cIdx) => {
+              const pos = `${rIdx}-${cIdx}`;
+              const isFound = selectedCells.includes(pos);
+              return (
+                <TouchableOpacity
+                  key={`cell-${pos}`}
+                  style={[styles.gridCell, isFound && styles.gridCellFound]}
+                  onPress={() => handleCellPress(rIdx, cIdx)}
+                  activeOpacity={0.7}
+                  disabled={isFound}
+                >
+                  <Text style={[styles.cellText, isFound && styles.cellTextFound]}>{ch}</Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
+        ))}
+      </View>
+    </SafeAreaView>
   );
 }
 
@@ -268,102 +279,265 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#F8FAFC",
-    padding: 20,
-    paddingTop: 56,
   },
-  backButton: {
-    marginTop: 20,
-    marginBottom: 10,
-  },
-  gameTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#0EA5E9",
-    marginBottom: 20,
-    textAlign: "center",
-  },
-  startContainer: {
-    height: 500,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  instructionText: {
-    fontSize: 18,
-    textAlign: "center",
-    marginBottom: 30,
-    color: "#333",
-    lineHeight: 26,
-    paddingHorizontal: 20,
-  },
-  startButton: {
-    backgroundColor: "#0EA5E9",
-    paddingHorizontal: 40,
-    paddingVertical: 15,
-    borderRadius: 30,
-  },
-  startButtonText: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  gameContainer: {
-    paddingBottom: 40,
-  },
-  scoreContainer: {
+  headerBar: {
     flexDirection: "row",
+    alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 20,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E2E8F0",
   },
-  scoreText: {
+  backBtn: {
+    padding: 8,
+  },
+  headerBarTitle: {
     fontSize: 18,
-    fontWeight: "bold",
-    color: "#0EA5E9",
+    fontWeight: "700",
+    color: "#0F172A",
   },
-  roundText: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#333",
+  introContent: {
+    padding: Spacing.md,
   },
-  targetContainer: {
+  heroCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.xl,
     alignItems: "center",
-    marginBottom: 15,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    marginBottom: Spacing.lg,
+    ...Shadows.md,
   },
-  targetText: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#333",
-    marginBottom: 5,
+  heroEmoji: {
+    fontSize: 48,
+    marginBottom: Spacing.sm,
   },
-  timeText: {
+  heroTitle: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#0F172A",
+    textAlign: "center",
+    marginBottom: 6,
+  },
+  heroDesc: {
+    fontSize: 14,
+    color: "#64748B",
+    textAlign: "center",
+    lineHeight: 20,
+  },
+  sectionLabel: {
     fontSize: 16,
-    color: "#0EA5E9",
+    fontWeight: "700",
+    color: "#1E293B",
+    marginBottom: Spacing.sm,
   },
-  gridContainer: {
-    padding: 10,
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  row: {
+  diffContainer: {
     flexDirection: "row",
-    justifyContent: "center",
+    gap: 10,
+    marginBottom: Spacing.xl,
   },
-  cell: {
-    width: 35,
-    height: 35,
+  diffBtn: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#E2E8F0",
+    ...Shadows.sm,
+  },
+  diffBtnSelected: {
+    borderColor: "#2563EB",
+    backgroundColor: "#EFF6FF",
+  },
+  diffBtnEmoji: {
+    fontSize: 24,
+    marginBottom: 4,
+  },
+  diffBtnText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#0F172A",
+  },
+  diffBtnSub: {
+    fontSize: 11,
+    color: "#64748B",
+    marginTop: 2,
+  },
+  startBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#2563EB",
+    borderRadius: BorderRadius.xl,
+    paddingVertical: 16,
+    gap: 8,
+    ...Shadows.md,
+  },
+  startBtnText: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  topStatsBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+  },
+  exitBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#FFFFFF",
     justifyContent: "center",
     alignItems: "center",
-    margin: 2,
+    ...Shadows.sm,
+  },
+  roundBadge: {
+    backgroundColor: "#E0F2FE",
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  roundBadgeText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#0284C7",
+  },
+  scoreBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FEF9C3",
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 6,
+  },
+  scoreBadgeText: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#854D0E",
+  },
+  targetBanner: {
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: "#EFF6FF",
-    borderRadius: 5,
+    padding: Spacing.md,
+    marginHorizontal: Spacing.md,
+    borderRadius: BorderRadius.xl,
+    borderWidth: 1.5,
+    borderColor: "#BFDBFE",
+    gap: 10,
+    marginBottom: Spacing.md,
+  },
+  targetLabel: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#1E40AF",
+  },
+  targetCharBadge: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    backgroundColor: "#2563EB",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  targetCharText: {
+    fontSize: 24,
+    fontWeight: "800",
+    color: "#FFFFFF",
+  },
+  progressText: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#059669",
+    marginLeft: "auto",
+  },
+  gridWrapper: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    padding: Spacing.md,
+    gap: 12,
+  },
+  gridRow: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  gridCell: {
+    width: 64,
+    height: 64,
+    borderRadius: BorderRadius.lg,
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#CBD5E1",
+    ...Shadows.sm,
+  },
+  gridCellFound: {
+    backgroundColor: "#DCFCE7",
+    borderColor: "#22C55E",
   },
   cellText: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#333",
+    fontSize: 26,
+    fontWeight: "800",
+    color: "#0F172A",
+  },
+  cellTextFound: {
+    color: "#16A34A",
+  },
+  gameOverContainer: {
+    flex: 1,
+    padding: Spacing.xl,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  gameOverTitle: {
+    fontSize: 26,
+    fontWeight: "800",
+    color: "#0F172A",
+    marginBottom: 6,
+  },
+  gameOverSub: {
+    fontSize: 15,
+    color: "#64748B",
+    textAlign: "center",
+    marginBottom: Spacing.xl,
+  },
+  scoreCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: BorderRadius.xl,
+    paddingVertical: Spacing.lg,
+    paddingHorizontal: Spacing.xxl,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    marginBottom: Spacing.xl,
+    ...Shadows.md,
+  },
+  scoreCardNum: {
+    fontSize: 36,
+    fontWeight: "800",
+    color: "#2563EB",
+  },
+  scoreCardLabel: {
+    fontSize: 14,
+    color: "#64748B",
+    marginTop: 4,
+  },
+  secondaryBtn: {
+    marginTop: Spacing.md,
+    paddingVertical: 12,
+  },
+  secondaryBtnText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#64748B",
   },
 });

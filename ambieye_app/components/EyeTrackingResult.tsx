@@ -12,6 +12,7 @@
 import React, { useEffect, useRef } from "react";
 import { View, Text, StyleSheet, ActivityIndicator, Animated } from "react-native";
 import { RecordingStatus, EyeAnalysisResult } from "@/hooks/useEyeRecording";
+import { useTranslation } from "@/constants/i18n";
 
 interface Props {
   status: RecordingStatus;
@@ -24,14 +25,18 @@ const VERDICT_EMOJI: Record<string, string> = {
   good: "✅", partial: "⚠️", none: "❌", no_face: "📷", error: "⚠️",
 };
 
-const VERDICT_LABEL: Record<string, string> = {
-  good: "Eyes Moving", partial: "Some Movement", none: "No Movement",
-  no_face: "No Face", error: "Error",
-};
-
 export default function EyeTrackingResult({
   status, result, chunksAnalysed, liveVerdict,
 }: Props) {
+  const { t } = useTranslation();
+
+  const VERDICT_LABEL: Record<string, string> = {
+    good: t("eyes_moving_well"),
+    partial: t("some_eye_movement"),
+    none: t("no_eye_movement"),
+    no_face: t("face_not_detected"),
+    error: t("analysis_error"),
+  };
 
   // Nothing to show while game hasn't started
   if (status === "idle") return null;
@@ -40,12 +45,12 @@ export default function EyeTrackingResult({
   if (status === "recording") {
     if (chunksAnalysed === 0) return null; // first chunk still processing
     const emoji = liveVerdict ? (VERDICT_EMOJI[liveVerdict] ?? "👁") : "👁";
-    const label = liveVerdict ? (VERDICT_LABEL[liveVerdict] ?? liveVerdict) : "Analysing...";
+    const label = liveVerdict ? (VERDICT_LABEL[liveVerdict] ?? liveVerdict) : t("checking_connection");
     return (
       <View style={styles.liveBadge}>
         <View style={styles.liveRecDot} />
         <Text style={styles.liveText}>
-          {chunksAnalysed} chunk{chunksAnalysed !== 1 ? "s" : ""} analysed
+          {chunksAnalysed} {t("chunks_analysed")}
         </Text>
         <Text style={styles.liveSep}>·</Text>
         <Text style={styles.liveVerdict}>{emoji} {label}</Text>
@@ -60,12 +65,12 @@ export default function EyeTrackingResult({
         <View style={styles.stepRow}>
           <View style={[styles.stepDot, styles.stepDotDone]} />
           <Text style={[styles.stepLabel, styles.stepLabelDone]}>
-            {chunksAnalysed} chunk{chunksAnalysed !== 1 ? "s" : ""} analysed ✓
+            {chunksAnalysed} {t("chunks_analysed")} ✓
           </Text>
         </View>
         <View style={[styles.stepRow, { marginTop: 10 }]}>
           <ActivityIndicator size="small" color="#0EA5E9" style={{ marginRight: 8 }} />
-          <Text style={styles.stepLabel}>Averaging results and generating verdict...</Text>
+          <Text style={styles.stepLabel}>{t("averaging_results")}</Text>
         </View>
       </View>
     );
@@ -77,9 +82,9 @@ export default function EyeTrackingResult({
       <View style={[styles.card, styles.cardWarn]}>
         <Text style={styles.verdictIcon}>⚙️</Text>
         <View style={{ flex: 1 }}>
-          <Text style={styles.verdictTitle}>No server configured</Text>
+          <Text style={styles.verdictTitle}>{t("no_server_title")}</Text>
           <Text style={styles.verdictSub}>
-            Go to Settings → Eye Tracking Server and enter your laptop's IP address.
+            {t("no_server_desc")}
           </Text>
         </View>
       </View>
@@ -92,9 +97,9 @@ export default function EyeTrackingResult({
       <View style={[styles.card, styles.cardError]}>
         <Text style={styles.verdictIcon}>⚠️</Text>
         <View style={{ flex: 1 }}>
-          <Text style={styles.verdictTitle}>Analysis failed</Text>
+          <Text style={styles.verdictTitle}>{t("analysis_failed_title")}</Text>
           <Text style={styles.verdictSub}>
-            Could not reach the server. Check the IP in Settings and that the server is running.
+            {t("analysis_failed_desc")}
           </Text>
         </View>
       </View>
@@ -103,11 +108,11 @@ export default function EyeTrackingResult({
 
   // ── Done — full result card ───────────────────────────────────────────────
   const verdictConfig = {
-    good:    { bg: "#DCFCE7", border: "#86efac", icon: "✅", title: "Eyes Moving Well",   color: "#15803d" },
-    partial: { bg: "#FEF9C3", border: "#fde047", icon: "⚠️", title: "Some Eye Movement",  color: "#a16207" },
-    none:    { bg: "#FEE2E2", border: "#fca5a5", icon: "❌", title: "No Eye Movement",    color: "#b91c1c" },
-    no_face: { bg: "#F1F5F9", border: "#cbd5e1", icon: "📷", title: "Face Not Detected",  color: "#475569" },
-    error:   { bg: "#F1F5F9", border: "#cbd5e1", icon: "⚠️", title: "Analysis Error",     color: "#475569" },
+    good:    { bg: "#DCFCE7", border: "#86efac", icon: "✅", title: t("eyes_moving_well"),   color: "#15803d" },
+    partial: { bg: "#FEF9C3", border: "#fde047", icon: "⚠️", title: t("some_eye_movement"),  color: "#a16207" },
+    none:    { bg: "#FEE2E2", border: "#fca5a5", icon: "❌", title: t("no_eye_movement"),    color: "#b91c1c" },
+    no_face: { bg: "#F1F5F9", border: "#cbd5e1", icon: "📷", title: t("face_not_detected"),  color: "#475569" },
+    error:   { bg: "#F1F5F9", border: "#cbd5e1", icon: "⚠️", title: t("analysis_error"),     color: "#475569" },
   };
 
   const cfg = verdictConfig[result.verdict as keyof typeof verdictConfig] ?? verdictConfig.error;
@@ -128,24 +133,24 @@ export default function EyeTrackingResult({
         <View style={styles.statsRow}>
           <View style={styles.statItem}>
             <Text style={[styles.statValue, { color: cfg.color }]}>{result.movement_count}</Text>
-            <Text style={styles.statLabel}>Total{"\n"}Movements</Text>
+            <Text style={styles.statLabel}>{t("total_movements")}</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
             <Text style={[styles.statValue, { color: cfg.color }]}>
               {result.movements_per_chunk?.toFixed(1) ?? "—"}
             </Text>
-            <Text style={styles.statLabel}>Per{"\n"}Chunk</Text>
+            <Text style={styles.statLabel}>{t("per_chunk")}</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
             <Text style={[styles.statValue, { color: cfg.color }]}>{result.chunks_analysed ?? chunksAnalysed}</Text>
-            <Text style={styles.statLabel}>Chunks{"\n"}Analysed</Text>
+            <Text style={styles.statLabel}>{t("chunks_analysed")}</Text>
           </View>
           <View style={styles.statDivider} />
           <View style={styles.statItem}>
             <Text style={[styles.statValue, { color: cfg.color }]}>{result.frames_with_eyes}</Text>
-            <Text style={styles.statLabel}>Eye{"\n"}Frames</Text>
+            <Text style={styles.statLabel}>{t("eye_frames")}</Text>
           </View>
         </View>
       )}

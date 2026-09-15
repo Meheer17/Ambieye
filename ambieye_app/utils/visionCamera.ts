@@ -1,3 +1,4 @@
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 type VisionCameraModule = any;
 
 let cachedModule: VisionCameraModule | null | undefined;
