@@ -1,39 +1,43 @@
-import React from 'react';
-import { View, StyleSheet, Platform } from 'react-native';
-import Feather from '@expo/vector-icons/Feather';
-import FontAwesome from '@expo/vector-icons/FontAwesome';
-import { Tabs } from 'expo-router';
-import { Colors } from '@/constants/theme';
+import React from "react";
+import { View, StyleSheet, Platform } from "react-native";
+import Feather from "@expo/vector-icons/Feather";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { Tabs } from "expo-router";
+import { useTranslation } from "@/constants/i18n";
 
-const ICON_SIZE = 22;
+const ICON_SIZE = 24;
 
 export default function PatientTabLayout() {
+  const { t } = useTranslation();
+
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: Colors.primary,
-        tabBarInactiveTintColor: Colors.textLight,
+        tabBarActiveTintColor: "#4F46E5",
+        tabBarInactiveTintColor: "#78716C",
         tabBarStyle: {
           position: "absolute",
           bottom: 0,
           width: "100%",
-          backgroundColor: Colors.surface,
-          borderTopWidth: 0,
-          height: Platform.OS === "ios" ? 88 : 68,
-          paddingBottom: Platform.OS === "ios" ? 28 : 12,
-          paddingTop: 12,
+          backgroundColor: "#FFFFFF",
+          borderTopWidth: 1,
+          borderTopColor: "#EAE7E1",
+          height: Platform.OS === "ios" ? 90 : 78,
+          paddingBottom: Platform.OS === "ios" ? 28 : 16,
+          paddingTop: 8,
           elevation: 20,
-          shadowColor: "#000",
+          shadowColor: "#A8A29E",
           shadowOffset: { width: 0, height: -4 },
-          shadowOpacity: 0.1,
+          shadowOpacity: 0.08,
           shadowRadius: 16,
           borderTopLeftRadius: 24,
           borderTopRightRadius: 24,
         },
         tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: "600",
+          fontSize: 12,
+          fontWeight: "800",
           letterSpacing: 0.2,
+          marginTop: 2,
         },
         headerShown: false,
       }}
@@ -41,10 +45,21 @@ export default function PatientTabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Home",
+          title: t("tab_home") || "Home",
           tabBarIcon: ({ color, focused }) => (
             <View style={focused ? styles.activeIconBg : styles.iconBg}>
-              <Feather name="home" size={ICON_SIZE} color={color} />
+              <Feather name="home" size={22} color={color} />
+            </View>
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="reminders"
+        options={{
+          title: t("tab_reminders") || "Care",
+          tabBarIcon: ({ color, focused }) => (
+            <View style={focused ? styles.activeIconBg : styles.iconBg}>
+              <Feather name="clock" size={22} color={color} />
             </View>
           ),
         }}
@@ -52,10 +67,10 @@ export default function PatientTabLayout() {
       <Tabs.Screen
         name="games"
         options={{
-          title: "Games",
+          title: t("tab_games") || "Games",
           tabBarIcon: ({ color, focused }) => (
             <View style={focused ? styles.activeIconBg : styles.iconBg}>
-              <FontAwesome name="gamepad" size={ICON_SIZE} color={color} />
+              <MaterialCommunityIcons name="gamepad-variant" size={24} color={color} />
             </View>
           ),
         }}
@@ -63,10 +78,10 @@ export default function PatientTabLayout() {
       <Tabs.Screen
         name="queries"
         options={{
-          title: "Queries",
+          title: "Tele-Care",
           tabBarIcon: ({ color, focused }) => (
             <View style={focused ? styles.activeIconBg : styles.iconBg}>
-              <Feather name="message-circle" size={ICON_SIZE} color={color} />
+              <MaterialCommunityIcons name="doctor" size={24} color={color} />
             </View>
           ),
         }}
@@ -74,10 +89,10 @@ export default function PatientTabLayout() {
       <Tabs.Screen
         name="settings"
         options={{
-          title: "Profile",
+          title: "Help & Voice",
           tabBarIcon: ({ color, focused }) => (
             <View style={focused ? styles.activeIconBg : styles.iconBg}>
-              <Feather name="user" size={ICON_SIZE} color={color} />
+              <Feather name="help-circle" size={22} color={color} />
             </View>
           ),
         }}
@@ -94,17 +109,17 @@ export default function PatientTabLayout() {
 
 const styles = StyleSheet.create({
   iconBg: {
-    width: 40,
+    width: 44,
     height: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   activeIconBg: {
-    backgroundColor: `${Colors.primary}18`,
-    borderRadius: 10,
-    width: 40,
+    backgroundColor: "#F5F3FF",
+    borderRadius: 12,
+    width: 44,
     height: 32,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
 });

@@ -13,22 +13,116 @@ import {
   Alert,
   StatusBar,
 } from "react-native";
-import { Link, router } from "expo-router";
+import { Link, router, useLocalSearchParams } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
 import Feather from "@expo/vector-icons/Feather";
 import { Colors, BorderRadius, Shadows } from "@/constants/theme";
+import { useTranslation } from "@/constants/i18n";
+import { dementiaCareStorage } from "@/utils/dementiaCareStorage";
 
 export default function LoginScreen() {
-  const { login, userType, isLoading, error, clearError } = useAuth();
-  const [username, setUsername] = useState(
-    userType === "patient" ? "mahi" : "mahit",
-  );
-  const [password, setPassword] = useState("Meheer17");
+  const { login, userType, setSelectedUserType, isLoading, error, clearError } = useAuth();
+  const { t } = useTranslation();
+  const { selectedType, selectedMode } = useLocalSearchParams<{
+    selectedType?: string;
+    selectedMode?: string;
+  }>();
+
+  type RoleMode = "elderly" | "caregiver" | "asha" | "specialist";
+
+  // Role metadata configurations
+  const ROLE_CONFIGS: Record<
+    RoleMode,
+    {
+      titleKey: string;
+      username: string;
+      password: string;
+      type: "doctor" | "patient" | "caregiver";
+      color: string;
+      icon: string;
+      emoji: string;
+      tag: string;
+    }
+  > = {
+    elderly: {
+      titleKey: "role_elderly_title",
+      username: "mahi",
+      password: "password123",
+      type: "patient",
+      color: Colors.secondary,
+      icon: "smile",
+      emoji: "🧓",
+      tag: "Senior Kiosk",
+    },
+    caregiver: {
+      titleKey: "role_caregiver_title",
+      username: "caregiver",
+      password: "password123",
+      type: "caregiver",
+      color: "#EC4899",
+      icon: "heart",
+      emoji: "👨‍👩‍👧",
+      tag: "Family Guardian",
+    },
+    asha: {
+      titleKey: "role_asha_title",
+      username: "asha_worker",
+      password: "password123",
+      type: "doctor",
+      color: "#10B981",
+      icon: "users",
+      emoji: "🩺",
+      tag: "Community ASHA",
+    },
+    specialist: {
+      titleKey: "role_specialist_title",
+      username: "mahit",
+      password: "password123",
+      type: "doctor",
+      color: Colors.primary,
+      icon: "activity",
+      emoji: "👨‍⚕️",
+      tag: "Neurologist",
+    },
+  };
+
+  const initialMode: RoleMode =
+    selectedMode && (selectedMode as RoleMode) in ROLE_CONFIGS
+      ? (selectedMode as RoleMode)
+      : selectedType === "doctor" || userType === "doctor"
+      ? "specialist"
+      : "elderly";
+
+  const [activeRoleMode, setActiveRoleMode] = useState<RoleMode>(initialMode);
+  const [username, setUsername] = useState(ROLE_CONFIGS[initialMode].username);
+  const [password, setPassword] = useState(ROLE_CONFIGS[initialMode].password);
   const [showPassword, setShowPassword] = useState(false);
   const [validationError, setValidationError] = useState("");
 
-  const isDoctor = userType === "doctor";
-  const accentColor = isDoctor ? Colors.primary : Colors.secondary;
+  // Select a role mode and populate its credentials
+  const selectRole = (mode: RoleMode) => {
+    setActiveRoleMode(mode);
+    const config = ROLE_CONFIGS[mode];
+    setUsername(config.username);
+    setPassword(config.password);
+    setSelectedUserType(config.type);
+  };
+
+  // Sync state when incoming route params change
+  useEffect(() => {
+    if (selectedMode && (selectedMode as RoleMode) in ROLE_CONFIGS) {
+      selectRole(selectedMode as RoleMode);
+    } else if (selectedType === "caregiver") {
+      selectRole("caregiver");
+    } else if (selectedType === "patient") {
+      selectRole("elderly");
+    } else if (selectedType === "doctor") {
+      selectRole("specialist");
+    }
+  }, [selectedMode, selectedType]);
+
+  const currentRole = ROLE_CONFIGS[activeRoleMode];
+  const accentColor = currentRole.color;
 
   useEffect(() => {
     if (error) {
@@ -42,12 +136,45 @@ export default function LoginScreen() {
       return;
     }
     setValidationError("");
+
+    const cleanUser = username.trim().toLowerCase();
+    const isCaregiver =
+      activeRoleMode === "caregiver" ||
+      currentRole.type === "caregiver" ||
+      cleanUser === "caregiver" ||
+      cleanUser.includes("care");
+
+    const isDoctor =
+      activeRoleMode === "specialist" ||
+      activeRoleMode === "asha" ||
+      currentRole.type === "doctor" ||
+      cleanUser.includes("doc") ||
+      cleanUser.includes("asha") ||
+      cleanUser.includes("mahit");
+
+    // Set view mode for patient/caregiver
+    if (isCaregiver || currentRole.type === "patient") {
+      await dementiaCareStorage.setActiveViewMode(
+        isCaregiver ? "caregiver" : "elderly"
+      );
+    }
+
+    if (isCaregiver) {
+      await setSelectedUserType("caregiver");
+    } else if (isDoctor) {
+      await setSelectedUserType("doctor");
+    } else {
+      await setSelectedUserType("patient");
+    }
+
     const success = await login(username, password);
     if (success) {
-      if (userType === "doctor") {
-        router.replace("/(doctor)/");
+      if (isCaregiver) {
+        router.replace("/(caregiver)/" as any);
+      } else if (isDoctor) {
+        router.replace("/(doctor)/" as any);
       } else {
-        router.replace("/(patient)/");
+        router.replace("/(patient)/" as any);
       }
     }
   };
@@ -85,14 +212,57 @@ export default function LoginScreen() {
                 style={styles.logo}
               />
             </View>
-            <View style={[styles.roleBadge, { backgroundColor: `${accentColor}20`, borderColor: `${accentColor}40` }]}>
-              <Feather name={isDoctor ? "activity" : "eye"} size={13} color={accentColor} />
+
+            {/* 4-Role Quick Switcher Pills */}
+            <View style={styles.rolePickerContainer}>
+              {(Object.keys(ROLE_CONFIGS) as RoleMode[]).map((mode) => {
+                const cfg = ROLE_CONFIGS[mode];
+                const isSelected = activeRoleMode === mode;
+                return (
+                  <TouchableOpacity
+                    key={mode}
+                    style={[
+                      styles.roleChip,
+                      isSelected && {
+                        backgroundColor: `${cfg.color}25`,
+                        borderColor: cfg.color,
+                      },
+                    ]}
+                    onPress={() => selectRole(mode)}
+                    activeOpacity={0.8}
+                  >
+                    <Text style={{ fontSize: 13 }}>{cfg.emoji}</Text>
+                    <Text
+                      style={[
+                        styles.roleChipText,
+                        isSelected && { color: cfg.color, fontWeight: "800" },
+                      ]}
+                    >
+                      {cfg.tag}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* Dynamic Active Role Badge */}
+            <View
+              style={[
+                styles.roleBadge,
+                {
+                  backgroundColor: `${accentColor}20`,
+                  borderColor: `${accentColor}50`,
+                },
+              ]}
+            >
+              <Text style={{ fontSize: 14 }}>{currentRole.emoji}</Text>
               <Text style={[styles.roleBadgeText, { color: accentColor }]}>
-                {isDoctor ? "Doctor Portal" : "Patient Portal"}
+                {t(currentRole.titleKey)}
               </Text>
             </View>
-            <Text style={styles.welcomeText}>Welcome back</Text>
-            <Text style={styles.title}>Sign in to continue</Text>
+
+            <Text style={styles.welcomeText}>{t("login_welcome_back")}</Text>
+            <Text style={styles.title}>{t("login_sign_in_continue")}</Text>
           </View>
 
           {/* Form Card */}
@@ -104,15 +274,28 @@ export default function LoginScreen() {
               </View>
             ) : null}
 
+            {/* Credential prefill hint */}
+            <View
+              style={[
+                styles.prefillHint,
+                { backgroundColor: `${accentColor}12`, borderColor: `${accentColor}30` },
+              ]}
+            >
+              <Feather name="info" size={13} color={accentColor} />
+              <Text style={[styles.prefillHintText, { color: accentColor }]}>
+                Pre-filled with demo credentials for {currentRole.tag}
+              </Text>
+            </View>
+
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Username</Text>
+              <Text style={styles.inputLabel}>{t("username_label")}</Text>
               <View style={styles.inputWrapper}>
                 <View style={styles.inputIconBg}>
                   <Feather name="user" size={16} color={Colors.textSecondary} />
                 </View>
                 <TextInput
                   style={styles.input}
-                  placeholder="Enter your username"
+                  placeholder={t("username_label")}
                   placeholderTextColor={Colors.textLight}
                   value={username}
                   onChangeText={setUsername}
@@ -123,14 +306,14 @@ export default function LoginScreen() {
             </View>
 
             <View style={styles.inputGroup}>
-              <Text style={styles.inputLabel}>Password</Text>
+              <Text style={styles.inputLabel}>{t("password_label")}</Text>
               <View style={styles.inputWrapper}>
                 <View style={styles.inputIconBg}>
                   <Feather name="lock" size={16} color={Colors.textSecondary} />
                 </View>
                 <TextInput
                   style={styles.input}
-                  placeholder="Enter your password"
+                  placeholder={t("password_label")}
                   placeholderTextColor={Colors.textLight}
                   value={password}
                   onChangeText={setPassword}
@@ -138,13 +321,13 @@ export default function LoginScreen() {
                   editable={!isLoading}
                 />
                 <TouchableOpacity
+                  style={styles.passwordToggle}
                   onPress={() => setShowPassword(!showPassword)}
-                  style={styles.eyeButton}
                 >
                   <Feather
                     name={showPassword ? "eye-off" : "eye"}
-                    size={16}
-                    color={Colors.textLight}
+                    size={18}
+                    color={Colors.textSecondary}
                   />
                 </TouchableOpacity>
               </View>
@@ -161,11 +344,11 @@ export default function LoginScreen() {
               activeOpacity={0.85}
             >
               {isLoading ? (
-                <ActivityIndicator color="#fff" size="small" />
+                <ActivityIndicator color="#FFFFFF" size="small" />
               ) : (
                 <>
-                  <Text style={styles.loginButtonText}>Sign In</Text>
-                  <Feather name="arrow-right" size={18} color="#fff" />
+                  <Text style={styles.loginButtonText}>{t("login_button")}</Text>
+                  <Feather name="arrow-right" size={18} color="#FFFFFF" />
                 </>
               )}
             </TouchableOpacity>
@@ -176,11 +359,22 @@ export default function LoginScreen() {
               <View style={styles.dividerLine} />
             </View>
 
-            <View style={styles.signupRow}>
-              <Text style={styles.signupText}>Don&apos;t have an account? </Text>
-              <Link href="/auth/signup" asChild>
-                <TouchableOpacity disabled={isLoading}>
-                  <Text style={[styles.signupLink, { color: accentColor }]}>Create account</Text>
+            <View style={styles.signupContainer}>
+              <Text style={styles.signupText}>{t("no_account")}</Text>
+              <Link
+                href={{
+                  pathname: "/auth/signup",
+                  params: {
+                    selectedType: currentRole.type,
+                    selectedMode: activeRoleMode,
+                  },
+                }}
+                asChild
+              >
+                <TouchableOpacity>
+                  <Text style={[styles.signupLink, { color: accentColor }]}>
+                    {t("signup_link")}
+                  </Text>
                 </TouchableOpacity>
               </Link>
             </View>
@@ -197,107 +391,155 @@ const styles = StyleSheet.create({
     backgroundColor: "#0F172A",
   },
   bgCircle1: {
-    position: 'absolute',
-    width: 300,
-    height: 300,
-    borderRadius: 150,
-    opacity: 0.08,
-    top: -80,
-    right: -60,
+    position: "absolute",
+    top: -100,
+    right: -100,
+    width: 320,
+    height: 320,
+    borderRadius: 160,
+    opacity: 0.15,
   },
   bgCircle2: {
-    position: 'absolute',
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: Colors.secondary,
-    opacity: 0.06,
-    bottom: 100,
-    left: -50,
+    position: "absolute",
+    bottom: -120,
+    left: -80,
+    width: 280,
+    height: 280,
+    borderRadius: 140,
+    backgroundColor: "#3B82F6",
+    opacity: 0.08,
   },
   keyboardView: {
     flex: 1,
   },
   scrollContent: {
     flexGrow: 1,
-    paddingHorizontal: 24,
+    justifyContent: "center",
+    padding: 24,
+    paddingTop: 60,
     paddingBottom: 40,
   },
   backButton: {
-    marginTop: 56,
-    width: 42,
-    height: 42,
-    borderRadius: 13,
+    position: "absolute",
+    top: 16,
+    left: 24,
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     backgroundColor: "rgba(255,255,255,0.08)",
     justifyContent: "center",
     alignItems: "center",
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.1)',
+    zIndex: 10,
   },
   headerSection: {
     alignItems: "center",
-    marginTop: 28,
     marginBottom: 28,
   },
   logoContainer: {
-    width: 80,
-    height: 80,
+    width: 72,
+    height: 72,
     borderRadius: 22,
     backgroundColor: "rgba(255,255,255,0.08)",
+    borderWidth: 1.5,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 16,
-    borderWidth: 1.5,
+    ...Shadows.md,
   },
   logo: {
-    width: 52,
-    height: 52,
+    width: 44,
+    height: 44,
     resizeMode: "contain",
   },
-  roleBadge: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 14,
+  rolePickerContainer: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    justifyContent: "center",
+    gap: 8,
+    marginBottom: 16,
+    width: "100%",
+  },
+  roleChip: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.06)",
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.12)",
+    paddingHorizontal: 10,
     paddingVertical: 6,
+    borderRadius: 16,
+    gap: 5,
+  },
+  roleChipText: {
+    color: "#94A3B8",
+    fontSize: 12,
+    fontWeight: "600",
+  },
+  roleBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 5,
     borderRadius: 20,
     borderWidth: 1,
-    marginBottom: 14,
+    marginBottom: 12,
+    gap: 6,
   },
   roleBadgeText: {
     fontSize: 12,
-    fontWeight: '700',
+    fontWeight: "700",
     letterSpacing: 0.5,
+  },
+  prefillHint: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+    borderWidth: 1,
+    marginBottom: 16,
+    gap: 8,
+  },
+  prefillHintText: {
+    fontSize: 12,
+    fontWeight: "600",
+    flex: 1,
   },
   welcomeText: {
     fontSize: 14,
-    color: "rgba(255,255,255,0.45)",
-    marginBottom: 6,
-    letterSpacing: 0.5,
+    fontWeight: "600",
+    color: "#64748B",
+    marginBottom: 4,
+    textTransform: "uppercase",
+    letterSpacing: 1,
   },
   title: {
     fontSize: 26,
     fontWeight: "800",
     color: "#FFFFFF",
-    textAlign: "center",
+    letterSpacing: -0.5,
   },
   formCard: {
-    backgroundColor: Colors.surface,
+    backgroundColor: "rgba(255,255,255,0.05)",
     borderRadius: 24,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.1)",
     padding: 24,
     ...Shadows.lg,
   },
   errorBanner: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FEE2E2",
-    borderRadius: 12,
+    backgroundColor: "rgba(239,68,68,0.15)",
+    borderWidth: 1,
+    borderColor: "rgba(239,68,68,0.3)",
+    borderRadius: BorderRadius.md,
     padding: 12,
     marginBottom: 16,
     gap: 8,
   },
   errorText: {
-    color: Colors.error,
+    color: "#FCA5A5",
     fontSize: 13,
     flex: 1,
   },
@@ -307,45 +549,40 @@ const styles = StyleSheet.create({
   inputLabel: {
     fontSize: 13,
     fontWeight: "600",
-    color: Colors.text,
+    color: "#94A3B8",
     marginBottom: 8,
-    letterSpacing: 0.2,
   },
   inputWrapper: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: Colors.background,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    paddingRight: 14,
+    backgroundColor: "rgba(255,255,255,0.07)",
+    borderRadius: BorderRadius.lg,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.12)",
+    paddingHorizontal: 14,
     height: 52,
-    overflow: 'hidden',
   },
   inputIconBg: {
-    width: 52,
-    height: 52,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: Colors.divider,
+    marginRight: 10,
   },
   input: {
     flex: 1,
     fontSize: 15,
-    color: Colors.text,
-    paddingLeft: 12,
+    color: "#FFFFFF",
+    height: "100%",
   },
-  eyeButton: {
-    padding: 4,
+  passwordToggle: {
+    padding: 6,
   },
   loginButton: {
-    borderRadius: 14,
-    height: 54,
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    gap: 8,
+    height: 54,
+    borderRadius: BorderRadius.lg,
     marginTop: 8,
+    gap: 8,
+    ...Shadows.md,
   },
   loginButtonDisabled: {
     opacity: 0.6,
@@ -354,31 +591,31 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontSize: 16,
     fontWeight: "700",
-    letterSpacing: 0.3,
   },
   divider: {
     flexDirection: "row",
     alignItems: "center",
     marginVertical: 20,
-    gap: 12,
   },
   dividerLine: {
     flex: 1,
     height: 1,
-    backgroundColor: Colors.border,
+    backgroundColor: "rgba(255,255,255,0.1)",
   },
   dividerText: {
-    fontSize: 13,
-    color: Colors.textLight,
+    color: "#64748B",
+    fontSize: 12,
+    marginHorizontal: 12,
+    textTransform: "uppercase",
   },
-  signupRow: {
-    flexDirection: "row",
-    justifyContent: "center",
+  signupContainer: {
     alignItems: "center",
+    gap: 6,
   },
   signupText: {
-    fontSize: 14,
-    color: Colors.textSecondary,
+    color: "#94A3B8",
+    fontSize: 13,
+    textAlign: "center",
   },
   signupLink: {
     fontSize: 14,

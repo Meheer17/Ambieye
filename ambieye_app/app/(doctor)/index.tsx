@@ -9,6 +9,8 @@ import {
   RefreshControl,
   Platform,
   StatusBar,
+  Modal,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@/hooks/useAuth";
@@ -23,16 +25,82 @@ import {
 } from "@/services/api/doctorQueryService";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Colors, Shadows, BorderRadius } from "@/constants/theme";
+import { useTranslation, SupportedLanguage } from "@/constants/i18n";
+import AshaCognitiveScreener from "@/components/AshaCognitiveScreener";
+import {
+  dementiaCareStorage,
+  AshaScreeningRecord,
+  DementiaStage,
+} from "@/utils/dementiaCareStorage";
+
+const VILLAGE_PATIENTS = [
+  {
+    id: "pat-1",
+    name: "Bhaben Barman",
+    age: 72,
+    gender: "Male",
+    village: "Hajo Rural Sector, Assam",
+    lastScreened: "3 days ago",
+    score: 22,
+    stage: "stage_mci" as DementiaStage,
+    statusLabel: "MCI Risk (22/30)",
+    badgeColor: "#F59E0B",
+  },
+  {
+    id: "pat-2",
+    name: "Renuka Devi",
+    age: 68,
+    gender: "Female",
+    village: "Sualkuchi Silk Village, Assam",
+    lastScreened: "2 weeks ago",
+    score: 27,
+    stage: "stage_normal" as DementiaStage,
+    statusLabel: "Normal Cognition (27/30)",
+    badgeColor: "#10B981",
+  },
+  {
+    id: "pat-3",
+    name: "Jogesh Kalita",
+    age: 75,
+    gender: "Male",
+    village: "Mirza Rural Block, Assam",
+    lastScreened: "Yesterday",
+    score: 16,
+    stage: "stage_moderate" as DementiaStage,
+    statusLabel: "Moderate Dementia (16/30)",
+    badgeColor: "#EF4444",
+  },
+  {
+    id: "pat-4",
+    name: "Minati Borah",
+    age: 70,
+    gender: "Female",
+    village: "Baihata Chariali, Assam",
+    lastScreened: "Not screened yet",
+    score: 0,
+    stage: "stage_mci" as DementiaStage,
+    statusLabel: "Pending Initial Screening",
+    badgeColor: "#6B7280",
+  },
+];
 
 export default function DoctorDashboard() {
   const { username } = useAuth();
   const router = useRouter();
+  const { t, currentLang, changeLanguage, supportedLanguages } = useTranslation();
+  const [langModalVisible, setLangModalVisible] = useState(false);
   const [patients, setPatients] = useState<Patient[]>([]);
   const [queries, setQueries] = useState<DoctorQuery[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [patientError, setPatientError] = useState("");
   const [queryError, setQueryError] = useState("");
+
+  // ASHA vs Specialist mode state
+  const [doctorMode, setDoctorMode] = useState<"specialist" | "asha">("specialist");
+  const [ashaScreenerVisible, setAshaScreenerVisible] = useState(false);
+  const [selectedPatientForScreening, setSelectedPatientForScreening] = useState<{ id: string; name: string } | null>(null);
+  const [screeningRecords, setScreeningRecords] = useState<AshaScreeningRecord[]>([]);
 
   const lastFetchTimeRef = useRef<number>(0);
   const CACHE_DURATION = 10 * 60 * 1000;
@@ -116,12 +184,33 @@ export default function DoctorDashboard() {
   useFocusEffect(
     useCallback(() => {
       fetchData();
-    }, [fetchData]),
+
+      // Check if ASHA mode is active or user is asha_worker
+      const syncAshaMode = async () => {
+        try {
+          const savedMode = await AsyncStorage.getItem("ambieye_active_mode");
+          if (savedMode === "asha" || username?.toLowerCase().includes("asha")) {
+            setDoctorMode("asha");
+          } else {
+            setDoctorMode("specialist");
+          }
+          const records = await dementiaCareStorage.getScreeningRecords();
+          setScreeningRecords(records);
+        } catch {}
+      };
+      syncAshaMode();
+    }, [fetchData, username]),
   );
+
+  const handleSwitchDoctorMode = async (mode: "specialist" | "asha") => {
+    setDoctorMode(mode);
+    await AsyncStorage.setItem("ambieye_active_mode", mode);
+  };
 
   const onRefresh = () => {
     setRefreshing(true);
     fetchData(true);
+    dementiaCareStorage.getScreeningRecords().then(setScreeningRecords);
   };
 
   const getStatusColor = (urgency?: string) => {
@@ -137,17 +226,19 @@ export default function DoctorDashboard() {
     const now = new Date();
     const diffMs = now.getTime() - date.getTime();
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-    if (diffDays === 0) return "Today";
-    if (diffDays === 1) return "Yesterday";
-    if (diffDays < 7) return `${diffDays}d ago`;
+    if (diffDays === 0) return t("today");
+    if (diffDays === 1) return t("yesterday");
+    if (diffDays < 7) return `${diffDays} ${t("days_ago")}`;
     return date.toLocaleDateString();
   };
+
+  const currentLangObj = supportedLanguages.find((l) => l.code === currentLang) || supportedLanguages[0];
 
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={Colors.primary} />
-        <Text style={styles.loadingText}>Loading dashboard...</Text>
+        <Text style={styles.loadingText}>{t("checking_connection")}</Text>
       </View>
     );
   }
@@ -173,185 +264,463 @@ export default function DoctorDashboard() {
         <View style={styles.headerBg1} />
         <View style={styles.headerBg2} />
         <View style={styles.headerTop}>
-          <View>
-            <Text style={styles.welcomeText}>Good day,</Text>
-            <Text style={styles.doctorName}>Dr. {username} 👋</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.welcomeText}>
+              {doctorMode === "asha" ? "নমস্কাৰ / Welcome" : t("good_day")}
+            </Text>
+            <Text style={styles.doctorName}>
+              {doctorMode === "asha" ? "Priya Das 🩺" : `Dr. ${username} 👨‍⚕️`}
+            </Text>
+            <Text style={styles.roleSubtitle}>
+              {doctorMode === "asha"
+                ? "ASHA Community Health Worker • Kamrup Rural Sector 4"
+                : "Geriatric Neurology & Eye Tracking Diagnostics"}
+            </Text>
           </View>
+
+          {/* Roles Quick Switcher */}
+          <TouchableOpacity
+            style={styles.rolesPill}
+            onPress={() => router.push("/user-type")}
+            activeOpacity={0.8}
+          >
+            <Feather name="repeat" size={12} color="#94A3B8" />
+            <Text style={styles.rolesPillText}>Roles</Text>
+          </TouchableOpacity>
+
+          {/* Language Switcher */}
+          <TouchableOpacity
+            style={styles.langPill}
+            onPress={() => setLangModalVisible(true)}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.langPillEmoji}>{currentLangObj.flagEmoji}</Text>
+            <Text style={styles.langPillText}>{currentLangObj.nativeName}</Text>
+            <Feather name="chevron-down" size={13} color="#94A3B8" />
+          </TouchableOpacity>
+
           <TouchableOpacity
             style={styles.avatarButton}
-            onPress={() => router.push("/settings")}
+            onPress={() => router.push("/(doctor)/settings")}
           >
-            <View style={styles.avatarCircle}>
+            <View
+              style={[
+                styles.avatarCircle,
+                doctorMode === "asha" && { backgroundColor: "#10B981" },
+              ]}
+            >
               <Text style={styles.avatarText}>
-                {username?.toString().charAt(0).toUpperCase() || "D"}
+                {doctorMode === "asha" ? "A" : username?.toString().charAt(0).toUpperCase() || "D"}
               </Text>
             </View>
           </TouchableOpacity>
         </View>
 
-        {/* Stats */}
-        <View style={styles.statsRow}>
-          <TouchableOpacity style={styles.statCard} onPress={() => router.push("/patients")}>
-            <View style={[styles.statIconBg, { backgroundColor: 'rgba(14, 165, 233, 0.2)' }]}>
-              <FontAwesome name="users" size={18} color={Colors.primary} />
-            </View>
-            <Text style={styles.statNumber}>{patients.length}</Text>
-            <Text style={styles.statLabel}>Patients</Text>
-          </TouchableOpacity>
-
-          <View style={styles.statDivider} />
-
-          <TouchableOpacity style={styles.statCard} onPress={() => router.push("/queries")}>
-            <View style={[styles.statIconBg, { backgroundColor: 'rgba(239, 68, 68, 0.2)' }]}>
-              <Feather name="message-circle" size={18} color={Colors.error} />
-            </View>
-            <Text style={[styles.statNumber, { color: '#FCA5A5' }]}>{queries.length}</Text>
-            <Text style={styles.statLabel}>Pending Queries</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Quick Actions */}
-      <View style={styles.quickActionsSection}>
-        <Text style={styles.quickActionsTitle}>Quick Actions</Text>
-        <View style={styles.quickActions}>
-          <TouchableOpacity style={styles.quickActionBtn} onPress={() => router.push("/patients")}>
-            <View style={[styles.quickActionIcon, { backgroundColor: '#EFF6FF' }]}>
-              <FontAwesome name="users" size={20} color={Colors.primary} />
-            </View>
-            <Text style={styles.quickActionText}>Patients</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.quickActionBtn} onPress={() => router.push("/queries")}>
-            <View style={[styles.quickActionIcon, { backgroundColor: '#FEF2F2' }]}>
-              <Feather name="message-circle" size={20} color={Colors.error} />
-            </View>
-            <Text style={styles.quickActionText}>Queries</Text>
-          </TouchableOpacity>
-          <TouchableOpacity style={styles.quickActionBtn} onPress={() => router.push("/settings")}>
-            <View style={[styles.quickActionIcon, { backgroundColor: '#F5F3FF' }]}>
-              <Feather name="settings" size={20} color={Colors.secondary} />
-            </View>
-            <Text style={styles.quickActionText}>Settings</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      {/* Patients Section */}
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Recent Patients</Text>
-        <TouchableOpacity style={styles.seeAllBtn} onPress={() => router.push("/patients")}>
-          <Text style={styles.seeAllLink}>See All</Text>
-          <Feather name="chevron-right" size={14} color={Colors.primary} />
-        </TouchableOpacity>
-      </View>
-
-      {patientError ? (
-        <View style={styles.errorContainer}>
-          <Feather name="alert-circle" size={16} color={Colors.error} />
-          <Text style={styles.errorText}>{patientError}</Text>
-        </View>
-      ) : patients.length > 0 ? (
-        patients.slice(0, 3).map((patient) => (
+        {/* ── Mode Switcher (ASHA Screener vs Specialist Clinical) ─ */}
+        <View style={styles.modeSwitcherContainer}>
           <TouchableOpacity
-            key={patient.id}
-            style={styles.patientCard}
-            onPress={() => router.push("/patients")}
+            style={[styles.modeBtn, doctorMode === "asha" && styles.modeBtnActiveAsha]}
+            onPress={() => handleSwitchDoctorMode("asha")}
             activeOpacity={0.85}
           >
-            <View style={[
-              styles.patientAvatar,
-              { backgroundColor: patient.gender === "Female" ? Colors.secondary : Colors.primary },
-            ]}>
-              <Text style={styles.avatarInitial}>
-                {patient.fullName?.charAt(0) || "P"}
-              </Text>
-            </View>
-            <View style={styles.patientInfo}>
-              <Text style={styles.patientName}>{patient.fullName}</Text>
-              <View style={styles.patientMeta}>
-                <Text style={styles.patientMetaText}>
-                  {patient.age || "N/A"} yrs • {patient.gender || "N/A"}
-                </Text>
-                {patient.lastVisitDate && (
-                  <View style={styles.dateBadge}>
-                    <Text style={styles.dateBadgeText}>
-                      {getTimeAgo(patient.lastVisitDate)}
-                    </Text>
-                  </View>
-                )}
-              </View>
-            </View>
-            <Feather name="chevron-right" size={16} color={Colors.textLight} />
+            <Text style={{ fontSize: 13 }}>🩺</Text>
+            <Text style={[styles.modeBtnText, doctorMode === "asha" && styles.modeBtnTextActive]}>
+              ASHA Screener
+            </Text>
           </TouchableOpacity>
-        ))
-      ) : (
-        <View style={styles.emptyCard}>
-          <View style={[styles.emptyIconBg, { backgroundColor: '#EFF6FF' }]}>
-            <Feather name="users" size={24} color={Colors.primary} />
-          </View>
-          <Text style={styles.emptyTitle}>No patients yet</Text>
-          <Text style={styles.emptySubText}>
-            Patients will appear here once they connect with you
-          </Text>
-        </View>
-      )}
 
-      {/* Queries Section */}
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Pending Queries</Text>
-        <TouchableOpacity style={styles.seeAllBtn} onPress={() => router.push("/queries")}>
-          <Text style={styles.seeAllLink}>See All</Text>
-          <Feather name="chevron-right" size={14} color={Colors.primary} />
-        </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.modeBtn, doctorMode === "specialist" && styles.modeBtnActiveDoc]}
+            onPress={() => handleSwitchDoctorMode("specialist")}
+            activeOpacity={0.85}
+          >
+            <Text style={{ fontSize: 13 }}>👨‍⚕️</Text>
+            <Text style={[styles.modeBtnText, doctorMode === "specialist" && styles.modeBtnTextActive]}>
+              Specialist Clinical
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Stats Row */}
+        {doctorMode === "asha" ? (
+          <View style={styles.ashaStatsGrid}>
+            <View style={styles.ashaStatItem}>
+              <Text style={styles.ashaStatVal}>28</Text>
+              <Text style={styles.ashaStatLbl}>Village Seniors</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.ashaStatItem}>
+              <Text style={[styles.ashaStatVal, { color: "#34D399" }]}>22</Text>
+              <Text style={styles.ashaStatLbl}>Screened</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.ashaStatItem}>
+              <Text style={[styles.ashaStatVal, { color: "#FBBF24" }]}>5</Text>
+              <Text style={styles.ashaStatLbl}>MCI Risk</Text>
+            </View>
+            <View style={styles.statDivider} />
+            <View style={styles.ashaStatItem}>
+              <Text style={[styles.ashaStatVal, { color: "#F87171" }]}>2</Text>
+              <Text style={styles.ashaStatLbl}>Referred</Text>
+            </View>
+          </View>
+        ) : (
+          <View style={styles.statsRow}>
+            <TouchableOpacity style={styles.statCard} onPress={() => router.push("/(doctor)/patients")}>
+              <View style={[styles.statIconBg, { backgroundColor: "rgba(14, 165, 233, 0.2)" }]}>
+                <FontAwesome name="users" size={18} color={Colors.primary} />
+              </View>
+              <Text style={styles.statNumber}>{patients.length}</Text>
+              <Text style={styles.statLabel}>{t("tab_patients")}</Text>
+            </TouchableOpacity>
+
+            <View style={styles.statDivider} />
+
+            <TouchableOpacity style={styles.statCard} onPress={() => router.push("/(doctor)/queries")}>
+              <View style={[styles.statIconBg, { backgroundColor: "rgba(239, 68, 68, 0.2)" }]}>
+                <Feather name="message-circle" size={18} color={Colors.error} />
+              </View>
+              <Text style={[styles.statNumber, { color: "#FCA5A5" }]}>{queries.length}</Text>
+              <Text style={styles.statLabel}>{t("pending_queries_count")}</Text>
+            </TouchableOpacity>
+          </View>
+        )}
       </View>
 
-      {queryError ? (
-        <View style={styles.errorContainer}>
-          <Feather name="alert-circle" size={16} color={Colors.error} />
-          <Text style={styles.errorText}>{queryError}</Text>
-        </View>
-      ) : queries.length > 0 ? (
-        <View style={styles.queriesGrid}>
-          {queries.slice(0, 4).map((query) => (
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+      {/* 1. ASHA COMMUNITY HEALTH WORKER SCREENER DASHBOARD                 */}
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+      {doctorMode === "asha" && (
+        <View style={{ paddingHorizontal: 20, paddingTop: 16 }}>
+          {/* Offline Sync Banner */}
+          <View style={styles.offlineSyncPill}>
+            <Feather name="check-circle" size={15} color="#10B981" />
+            <Text style={styles.offlineSyncText}>
+              12 Village Screening Records Cached Offline • Kamrup Sector
+            </Text>
+          </View>
+
+          {/* MMSE Hero Card */}
+          <View style={styles.mmseHeroCard}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8, marginBottom: 6 }}>
+              <View style={styles.mmseBadge}>
+                <Text style={styles.mmseBadgeText}>📋 Standardized 30-Pt Assessment</Text>
+              </View>
+            </View>
+            <Text style={styles.mmseHeroTitle}>Mini-Mental State Exam (MMSE)</Text>
+            <Text style={styles.mmseHeroSub}>
+              Culturally-adapted dementia screening with audio instructions in Assamese, Bengali, Bodo, Hindi, and English.
+            </Text>
+
             <TouchableOpacity
-              key={query.id}
-              style={styles.queryCard}
-              onPress={() => router.push({ pathname: "/query/[id]", params: { id: query.id } })}
+              style={styles.launchScreenerBtn}
+              onPress={() => {
+                setSelectedPatientForScreening(null);
+                setAshaScreenerVisible(true);
+              }}
               activeOpacity={0.85}
             >
-              <View style={styles.queryCardTop}>
-                <View style={[styles.urgencyDot, { backgroundColor: getStatusColor(query.urgency) }]} />
-                <Text style={styles.queryDate}>{getTimeAgo(query.createdAt)}</Text>
-              </View>
-              <Text style={styles.queryTitle} numberOfLines={2}>
-                {query.question}
+              <Feather name="clipboard" size={20} color="#FFFFFF" />
+              <Text style={styles.launchScreenerBtnText}>Launch Cognitive Screening Test</Text>
+            </TouchableOpacity>
+          </View>
+
+          {/* Village Elderly Cohort & Screening Schedule */}
+          <View style={[styles.sectionHeader, { paddingHorizontal: 0, marginTop: 24 }]}>
+            <View>
+              <Text style={styles.sectionTitle}>Village Elderly Cohort (28)</Text>
+              <Text style={{ fontSize: 12, color: "#64748B" }}>
+                Kamrup Rural Health Block • Home Visit Roster
               </Text>
-              <View style={styles.queryPatientRow}>
-                <View style={styles.queryPatientAvatar}>
-                  <Text style={styles.queryPatientAvatarText}>
-                    {query.patientName?.charAt(0) || "P"}
+            </View>
+          </View>
+
+          {VILLAGE_PATIENTS.map((p) => (
+            <View key={p.id} style={styles.villagePatientCard}>
+              <View style={styles.villagePatientTop}>
+                <View style={[styles.villageAvatar, { backgroundColor: `${p.badgeColor}20` }]}>
+                  <Text style={[styles.villageAvatarText, { color: p.badgeColor }]}>
+                    {p.name.charAt(0)}
                   </Text>
                 </View>
-                <Text style={styles.queryPatientName} numberOfLines={1}>
-                  {query.patientName}
+                <View style={{ flex: 1 }}>
+                  <Text style={styles.villagePatientName}>{p.name}</Text>
+                  <Text style={styles.villagePatientMeta}>
+                    {p.age} yrs • {p.gender} • {p.village}
+                  </Text>
+                </View>
+                <View style={[styles.stageBadge, { backgroundColor: `${p.badgeColor}20`, borderColor: p.badgeColor }]}>
+                  <Text style={[styles.stageBadgeText, { color: p.badgeColor }]}>
+                    {p.statusLabel}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.villagePatientBottom}>
+                <Text style={styles.lastVisitText}>
+                  🕒 Last assessed: {p.lastScreened}
+                </Text>
+                <TouchableOpacity
+                  style={styles.screenPatientBtn}
+                  onPress={() => {
+                    setSelectedPatientForScreening({ id: p.id, name: p.name });
+                    setAshaScreenerVisible(true);
+                  }}
+                  activeOpacity={0.85}
+                >
+                  <Feather name="edit" size={14} color="#FFFFFF" />
+                  <Text style={styles.screenPatientBtnText}>Screen (MMSE)</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          ))}
+
+          {/* Recent Screening Records */}
+          {screeningRecords.length > 0 && (
+            <View style={{ marginTop: 20, marginBottom: 20 }}>
+              <Text style={[styles.sectionTitle, { marginBottom: 12 }]}>
+                Recent Completed Screenings
+              </Text>
+              {screeningRecords.slice(0, 3).map((rec) => (
+                <View key={rec.id} style={styles.recordItemCard}>
+                  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                    <Text style={styles.recordPatientName}>{rec.patientName}</Text>
+                    <Text style={styles.recordScoreBadge}>Score: {rec.totalScore}/30</Text>
+                  </View>
+                  <Text style={styles.recordDateText}>{rec.date} • Assessed by {rec.screenerName}</Text>
+                  {rec.notes ? (
+                    <Text style={styles.recordNotes}>"{rec.notes}"</Text>
+                  ) : null}
+                </View>
+              ))}
+            </View>
+          )}
+
+          {/* Escalation to Neurologist */}
+          <View style={styles.escalationCard}>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 10 }}>
+              <View style={styles.escalationIconBg}>
+                <Feather name="send" size={20} color="#3B82F6" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.escalationTitle}>Direct Escalation to Neurologist</Text>
+                <Text style={styles.escalationSub}>
+                  Refer patients scoring below 24/30 directly to Dr. Mahit Sharma (GNRC Neurology)
                 </Text>
               </View>
+            </View>
+            <TouchableOpacity
+              style={styles.escalationActionBtn}
+              onPress={() => router.push("/(doctor)/queries")}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.escalationActionBtnText}>Send Urgent Specialist Query</Text>
             </TouchableOpacity>
-          ))}
-        </View>
-      ) : (
-        <View style={styles.emptyCard}>
-          <View style={[styles.emptyIconBg, { backgroundColor: '#ECFDF5' }]}>
-            <Feather name="check-circle" size={24} color={Colors.accent} />
           </View>
-          <Text style={styles.emptyTitle}>All caught up!</Text>
-          <Text style={styles.emptySubText}>No pending queries right now</Text>
         </View>
       )}
 
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+      {/* 2. SPECIALIST NEUROLOGIST CLINICAL DASHBOARD                       */}
+      {/* ═══════════════════════════════════════════════════════════════════ */}
+      {doctorMode === "specialist" && (
+        <>
+          {/* Quick Actions */}
+          <View style={styles.quickActionsSection}>
+            <Text style={styles.quickActionsTitle}>{t("quick_actions")}</Text>
+            <View style={styles.quickActions}>
+              <TouchableOpacity style={styles.quickActionBtn} onPress={() => router.push("/(doctor)/patients")}>
+                <View style={[styles.quickActionIcon, { backgroundColor: "#EFF6FF" }]}>
+                  <FontAwesome name="users" size={20} color={Colors.primary} />
+                </View>
+                <Text style={styles.quickActionText}>{t("tab_patients")}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.quickActionBtn} onPress={() => router.push("/(doctor)/queries")}>
+                <View style={[styles.quickActionIcon, { backgroundColor: "#FEF2F2" }]}>
+                  <Feather name="message-circle" size={20} color={Colors.error} />
+                </View>
+                <Text style={styles.quickActionText}>{t("tab_queries")}</Text>
+              </TouchableOpacity>
+              <TouchableOpacity style={styles.quickActionBtn} onPress={() => router.push("/(doctor)/settings")}>
+                <View style={[styles.quickActionIcon, { backgroundColor: "#F5F3FF" }]}>
+                  <Feather name="settings" size={20} color={Colors.secondary} />
+                </View>
+                <Text style={styles.quickActionText}>{t("tab_profile")}</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+
+          {/* Patients Section */}
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>{t("recent_patients")}</Text>
+            <TouchableOpacity style={styles.seeAllBtn} onPress={() => router.push("/(doctor)/patients")}>
+              <Text style={styles.seeAllLink}>{t("see_all")}</Text>
+              <Feather name="chevron-right" size={14} color={Colors.primary} />
+            </TouchableOpacity>
+          </View>
+
+          {patientError ? (
+            <View style={styles.errorContainer}>
+              <Feather name="alert-circle" size={16} color={Colors.error} />
+              <Text style={styles.errorText}>{patientError}</Text>
+            </View>
+          ) : patients.length > 0 ? (
+            patients.slice(0, 3).map((patient) => (
+              <TouchableOpacity
+                key={patient.id}
+                style={styles.patientCard}
+                onPress={() => router.push("/(doctor)/patients")}
+                activeOpacity={0.85}
+              >
+                <View style={[
+                  styles.patientAvatar,
+                  { backgroundColor: patient.gender === "Female" ? Colors.secondary : Colors.primary },
+                ]}>
+                  <Text style={styles.avatarInitial}>
+                    {patient.fullName?.charAt(0) || "P"}
+                  </Text>
+                </View>
+                <View style={styles.patientInfo}>
+                  <Text style={styles.patientName}>{patient.fullName}</Text>
+                  <View style={styles.patientMeta}>
+                    <Text style={styles.patientMetaText}>
+                      {patient.age || "N/A"} yrs • {patient.gender || "N/A"}
+                    </Text>
+                    {patient.lastVisitDate && (
+                      <View style={styles.dateBadge}>
+                        <Text style={styles.dateBadgeText}>
+                          {getTimeAgo(patient.lastVisitDate)}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                </View>
+                <Feather name="chevron-right" size={16} color={Colors.textLight} />
+              </TouchableOpacity>
+            ))
+          ) : (
+            <View style={styles.emptyCard}>
+              <View style={[styles.emptyIconBg, { backgroundColor: "#EFF6FF" }]}>
+                <Feather name="users" size={24} color={Colors.primary} />
+              </View>
+              <Text style={styles.emptyTitle}>{t("no_patients_yet")}</Text>
+              <Text style={styles.emptySubText}>{t("no_patients_desc")}</Text>
+            </View>
+          )}
+
+          {/* Queries Section */}
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>{t("pending_queries_count")}</Text>
+            <TouchableOpacity style={styles.seeAllBtn} onPress={() => router.push("/(doctor)/queries")}>
+              <Text style={styles.seeAllLink}>{t("see_all")}</Text>
+              <Feather name="chevron-right" size={14} color={Colors.primary} />
+            </TouchableOpacity>
+          </View>
+
+          {queryError ? (
+            <View style={styles.errorContainer}>
+              <Feather name="alert-circle" size={16} color={Colors.error} />
+              <Text style={styles.errorText}>{queryError}</Text>
+            </View>
+          ) : queries.length > 0 ? (
+            <View style={styles.queriesGrid}>
+              {queries.slice(0, 4).map((query) => (
+                <TouchableOpacity
+                  key={query.id}
+                  style={styles.queryCard}
+                  onPress={() => router.push("/(doctor)/queries")}
+                  activeOpacity={0.85}
+                >
+                  <View style={styles.queryCardTop}>
+                    <View style={[styles.urgencyDot, { backgroundColor: getStatusColor(query.urgency) }]} />
+                    <Text style={styles.queryDate}>{getTimeAgo(query.createdAt)}</Text>
+                  </View>
+                  <Text style={styles.queryTitle} numberOfLines={2}>
+                    {query.question}
+                  </Text>
+                  <View style={styles.queryPatientRow}>
+                    <View style={styles.queryPatientAvatar}>
+                      <Text style={styles.queryPatientAvatarText}>
+                        {query.patientName?.charAt(0) || "P"}
+                      </Text>
+                    </View>
+                    <Text style={styles.queryPatientName} numberOfLines={1}>
+                      {query.patientName}
+                    </Text>
+                  </View>
+                </TouchableOpacity>
+              ))}
+            </View>
+          ) : (
+            <View style={styles.emptyCard}>
+              <View style={[styles.emptyIconBg, { backgroundColor: "#ECFDF5" }]}>
+                <Feather name="check-circle" size={24} color={Colors.accent} />
+              </View>
+              <Text style={styles.emptyTitle}>{t("all_caught_up")}</Text>
+              <Text style={styles.emptySubText}>{t("no_pending_queries_desc")}</Text>
+            </View>
+          )}
+        </>
+      )}
+
+      {/* ASHA Cognitive Screener Modal */}
+      <AshaCognitiveScreener
+        visible={ashaScreenerVisible}
+        onClose={() => setAshaScreenerVisible(false)}
+        patientId={selectedPatientForScreening?.id || "pat-1"}
+        patientName={selectedPatientForScreening?.name || "Bhaben Barman"}
+        onSaveSuccess={(newRecord) => {
+          setScreeningRecords((prev) => [newRecord, ...prev]);
+          setAshaScreenerVisible(false);
+          Alert.alert(
+            "Screening Saved",
+            `Assessment saved for ${newRecord.patientName}. Score: ${newRecord.totalScore}/30.`
+          );
+        }}
+      />
+
       <View style={styles.footer}>
-        <Text style={styles.footerText}>AmbiEye © {new Date().getFullYear()}</Text>
+        <Text style={styles.footerText}>{t("platform_footer")}</Text>
       </View>
+
+      {/* Language Modal */}
+      <Modal visible={langModalVisible} transparent animationType="slide">
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{t("select_language")}</Text>
+              <TouchableOpacity onPress={() => setLangModalVisible(false)} style={styles.closeBtn}>
+                <Feather name="x" size={20} color="#64748B" />
+              </TouchableOpacity>
+            </View>
+
+            <ScrollView contentContainerStyle={{ paddingBottom: 24 }}>
+              {supportedLanguages.map((lang) => {
+                const isSelected = currentLang === lang.code;
+                return (
+                  <TouchableOpacity
+                    key={lang.code}
+                    style={[styles.langOption, isSelected && styles.langOptionSelected]}
+                    onPress={async () => {
+                      await changeLanguage(lang.code as SupportedLanguage);
+                      setLangModalVisible(false);
+                    }}
+                  >
+                    <Text style={styles.langOptionFlag}>{lang.flagEmoji}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={[styles.langOptionNative, isSelected && styles.langOptionNativeSelected]}>
+                        {lang.nativeName}
+                      </Text>
+                      <Text style={styles.langOptionRegion}>{lang.name} • {lang.region}</Text>
+                    </View>
+                    {isSelected && <Feather name="check" size={20} color="#2563EB" />}
+                  </TouchableOpacity>
+                );
+              })}
+            </ScrollView>
+          </View>
+        </View>
+      </Modal>
     </ScrollView>
     </SafeAreaView>
   );
@@ -691,10 +1060,371 @@ const styles = StyleSheet.create({
   footer: {
     alignItems: "center",
     paddingVertical: 24,
+    paddingHorizontal: 20,
     marginTop: 8,
   },
   footerText: {
     fontSize: 12,
     color: Colors.textLight,
+    textAlign: "center",
+  },
+  langPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.12)",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 6,
+    borderWidth: 1,
+    borderColor: "rgba(255, 255, 255, 0.18)",
+    marginRight: 10,
+  },
+  langPillEmoji: {
+    fontSize: 14,
+  },
+  langPillText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    justifyContent: "flex-end",
+  },
+  modalSheet: {
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 24,
+    maxHeight: "75%",
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 20,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "800",
+    color: "#0F172A",
+  },
+  closeBtn: {
+    padding: 6,
+  },
+  langOption: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 14,
+    borderRadius: 14,
+    marginBottom: 8,
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    gap: 12,
+  },
+  langOptionSelected: {
+    backgroundColor: "#EFF6FF",
+    borderColor: "#2563EB",
+  },
+  langOptionFlag: {
+    fontSize: 24,
+  },
+  langOptionNative: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#0F172A",
+  },
+  langOptionNativeSelected: {
+    color: "#2563EB",
+  },
+  langOptionRegion: {
+    fontSize: 12,
+    color: "#64748B",
+    marginTop: 2,
+  },
+  roleSubtitle: {
+    color: "rgba(255,255,255,0.7)",
+    fontSize: 12,
+    marginTop: 2,
+  },
+  modeSwitcherContainer: {
+    flexDirection: "row",
+    backgroundColor: "rgba(255, 255, 255, 0.08)",
+    borderRadius: 16,
+    padding: 4,
+    marginBottom: 16,
+    marginTop: 4,
+    gap: 6,
+  },
+  modeBtn: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 8,
+    borderRadius: 12,
+    gap: 6,
+  },
+  modeBtnActiveAsha: {
+    backgroundColor: "#10B981",
+  },
+  modeBtnActiveDoc: {
+    backgroundColor: Colors.primary,
+  },
+  modeBtnText: {
+    color: "#94A3B8",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  modeBtnTextActive: {
+    color: "#FFFFFF",
+  },
+  ashaStatsGrid: {
+    flexDirection: "row",
+    backgroundColor: "rgba(255,255,255,0.07)",
+    borderRadius: 18,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.08)",
+  },
+  ashaStatItem: {
+    flex: 1,
+    alignItems: "center",
+  },
+  ashaStatVal: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#FFFFFF",
+  },
+  ashaStatLbl: {
+    fontSize: 10,
+    color: "rgba(255,255,255,0.6)",
+    fontWeight: "600",
+    marginTop: 2,
+    textAlign: "center",
+  },
+  offlineSyncPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(16, 185, 129, 0.12)",
+    borderWidth: 1,
+    borderColor: "rgba(16, 185, 129, 0.3)",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    gap: 8,
+    marginBottom: 16,
+  },
+  offlineSyncText: {
+    color: "#10B981",
+    fontSize: 12,
+    fontWeight: "600",
+    flex: 1,
+  },
+  mmseHeroCard: {
+    backgroundColor: "#064E3B",
+    borderRadius: 20,
+    padding: 20,
+    borderWidth: 1,
+    borderColor: "#059669",
+    marginBottom: 8,
+    ...Shadows.md,
+  },
+  mmseBadge: {
+    backgroundColor: "rgba(255,255,255,0.15)",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+  },
+  mmseBadgeText: {
+    color: "#A7F3D0",
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  mmseHeroTitle: {
+    color: "#FFFFFF",
+    fontSize: 20,
+    fontWeight: "800",
+    marginBottom: 6,
+  },
+  mmseHeroSub: {
+    color: "#D1FAE5",
+    fontSize: 13,
+    lineHeight: 18,
+    marginBottom: 16,
+  },
+  launchScreenerBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#10B981",
+    borderRadius: 14,
+    paddingVertical: 14,
+    gap: 8,
+    ...Shadows.sm,
+  },
+  launchScreenerBtnText: {
+    color: "#FFFFFF",
+    fontSize: 15,
+    fontWeight: "800",
+  },
+  villagePatientCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    ...Shadows.sm,
+  },
+  villagePatientTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 12,
+    marginBottom: 12,
+  },
+  villageAvatar: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  villageAvatarText: {
+    fontSize: 18,
+    fontWeight: "800",
+  },
+  villagePatientName: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#0F172A",
+  },
+  villagePatientMeta: {
+    fontSize: 12,
+    color: "#64748B",
+    marginTop: 2,
+  },
+  stageBadge: {
+    borderWidth: 1,
+    borderRadius: 12,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+  },
+  stageBadgeText: {
+    fontSize: 11,
+    fontWeight: "700",
+  },
+  villagePatientBottom: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: "#F1F5F9",
+  },
+  lastVisitText: {
+    fontSize: 12,
+    color: "#64748B",
+  },
+  screenPatientBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#10B981",
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 10,
+    gap: 5,
+  },
+  screenPatientBtnText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  recordItemCard: {
+    backgroundColor: "#F8FAFC",
+    borderRadius: 14,
+    padding: 14,
+    marginBottom: 8,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  recordPatientName: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#0F172A",
+  },
+  recordScoreBadge: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#10B981",
+  },
+  recordDateText: {
+    fontSize: 11,
+    color: "#64748B",
+    marginTop: 2,
+  },
+  recordNotes: {
+    fontSize: 12,
+    color: "#334155",
+    fontStyle: "italic",
+    marginTop: 6,
+  },
+  escalationCard: {
+    backgroundColor: "#EFF6FF",
+    borderRadius: 16,
+    padding: 16,
+    borderWidth: 1,
+    borderColor: "#BFDBFE",
+    marginTop: 8,
+    marginBottom: 20,
+    gap: 12,
+  },
+  escalationIconBg: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    backgroundColor: "#DBEAFE",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  escalationTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#1E40AF",
+  },
+  escalationSub: {
+    fontSize: 12,
+    color: "#3B82F6",
+    marginTop: 2,
+  },
+  escalationActionBtn: {
+    backgroundColor: "#2563EB",
+    borderRadius: 12,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  escalationActionBtnText: {
+    color: "#FFFFFF",
+    fontSize: 13,
+    fontWeight: "700",
+  },
+  rolesPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255,255,255,0.08)",
+    borderWidth: 1,
+    borderColor: "rgba(255,255,255,0.15)",
+    borderRadius: 16,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    gap: 4,
+  },
+  rolesPillText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#CBD5E1",
   },
 });

@@ -1,7 +1,19 @@
+import { Platform } from "react-native";
+
+// Local Machine IP from ipconfig (Wi-Fi LAN)
+const LOCAL_WIFI_IP = "172.26.251.66";
+
+// Python FastAPI backend running on port 8000
+const PYTHON_BACKEND_URL =
+  Platform.OS === "android" || Platform.OS === "ios"
+    ? `http://${LOCAL_WIFI_IP}:8000/api`
+    : "http://localhost:8000/api";
+
 export const API_CONFIG = {
-  // Change this to your actual API domain in production
-  BASE_URL: "https://p01--ambieye--6s9l5yxyj7q6.code.run/api",
-  // BASE_URL: "http://192.168.0.110:5000/api",
+  LOCAL_IP: LOCAL_WIFI_IP,
+  // Primary: Local Python FastAPI backend
+  BASE_URL: PYTHON_BACKEND_URL,
+  FALLBACK_URL: "https://p01--ambieye--6s9l5yxyj7q6.code.run/api",
 
   ENDPOINTS: {
     AUTH: {

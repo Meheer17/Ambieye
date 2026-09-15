@@ -13,13 +13,35 @@ import {
   Alert,
   StatusBar,
 } from "react-native";
-import { Link, router } from "expo-router";
+import { Link, router, useLocalSearchParams } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
 import Feather from "@expo/vector-icons/Feather";
 import { Colors, Shadows } from "@/constants/theme";
+import { dementiaCareStorage } from "@/utils/dementiaCareStorage";
 
 export default function SignUpScreen() {
-  const { signup, userType, isLoading, error, clearError } = useAuth();
+  const { signup, userType, setSelectedUserType, isLoading, error, clearError } = useAuth();
+  const { selectedType, selectedMode } = useLocalSearchParams<{
+    selectedType?: string;
+    selectedMode?: string;
+  }>();
+
+  const activeRoleType: "doctor" | "patient" =
+    selectedType === "doctor" || selectedType === "patient"
+      ? selectedType
+      : userType === "doctor"
+      ? "doctor"
+      : "patient";
+
+  const activeMode =
+    selectedMode || (activeRoleType === "doctor" ? "specialist" : "elderly");
+
+  useEffect(() => {
+    if (selectedType === "patient" || selectedType === "doctor") {
+      setSelectedUserType(selectedType);
+    }
+  }, [selectedType, setSelectedUserType]);
+
   const [currentStep, setCurrentStep] = useState(1);
   const [fullName, setFullName] = useState("");
   const [username, setUsername] = useState("");
@@ -38,7 +60,7 @@ export default function SignUpScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
-  const isDoctor = userType === "doctor";
+  const isDoctor = activeRoleType === "doctor";
   const accentColor = isDoctor ? Colors.primary : Colors.secondary;
 
   useEffect(() => {
@@ -97,14 +119,19 @@ export default function SignUpScreen() {
 
   const handleSignUp = async () => {
     if (!validateStep(3)) return;
+    if (activeRoleType === "patient") {
+      await dementiaCareStorage.setActiveViewMode(
+        activeMode === "caregiver" ? "caregiver" : "elderly"
+      );
+    }
     const success = await signup({
       fullName, username, email, password,
       phone, age, gender, dateOfBirth,
       fatherName, motherName, address,
     });
     if (success) {
-      if (userType === "doctor") router.replace("/(doctor)/");
-      else router.replace("/(patient)/");
+      if (activeRoleType === "doctor") router.replace("/(doctor)/" as any);
+      else router.replace("/(patient)/" as any);
     }
   };
 

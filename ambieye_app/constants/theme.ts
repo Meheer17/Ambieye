@@ -50,6 +50,30 @@ export const Colors = {
   gameTeal: '#14B8A6',
 };
 
+// Warm Dementia Palette for Calm, Trustworthy, Human Caregiver Experience
+export const WarmPalette = {
+  ivory: '#FDFBF7',         // Warm Ivory background
+  cream: '#FFFDF9',         // Pure Warm Cream surface
+  sand: '#F7F4EF',          // Light Sand for secondary cards
+  sandLight: '#FAF7F2',     // Very light sand
+  sandDark: '#EAE4DC',      // Sand border / divider
+  peach: '#F9DDD2',         // Muted Peach accent
+  peachMuted: '#FDF0EA',    // Soft Peach tint
+  peachDeep: '#D97757',     // Peach contrast for text/badges
+  roseDusty: '#C2747C',     // Dusty Rose primary accent
+  roseSoft: '#F6E6E8',      // Soft Rose tint
+  roseDeep: '#8E3E47',      // Deep Rose for important actions
+  lavenderWarm: '#A897B5',  // Warm Lavender
+  lavenderSoft: '#F3EEF6',  // Soft Lavender tint
+  sageWarm: '#7C8E77',      // Warm Sage for positive/completed
+  sageSoft: '#EEF2EC',      // Soft Sage tint
+  charcoalWarm: '#282524',  // Warm Charcoal headline text
+  charcoalMuted: '#5C5652', // Warm Charcoal body text
+  charcoalLight: '#8C857F', // Warm Charcoal caption text
+  borderWarm: '#E7E0D8',    // Warm hairline borders
+  borderSubtle: '#F0EBE3',  // Ultra-subtle border
+};
+
 export const Spacing = {
   xs: 4,
   sm: 8,

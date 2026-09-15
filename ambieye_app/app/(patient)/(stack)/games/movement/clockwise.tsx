@@ -9,6 +9,7 @@ import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { saveGameResult } from "@/utils/gameUtils";
 import { useEyeRecording } from "@/hooks/useEyeRecording";
 import EyeTrackingResult from "@/components/EyeTrackingResult";
+import { useTranslation } from "@/constants/i18n";
 
 const { width } = Dimensions.get("window");
 const BALL_SIZE = 30;
@@ -19,6 +20,7 @@ type Screen = "start" | "game" | "results";
 
 export default function ClockwiseGame() {
   const router = useRouter();
+  const { t } = useTranslation();
   const [permission, requestPermission] = useCameraPermissions();
   const [screen, setScreen] = useState<Screen>("start");
   const [timeLeft, setTimeLeft] = useState(60);
@@ -110,17 +112,16 @@ export default function ClockwiseGame() {
         <TouchableOpacity onPress={handleBack} hitSlop={{ top:10,bottom:10,left:10,right:10 }}>
           <FontAwesome name="arrow-left" size={24} color="#0EA5E9" />
         </TouchableOpacity>
-        <Text style={styles.gameTitle}>Follow the Ball (Clockwise)</Text>
+        <Text style={styles.gameTitle}>{t("follow_ball_clockwise")}</Text>
       </View>
 
       {screen === "start" && (
         <View style={styles.centreContainer}>
           <Text style={styles.instructionText}>
-            Follow the ball with your eyes as it moves clockwise for 1 minute.
-            The front camera will record your eye movement for analysis.
+            {t("gaze_exercise_desc")}
           </Text>
           <TouchableOpacity style={styles.primaryBtn} onPress={startGame}>
-            <Text style={styles.primaryBtnText}>Start Exercise</Text>
+            <Text style={styles.primaryBtnText}>{t("start_exercise")}</Text>
           </TouchableOpacity>
         </View>
       )}
@@ -128,12 +129,12 @@ export default function ClockwiseGame() {
       {screen === "game" && (
         <View style={styles.gameContainer}>
           <View style={styles.scoreRow}>
-            <Text style={styles.timerText}>Time Left: {timeLeft}s</Text>
+            <Text style={styles.timerText}>{t("time_left")}: {timeLeft}s</Text>
             {eyeStatus === "recording" && (
-              <View style={styles.recBadge}><View style={styles.recDot} /><Text style={styles.recText}>REC</Text></View>
+              <View style={styles.recBadge}><View style={styles.recDot} /><Text style={styles.recText}>{t("rec_badge")}</Text></View>
             )}
           </View>
-          <Text style={styles.instructions}>Follow the red ball with your eyes</Text>
+          <Text style={styles.instructions}>{t("follow_ball_instruction")}</Text>
           <View style={styles.trackContainer}>
             <View style={styles.track} />
             <Animated.View style={[styles.ball, { transform: [{ translateX }, { translateY }] }]} />
@@ -146,23 +147,23 @@ export default function ClockwiseGame() {
           {/* Completion card */}
           <View style={styles.completionCard}>
             <Text style={styles.completionEmoji}>🎉</Text>
-            <Text style={styles.completionTitle}>Exercise Complete!</Text>
-            <Text style={styles.completionSub}>You followed the ball for 1 minute</Text>
+            <Text style={styles.completionTitle}>{t("exercise_complete")}</Text>
+            <Text style={styles.completionSub}>{t("exercise_complete_sub")}</Text>
             <View style={styles.statsRow}>
               <View style={styles.statItem}>
                 <Text style={styles.statValue}>{Math.round(gameDuration)}s</Text>
-                <Text style={styles.statLabel}>Duration</Text>
+                <Text style={styles.statLabel}>{t("duration_stat")}</Text>
               </View>
               <View style={styles.statDivider} />
               <View style={styles.statItem}>
                 <Text style={styles.statValue}>100</Text>
-                <Text style={styles.statLabel}>Score</Text>
+                <Text style={styles.statLabel}>{t("score_stat")}</Text>
               </View>
             </View>
           </View>
 
           {/* Eye tracking result — updates live as server responds */}
-          <Text style={styles.sectionLabel}>EYE TRACKING ANALYSIS</Text>
+          <Text style={styles.sectionLabel}>{t("eye_tracking_analysis")}</Text>
           <EyeTrackingResult
             status={eyeStatus}
             result={eyeResult}
@@ -171,7 +172,7 @@ export default function ClockwiseGame() {
           />
 
           <TouchableOpacity style={[styles.primaryBtn, { marginTop: 32 }]} onPress={() => router.back()}>
-            <Text style={styles.primaryBtnText}>Done</Text>
+            <Text style={styles.primaryBtnText}>{t("done_btn")}</Text>
           </TouchableOpacity>
         </ScrollView>
       )}

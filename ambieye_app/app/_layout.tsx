@@ -46,6 +46,8 @@ if (Platform.OS === "web") {
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { AuthGate } from "@/components/AuthGate";
+import { LanguageProvider } from "@/constants/i18n";
+import { MobileDeviceContainer } from "@/components/MobileDeviceContainer";
 
 // Prevent the splash screen from auto-hiding
 SplashScreen.preventAutoHideAsync();
@@ -69,32 +71,37 @@ export default function RootLayout() {
 
   return (
     <SafeAreaProvider>
-      <AuthProvider>
-        <ThemeProvider
-          value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
-        >
-          <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
-          <AuthGate>
-            <Stack screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="splash" options={{ animation: "none" }} />
-              <Stack.Screen
-                name="user-type"
-                options={{ animation: "slide_from_right" }}
-              />
-              <Stack.Screen
-                name="auth"
-                options={{ animation: "slide_from_right", headerShown: false }}
-              />
-              <Stack.Screen name="(doctor)" options={{ animation: "fade" }} />
-              <Stack.Screen name="(patient)" options={{ animation: "fade" }} />
-              <Stack.Screen
-                name="+not-found"
-                options={{ presentation: "modal" }}
-              />
-            </Stack>
-          </AuthGate>
-        </ThemeProvider>
-      </AuthProvider>
+      <LanguageProvider>
+        <AuthProvider>
+          <ThemeProvider
+            value={colorScheme === "dark" ? DarkTheme : DefaultTheme}
+          >
+            <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
+            <MobileDeviceContainer>
+              <AuthGate>
+                <Stack screenOptions={{ headerShown: false }}>
+                  <Stack.Screen name="splash" options={{ animation: "none" }} />
+                  <Stack.Screen
+                    name="user-type"
+                    options={{ animation: "slide_from_right" }}
+                  />
+                  <Stack.Screen
+                    name="auth"
+                    options={{ animation: "slide_from_right", headerShown: false }}
+                  />
+                  <Stack.Screen name="(doctor)" options={{ animation: "fade" }} />
+                  <Stack.Screen name="(caregiver)" options={{ animation: "fade" }} />
+                  <Stack.Screen name="(patient)" options={{ animation: "fade" }} />
+                  <Stack.Screen
+                    name="+not-found"
+                    options={{ presentation: "modal" }}
+                  />
+                </Stack>
+              </AuthGate>
+            </MobileDeviceContainer>
+          </ThemeProvider>
+        </AuthProvider>
+      </LanguageProvider>
     </SafeAreaProvider>
   );
 }

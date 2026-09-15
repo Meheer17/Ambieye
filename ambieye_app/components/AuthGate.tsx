@@ -17,42 +17,50 @@ export function AuthGate({ children }: { children: React.ReactNode }) {
 
     const inAuthGroup = segments[0] === 'auth';
     const inDoctorGroup = segments[0] === '(doctor)';
+    const inCaregiverGroup = segments[0] === '(caregiver)';
     const inPatientGroup = segments[0] === '(patient)';
 
-    if (segments[0] === 'splash') {
-      // Always allow splash screen
+    if (segments[0] === 'splash' || segments[0] === 'user-type') {
+      // Always allow splash screen and role selection screen
       return;
     }
 
     // If not authenticated and not in auth group or user type selection, redirect to splash
-    if (!isAuthenticated && !inAuthGroup && segments[0] !== 'user-type') {
+    if (!isAuthenticated && !inAuthGroup) {
       router.replace('/splash');
       return;
     }
 
-    // If authenticated but in auth group or user type selection, redirect to appropriate role home
-    if (isAuthenticated && (inAuthGroup || segments[0] === 'user-type')) {
+    // If authenticated but in auth group (login/signup), redirect to appropriate role home
+    if (isAuthenticated && inAuthGroup) {
       if (userType === 'doctor') {
-        router.replace('/(doctor)/');
+        router.replace('/(doctor)/' as any);
+      } else if (userType === 'caregiver') {
+        router.replace('/(caregiver)/' as any);
       } else {
-        router.replace('/(patient)/');
+        router.replace('/(patient)/' as any);
       }
       return;
     }
 
     // If authenticated but in wrong role group, redirect
-    if (isAuthenticated && userType === 'doctor' && inPatientGroup) {
-      router.replace('/(doctor)/');
+    if (isAuthenticated && userType === 'doctor' && (inPatientGroup || inCaregiverGroup)) {
+      router.replace('/(doctor)/' as any);
       return;
     }
 
-    if (isAuthenticated && userType === 'patient' && inDoctorGroup) {
-      router.replace('/(patient)/');
+    if (isAuthenticated && userType === 'caregiver' && (inDoctorGroup || inPatientGroup)) {
+      router.replace('/(caregiver)/' as any);
+      return;
+    }
+
+    if (isAuthenticated && userType === 'patient' && (inDoctorGroup || inCaregiverGroup)) {
+      router.replace('/(patient)/' as any);
       return;
     }
 
     // If not authenticated and trying to access protected routes
-    if (!isAuthenticated && (inDoctorGroup || inPatientGroup)) {
+    if (!isAuthenticated && (inDoctorGroup || inPatientGroup || inCaregiverGroup)) {
       router.replace('/splash');
       return;
     }

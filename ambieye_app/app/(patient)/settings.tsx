@@ -5,23 +5,31 @@ import {
   Text,
   TouchableOpacity,
   ScrollView,
-  ActivityIndicator,
   TextInput,
   Modal,
-  KeyboardAvoidingView,
   Platform,
   Alert,
-  Linking,
-  StatusBar,
+  Switch,
 } from "react-native";
-import { getServerConfig, saveServerConfig, buildServerUrl, DEFAULT_PORT } from "@/utils/eyeTrackingStorage";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import Feather from "@expo/vector-icons/Feather";
-import Ionicons from "@expo/vector-icons/Ionicons";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useAuth } from "@/hooks/useAuth";
 import { patientService } from "@/services/api/patientService";
-import { Colors, Shadows } from "@/constants/theme";
+import { useTranslation, SUPPORTED_LANGUAGES, SupportedLanguage } from "@/constants/i18n";
+import { VoiceAssistant } from "@/utils/voiceAssistant";
+import { getServerConfig, saveServerConfig, buildServerUrl, DEFAULT_PORT } from "@/utils/eyeTrackingStorage";
+import {
+  accessibilityStorage,
+  AccessibilitySettings,
+  TextSizeOption,
+} from "@/utils/accessibilityStorage";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { useFocusEffect } from "@react-navigation/native";
+import { Colors, BorderRadius, Shadows, Spacing, WarmPalette } from "@/constants/theme";
+import { dementiaCareStorage } from "@/utils/dementiaCareStorage";
+import { CaregiverProfileScreen } from "@/components/caregiver/CaregiverProfileScreen";
 
 function showAlert(title: string, message?: string) {
   if (Platform.OS === "web") {
@@ -31,115 +39,102 @@ function showAlert(title: string, message?: string) {
   }
 }
 
-export type MedicalInfo = {
-  visionwithpg?: string;
-  chiefcomplaint?: string;
-  presentingillness?: string;
-  pastHistory?: string;
-  personalHistory?: string;
-  familyHistory?: string;
-  drugHistory?: string;
-  allergyHistory?: string;
-  bp?: string;
-  pr?: string;
-  temp?: string;
-  respirationrate?: string;
-  notes?: string;
-};
-
-interface ProfileData {
-  id: string;
-  fullName: string;
-  username: string;
-  email: string;
-  doctor_id?: string;
-  medicalInfo?: MedicalInfo;
-}
-
-interface DoctorData {
-  id: string;
-  fullName: string;
-  email: string;
-  specialization?: string;
-}
-
 export default function SettingsScreen() {
   const router = useRouter();
   const { logout, username } = useAuth();
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [profileData, setProfileData] = useState<ProfileData | null>(null);
-  const [doctorData, setDoctorData] = useState<DoctorData | null>(null);
-  const [isDoctorLoading, setIsDoctorLoading] = useState(false);
-  const [showDoctorModal, setShowDoctorModal] = useState(false);
-  const [doctorId, setDoctorId] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [showAboutModal, setShowAboutModal] = useState(false);
-  const [showHelpModal, setShowHelpModal] = useState(false);
+  const { t, currentLang, changeLanguage } = useTranslation();
 
-  // Eye tracking server config
+  const [viewMode, setViewMode] = useState<"elderly" | "caregiver">("elderly");
+  const [profileData, setProfileData] = useState<any>(null);
+  const [showLangModal, setShowLangModal] = useState(false);
   const [showServerModal, setShowServerModal] = useState(false);
   const [serverIp, setServerIp] = useState("");
   const [serverPort, setServerPort] = useState(DEFAULT_PORT);
   const [serverPinging, setServerPinging] = useState(false);
   const [serverPingResult, setServerPingResult] = useState<"ok" | "fail" | null>(null);
 
-  useEffect(() => {
-    const fetchProfileData = async () => {
-      setIsLoading(true);
-      try {
-        const profileResponse = await patientService.getProfile();
-        if (profileResponse.success) {
-          setProfileData(profileResponse.profile);
-          if (profileResponse.profile.doctor_id) {
-            fetchDoctorData(profileResponse.profile.doctor_id);
-          } else {
-            setShowDoctorModal(true);
-          }
+  // Accessibility State
+  const [accessibility, setAccessibility] = useState<AccessibilitySettings>({
+    textSize: "normal",
+    highContrast: false,
+    reduceMotion: false,
+    voiceAssistEnabled: true,
+  });
+
+  useFocusEffect(
+    React.useCallback(() => {
+      (async () => {
+        const activeMode = await AsyncStorage.getItem("ambieye_active_mode");
+        const savedMode = await dementiaCareStorage.getActiveViewMode();
+        if (activeMode === "caregiver" || username?.toLowerCase() === "caregiver") {
+          setViewMode("caregiver");
         } else {
-          showAlert("Error", profileResponse.message || "Failed to fetch profile data");
+          setViewMode(savedMode);
         }
-      } catch (error) {
-        showAlert("Error", "Failed to load profile data. Please try again.");
-      } finally {
-        setIsLoading(false);
-      }
-    };
-    fetchProfileData();
+      })();
+    }, [username])
+  );
 
-    // Load saved server config
-    getServerConfig().then(({ ip, port }) => {
-      setServerIp(ip);
-      setServerPort(port);
+  useEffect(() => {
+    if (viewMode === "caregiver") return;
+    patientService.getProfile().then((res) => {
+      if (res.success) setProfileData(res.profile);
     });
-  }, []);
 
-  const fetchDoctorData = async (docId: string) => {
-    setIsDoctorLoading(true);
-    try {
-      const response = await patientService.getDoctorDetails(docId);
-      if (response.success) setDoctorData(response.doctor);
-    } catch (error) {
-      console.error("Error fetching doctor details:", error);
-    } finally {
-      setIsDoctorLoading(false);
-    }
+    getServerConfig().then(({ ip, port }) => {
+      setServerIp(ip || "192.168.29.140");
+      setServerPort(port || DEFAULT_PORT);
+    });
+
+    accessibilityStorage.getSettings().then(setAccessibility);
+  }, [viewMode]);
+
+  if (viewMode === "caregiver") {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: WarmPalette.ivory }} edges={["top"]}>
+        <CaregiverProfileScreen />
+      </SafeAreaView>
+    );
+  }
+
+  const handleUpdateTextSize = async (size: TextSizeOption) => {
+    const updated = await accessibilityStorage.updateSettings({ textSize: size });
+    setAccessibility(updated);
+    VoiceAssistant.speak(`Text size set to ${size}`, currentLang);
   };
 
-  const handleSaveServerConfig = async () => {
+  const handleToggleHighContrast = async (val: boolean) => {
+    const updated = await accessibilityStorage.updateSettings({ highContrast: val });
+    setAccessibility(updated);
+  };
+
+  const handleToggleReduceMotion = async (val: boolean) => {
+    const updated = await accessibilityStorage.updateSettings({ reduceMotion: val });
+    setAccessibility(updated);
+  };
+
+  const handleToggleVoiceAssist = async (val: boolean) => {
+    const updated = await accessibilityStorage.updateSettings({ voiceAssistEnabled: val });
+    setAccessibility(updated);
+  };
+
+  const handleTestVoice = () => {
+    VoiceAssistant.speak(t("voice_test_msg"), currentLang);
+  };
+
+  const handleSaveServer = async () => {
     await saveServerConfig(serverIp, serverPort);
-    showAlert("Saved", "Eye tracking server address saved.");
+    showAlert("Saved", "Eye tracking server config saved.");
     setShowServerModal(false);
-    setServerPingResult(null);
   };
 
   const handlePingServer = async () => {
     const url = buildServerUrl(serverIp, serverPort);
-    if (!url) { showAlert("Error", "Enter a server IP first."); return; }
+    if (!url) return;
     setServerPinging(true);
     setServerPingResult(null);
     try {
-      const res = await fetch(`${url}/health`, { method: "GET" });
+      const res = await fetch(`${url}/health`);
       setServerPingResult(res.ok ? "ok" : "fail");
     } catch {
       setServerPingResult("fail");
@@ -149,701 +144,625 @@ export default function SettingsScreen() {
   };
 
   const handleLogout = () => {
-    Alert.alert("Logout", "Are you sure you want to logout?", [
+    Alert.alert(t("logout_btn"), "Are you sure you want to log out?", [
       { text: "Cancel", style: "cancel" },
       {
-        text: "Logout",
+        text: t("logout_btn"),
         style: "destructive",
         onPress: async () => {
-          try {
-            setIsLoggingOut(true);
-            await logout();
-          } catch (error) {
-            setIsLoggingOut(false);
-            showAlert("Logout Failed", "There was a problem logging out.");
-          }
+          await logout();
         },
       },
     ]);
   };
 
-  const handleDelete = () => {
-    Alert.alert("Delete Account", "This action cannot be undone. Are you sure?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Delete",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            setIsLoggingOut(true);
-            await patientService.deleteAccount();
-            await logout();
-          } catch (error) {
-            setIsLoggingOut(false);
-            showAlert("Error", "Failed to delete account. Please try again.");
-          }
-        },
-      },
-    ]);
-  };
-
-  const handleUpdateDoctorId = async () => {
-    if (!doctorId.trim()) { showAlert("Error", "Please enter a Doctor ID"); return; }
-    setIsSubmitting(true);
-    try {
-      const response = await patientService.updateDoctorId(doctorId);
-      if (response.success) {
-        showAlert("Success", "Doctor ID updated successfully");
-        setShowDoctorModal(false);
-        if (profileData) setProfileData({ ...profileData, doctor_id: doctorId });
-        fetchDoctorData(doctorId);
-      } else {
-        showAlert("Error", response.message || "Failed to update Doctor ID");
-      }
-    } catch (error) {
-      showAlert("Error", "An unexpected error occurred.");
-    } finally {
-      setIsSubmitting(false);
-    }
-  };
-
-  const handleRemoveDoctorId = async () => {
-    Alert.alert("Remove Doctor", "Are you sure you want to remove your current doctor?", [
-      { text: "Cancel", style: "cancel" },
-      {
-        text: "Remove",
-        style: "destructive",
-        onPress: async () => {
-          setIsSubmitting(true);
-          try {
-            const response = await patientService.updateDoctorId("");
-            if (response.success) {
-              showAlert("Success", "Doctor removed successfully");
-              if (profileData) setProfileData({ ...profileData, doctor_id: undefined });
-              setDoctorData(null);
-            } else {
-              showAlert("Error", response.message || "Failed to remove doctor");
-            }
-          } catch (error) {
-            showAlert("Error", "An unexpected error occurred.");
-          } finally {
-            setIsSubmitting(false);
-          }
-        },
-      },
-    ]);
-  };
-
-  const hasMedicalInfo = () =>
-    profileData?.medicalInfo &&
-    Object.keys(profileData.medicalInfo).some((key) => profileData.medicalInfo?.[key as keyof MedicalInfo]);
-
-  if (isLoading) {
-    return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={Colors.primary} />
-      </View>
-    );
-  }
-
-  const initials = (profileData?.fullName?.charAt(0) || username?.toString().charAt(0) || "P").toUpperCase();
+  const currentLangObj = SUPPORTED_LANGUAGES.find((l) => l.code === currentLang) || SUPPORTED_LANGUAGES[0];
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["top"]}>
-      <StatusBar barStyle="light-content" backgroundColor="#0F172A" />
-      <ScrollView
-        style={styles.container}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-      >
-        {/* Profile Header */}
-        <View style={styles.profileHeader}>
-          <View style={styles.avatarRing}>
-            <View style={styles.avatar}>
-              <Text style={styles.avatarText}>{initials}</Text>
-            </View>
-          </View>
-          <Text style={styles.profileName}>{profileData?.fullName || username}</Text>
-          <View style={styles.rolePill}>
-            <Feather name="eye" size={12} color={Colors.secondary} />
-            <Text style={styles.roleText}>Patient</Text>
-          </View>
-          <Text style={styles.profileEmail}>{profileData?.email || ""}</Text>
-          <TouchableOpacity
-            style={styles.editBtn}
-            onPress={() => router.push("/profile/edit")}
-          >
-            <Feather name="edit-2" size={14} color={Colors.primary} />
-            <Text style={styles.editBtnText}>Edit Profile</Text>
-          </TouchableOpacity>
+    <SafeAreaView style={styles.container} edges={["top"]}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={styles.headerTitle}>{t("settings_title")}</Text>
+          <Text style={styles.headerSubtitle}>{t("settings_subtitle")}</Text>
         </View>
 
-        {/* My Doctor */}
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>MY DOCTOR</Text>
-          {profileData?.doctor_id ? (
-            <View style={styles.card}>
-              {isDoctorLoading ? (
-                <ActivityIndicator size="small" color={Colors.primary} />
-              ) : doctorData ? (
-                <>
-                  <View style={styles.doctorRow}>
-                    <View style={styles.doctorAvatar}>
-                      <Text style={styles.doctorAvatarText}>
-                        {doctorData.fullName.charAt(0).toUpperCase()}
-                      </Text>
-                    </View>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.doctorName}>Dr. {doctorData.fullName}</Text>
-                      {doctorData.specialization && (
-                        <Text style={styles.doctorSpecialty}>{doctorData.specialization}</Text>
-                      )}
-                      <Text style={styles.doctorEmail}>{doctorData.email}</Text>
-                    </View>
-                  </View>
-                  <View style={styles.doctorActions}>
-                    <TouchableOpacity
-                      style={[styles.doctorActionBtn, { backgroundColor: '#EFF6FF' }]}
-                      onPress={() => router.push("/queries")}
-                    >
-                      <Ionicons name="chatbubble-outline" size={16} color={Colors.primary} />
-                      <Text style={[styles.doctorActionText, { color: Colors.primary }]}>Send Query</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity
-                      style={[styles.doctorActionBtn, { backgroundColor: '#FEF2F2' }]}
-                      onPress={handleRemoveDoctorId}
-                      disabled={isSubmitting}
-                    >
-                      {isSubmitting ? (
-                        <ActivityIndicator size="small" color={Colors.error} />
-                      ) : (
-                        <>
-                          <Feather name="user-x" size={16} color={Colors.error} />
-                          <Text style={[styles.doctorActionText, { color: Colors.error }]}>Remove</Text>
-                        </>
-                      )}
-                    </TouchableOpacity>
-                  </View>
-                </>
-              ) : (
-                <View style={styles.notFoundRow}>
-                  <Feather name="alert-circle" size={20} color={Colors.warning} />
-                  <Text style={styles.notFoundText}>Doctor not found</Text>
-                  <TouchableOpacity onPress={() => setShowDoctorModal(true)}>
-                    <Text style={styles.updateLink}>Update ID</Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-            </View>
-          ) : (
-            <TouchableOpacity style={styles.addDoctorCard} onPress={() => setShowDoctorModal(true)}>
-              <View style={styles.addDoctorIcon}>
-                <Feather name="user-plus" size={22} color={Colors.primary} />
-              </View>
-              <View>
-                <Text style={styles.addDoctorTitle}>Connect with a Doctor</Text>
-                <Text style={styles.addDoctorSubtitle}>Enter your doctor's AmbiEye ID</Text>
-              </View>
-              <Feather name="chevron-right" size={18} color={Colors.textLight} />
-            </TouchableOpacity>
-          )}
+        {/* ── User Profile Card ─────────────────────────────────────── */}
+        <View style={styles.profileCard}>
+          <View style={styles.avatarBg}>
+            <Text style={styles.avatarEmoji}>👵</Text>
+          </View>
+          <View style={styles.profileInfo}>
+            <Text style={styles.profileName}>{username || profileData?.fullName || "Aita / Koka"}</Text>
+            <Text style={styles.profileRole}>{t("dementia_participant")}</Text>
+            <Text style={styles.profileRegion}>{t("ner_region_label")}</Text>
+          </View>
         </View>
 
-        {/* Medical Info */}
-        {hasMedicalInfo() && (
-          <View style={styles.section}>
-            <Text style={styles.sectionLabel}>MEDICAL INFORMATION</Text>
-            <View style={styles.card}>
-              {profileData?.medicalInfo?.chiefcomplaint && (
-                <View style={styles.medRow}>
-                  <Text style={styles.medLabel}>Chief Complaint</Text>
-                  <Text style={styles.medValue}>{profileData.medicalInfo.chiefcomplaint}</Text>
-                </View>
-              )}
-              {profileData?.medicalInfo?.presentingillness && (
-                <View style={styles.medRow}>
-                  <Text style={styles.medLabel}>Presenting Illness</Text>
-                  <Text style={styles.medValue}>{profileData.medicalInfo.presentingillness}</Text>
-                </View>
-              )}
-              {profileData?.medicalInfo?.bp && (
-                <View style={styles.medRow}>
-                  <Text style={styles.medLabel}>Blood Pressure</Text>
-                  <Text style={styles.medValue}>{profileData.medicalInfo.bp}</Text>
-                </View>
-              )}
-              {profileData?.medicalInfo?.notes && (
-                <View style={styles.medRow}>
-                  <Text style={styles.medLabel}>Notes</Text>
-                  <Text style={styles.medValue}>{profileData.medicalInfo.notes}</Text>
-                </View>
-              )}
-            </View>
-          </View>
-        )}
+        {/* ════════════ ⚙️ ACCESSIBILITY SETTINGS ════════════ */}
+        <Text style={styles.sectionHeader}>⚙️ Accessibility & Visual Comfort</Text>
 
-        {/* Eye Tracking Server */}
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>EYE TRACKING SERVER</Text>
-          <TouchableOpacity style={styles.addDoctorCard} onPress={() => setShowServerModal(true)}>
-            <View style={[styles.addDoctorIcon, { backgroundColor: "#F0FDF4" }]}>
-              <Feather name="wifi" size={22} color="#22c55e" />
+        {/* 1. Text Size Control */}
+        <View style={styles.settingCard}>
+          <View style={styles.settingRowHeader}>
+            <View style={[styles.settingIconBg, { backgroundColor: "#DBEAFE" }]}>
+              <Feather name="type" size={20} color="#2563EB" />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.addDoctorTitle}>OpenCV Server</Text>
-              <Text style={styles.addDoctorSubtitle}>
-                {serverIp ? `${serverIp}:${serverPort}` : "Tap to configure server IP"}
-              </Text>
+              <Text style={styles.settingTitle}>Text Size Control</Text>
+              <Text style={styles.settingSub}>Adjust typography for easy reading</Text>
             </View>
-            <Feather name="chevron-right" size={18} color={Colors.textLight} />
-          </TouchableOpacity>
-        </View>
+          </View>
 
-        {/* Account */}
-        <View style={styles.section}>
-          <Text style={styles.sectionLabel}>ACCOUNT</Text>
-          <View style={styles.card}>
+          <View style={styles.textSizePillsRow}>
             {[
-              { icon: "help-circle", label: "Help & Support", onPress: () => setShowHelpModal(true) },
-              { icon: "info", label: "About AmbiEye", onPress: () => setShowAboutModal(true) },
-              { icon: "book", label: "Privacy Policy", onPress: () => router.push("/(patient)/(stack)/privacy") },
-            ].map((item, i, arr) => (
-              <TouchableOpacity
-                key={item.label}
-                style={[styles.settingRow, i < arr.length - 1 && styles.settingRowBorder]}
-                onPress={item.onPress}
-              >
-                <View style={styles.settingIconBg}>
-                  <Feather name={item.icon as any} size={18} color={Colors.primary} />
-                </View>
-                <Text style={styles.settingLabel}>{item.label}</Text>
-                <Feather name="chevron-right" size={16} color={Colors.textLight} />
-              </TouchableOpacity>
-            ))}
+              { key: "small", label: "Small" },
+              { key: "normal", label: "Normal" },
+              { key: "large", label: "Large" },
+              { key: "xlarge", label: "Extra Large" },
+            ].map((item) => {
+              const isSelected = accessibility.textSize === item.key;
+              return (
+                <TouchableOpacity
+                  key={item.key}
+                  style={[styles.textSizePill, isSelected && styles.textSizePillActive]}
+                  onPress={() => handleUpdateTextSize(item.key as TextSizeOption)}
+                >
+                  <Text style={[styles.textSizePillText, isSelected && styles.textSizePillTextActive]}>
+                    {item.label}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
           </View>
         </View>
 
-        {/* Logout */}
-        <TouchableOpacity style={styles.logoutBtn} onPress={handleLogout} disabled={isLoggingOut}>
-          {isLoggingOut ? (
-            <ActivityIndicator color="#fff" />
-          ) : (
-            <>
-              <Feather name="log-out" size={18} color="#fff" />
-              <Text style={styles.logoutText}>Logout</Text>
-            </>
-          )}
+        {/* 2. High Contrast Mode */}
+        <View style={styles.settingCard}>
+          <View style={styles.switchRow}>
+            <View style={[styles.settingIconBg, { backgroundColor: "#FEF3C7" }]}>
+              <Feather name="sun" size={20} color="#D97706" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.settingTitle}>High Contrast Mode</Text>
+              <Text style={styles.settingSub}>Stronger borders & crisp contrast</Text>
+            </View>
+            <Switch
+              value={accessibility.highContrast}
+              onValueChange={handleToggleHighContrast}
+              trackColor={{ false: "#CBD5E1", true: "#2563EB" }}
+            />
+          </View>
+        </View>
+
+        {/* 3. Reduce Motion for Comfort */}
+        <View style={styles.settingCard}>
+          <View style={styles.switchRow}>
+            <View style={[styles.settingIconBg, { backgroundColor: "#DCFCE7" }]}>
+              <Feather name="shield" size={20} color="#16A34A" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.settingTitle}>Reduce Motion</Text>
+              <Text style={styles.settingSub}>Calmer static UI without heavy transitions</Text>
+            </View>
+            <Switch
+              value={accessibility.reduceMotion}
+              onValueChange={handleToggleReduceMotion}
+              trackColor={{ false: "#CBD5E1", true: "#16A34A" }}
+            />
+          </View>
+        </View>
+
+        {/* 4. Spoken Voice Assist */}
+        <View style={styles.settingCard}>
+          <View style={styles.switchRow}>
+            <View style={[styles.settingIconBg, { backgroundColor: "#FAF5FF" }]}>
+              <Feather name="volume-2" size={20} color="#9333EA" />
+            </View>
+            <View style={{ flex: 1 }}>
+              <Text style={styles.settingTitle}>Voice Assistant</Text>
+              <Text style={styles.settingSub}>Read aloud greetings, reminders & games</Text>
+            </View>
+            <Switch
+              value={accessibility.voiceAssistEnabled}
+              onValueChange={handleToggleVoiceAssist}
+              trackColor={{ false: "#CBD5E1", true: "#9333EA" }}
+            />
+          </View>
+        </View>
+
+        {/* ── Section: Language & Voice ─────────────────────────────── */}
+        <Text style={styles.sectionHeader}>{t("language_section")}</Text>
+
+        {/* Language Switcher Button */}
+        <TouchableOpacity
+          style={styles.settingItem}
+          onPress={() => setShowLangModal(true)}
+          activeOpacity={0.7}
+        >
+          <View style={[styles.settingIconBg, { backgroundColor: "#EFF6FF" }]}>
+            <Feather name="globe" size={22} color="#2563EB" />
+          </View>
+          <View style={styles.settingContent}>
+            <Text style={styles.settingTitle}>{t("select_language")}</Text>
+            <Text style={styles.settingValue}>
+              {currentLangObj.flagEmoji} {currentLangObj.nativeName} ({currentLangObj.name})
+            </Text>
+          </View>
+          <Feather name="chevron-right" size={20} color="#94A3B8" />
         </TouchableOpacity>
 
-        <TouchableOpacity style={styles.deleteBtn} onPress={handleDelete} disabled={isLoggingOut}>
-          <Feather name="trash-2" size={16} color={Colors.error} />
-          <Text style={styles.deleteText}>Delete Account</Text>
+        {/* Voice Assistant Test Button */}
+        <TouchableOpacity
+          style={styles.settingItem}
+          onPress={handleTestVoice}
+          activeOpacity={0.7}
+        >
+          <View style={[styles.settingIconBg, { backgroundColor: "#DCFCE7" }]}>
+            <Feather name="volume-2" size={22} color="#16A34A" />
+          </View>
+          <View style={styles.settingContent}>
+            <Text style={styles.settingTitle}>{t("voice_test_btn")}</Text>
+            <Text style={styles.settingValue}>{t("voice_test_sub")}</Text>
+          </View>
+          <Feather name="play-circle" size={22} color="#16A34A" />
         </TouchableOpacity>
 
-        <Text style={styles.version}>AmbiEye v1.0.0</Text>
+        {/* ── Section: Hardware & Server ────────────────────────────── */}
+        <Text style={styles.sectionHeader}>{t("hardware_section")}</Text>
 
-        {/* Eye Tracking Server Modal */}
-        <Modal visible={showServerModal} transparent animationType="fade" onRequestClose={() => setShowServerModal(false)}>
-          <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.modalOverlay}>
-            <View style={styles.modalBox}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Eye Tracking Server</Text>
-                <TouchableOpacity onPress={() => setShowServerModal(false)} style={styles.modalCloseBtn}>
-                  <Feather name="x" size={20} color={Colors.textSecondary} />
-                </TouchableOpacity>
-              </View>
-              <Text style={styles.modalDesc}>
-                Enter the IP address of your laptop running the OpenCV FastAPI server.
-                Make sure both devices are on the same Wi-Fi network.
-              </Text>
-              <Text style={[styles.sectionLabel, { marginBottom: 6 }]}>SERVER IP</Text>
-              <TextInput
-                style={styles.modalInput}
-                placeholder="e.g. 192.168.1.42"
-                placeholderTextColor={Colors.textLight}
-                value={serverIp}
-                onChangeText={setServerIp}
-                keyboardType="decimal-pad"
-                autoCapitalize="none"
-                autoCorrect={false}
-              />
-              <Text style={[styles.sectionLabel, { marginBottom: 6, marginTop: 4 }]}>PORT</Text>
-              <TextInput
-                style={styles.modalInput}
-                placeholder="8000"
-                placeholderTextColor={Colors.textLight}
-                value={serverPort}
-                onChangeText={setServerPort}
-                keyboardType="number-pad"
-              />
+        {/* OpenCV Server Config */}
+        <TouchableOpacity
+          style={styles.settingItem}
+          onPress={() => setShowServerModal(true)}
+          activeOpacity={0.7}
+        >
+          <View style={[styles.settingIconBg, { backgroundColor: "#FAF5FF" }]}>
+            <Feather name="server" size={22} color="#9333EA" />
+          </View>
+          <View style={styles.settingContent}>
+            <Text style={styles.settingTitle}>{t("server_config_title")}</Text>
+            <Text style={styles.settingValue}>
+              {serverIp ? `${serverIp}:${serverPort}` : t("server_config_sub")}
+            </Text>
+          </View>
+          <Feather name="settings" size={20} color="#94A3B8" />
+        </TouchableOpacity>
 
-              {/* Ping result */}
+        {/* Caregiver & ASHA Support Info */}
+        <View style={styles.settingItem}>
+          <View style={[styles.settingIconBg, { backgroundColor: "#FEF3C7" }]}>
+            <Feather name="heart" size={22} color="#D97706" />
+          </View>
+          <View style={styles.settingContent}>
+            <Text style={styles.settingTitle}>{t("caregiver_link_title")}</Text>
+            <Text style={styles.settingValue}>{t("asha_linked_desc")}</Text>
+          </View>
+        </View>
+
+        {/* ── Logout Button ─────────────────────────────────────────── */}
+        <TouchableOpacity
+          style={styles.logoutButton}
+          onPress={handleLogout}
+          activeOpacity={0.8}
+        >
+          <Feather name="log-out" size={20} color="#DC2626" />
+          <Text style={styles.logoutButtonText}>{t("logout_btn")}</Text>
+        </TouchableOpacity>
+
+        <View style={{ height: 110 }} />
+      </ScrollView>
+
+      {/* ── Language Selection Modal ─────────────────────────────────── */}
+      <Modal
+        visible={showLangModal}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setShowLangModal(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setShowLangModal(false)}
+        >
+          <View style={styles.modalCard} onStartShouldSetResponder={() => true}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{t("select_language")}</Text>
+              <TouchableOpacity onPress={() => setShowLangModal(false)}>
+                <Feather name="x" size={22} color="#0F172A" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={styles.langList}>
+              {SUPPORTED_LANGUAGES.map((lang) => {
+                const isSelected = currentLang === lang.code;
+                return (
+                  <TouchableOpacity
+                    key={lang.code}
+                    style={[styles.langCard, isSelected && styles.langCardActive]}
+                    onPress={async () => {
+                      await changeLanguage(lang.code);
+                      setShowLangModal(false);
+                      VoiceAssistant.speak(`Language set to ${lang.name}`, lang.code);
+                    }}
+                  >
+                    <Text style={styles.langEmoji}>{lang.flagEmoji}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.langNative}>{lang.nativeName}</Text>
+                      <Text style={styles.langRegion}>{lang.name} • {lang.region}</Text>
+                    </View>
+                    {isSelected && <Feather name="check-circle" size={22} color="#2563EB" />}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* ── Server Modal ────────────────────────────────────────────── */}
+      <Modal
+        visible={showServerModal}
+        transparent={true}
+        animationType="slide"
+        onRequestClose={() => setShowServerModal(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
+            <View style={styles.modalHeader}>
+              <Text style={styles.modalTitle}>{t("server_config_title")}</Text>
+              <TouchableOpacity onPress={() => setShowServerModal(false)}>
+                <Feather name="x" size={22} color="#0F172A" />
+              </TouchableOpacity>
+            </View>
+
+            <Text style={styles.inputLabel}>{t("server_ip_label")}</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="e.g. 192.168.29.140"
+              value={serverIp}
+              onChangeText={setServerIp}
+            />
+
+            <Text style={styles.inputLabel}>{t("server_port_label")}</Text>
+            <TextInput
+              style={styles.input}
+              placeholder="8000"
+              value={serverPort}
+              onChangeText={setServerPort}
+              keyboardType="numeric"
+            />
+
+            <View style={styles.pingRow}>
+              <TouchableOpacity
+                style={[styles.pingBtn, serverPinging && { opacity: 0.6 }]}
+                onPress={handlePingServer}
+                disabled={serverPinging}
+              >
+                <Text style={styles.pingBtnText}>
+                  {serverPinging ? t("pinging_server") : t("test_connection")}
+                </Text>
+              </TouchableOpacity>
+
               {serverPingResult === "ok" && (
-                <View style={[styles.pingBadge, { backgroundColor: "#DCFCE7" }]}>
-                  <Feather name="check-circle" size={16} color="#16a34a" />
-                  <Text style={[styles.pingText, { color: "#16a34a" }]}>Server reachable ✓</Text>
+                <View style={styles.pingResultOk}>
+                  <Feather name="check-circle" size={16} color="#16A34A" />
+                  <Text style={styles.pingResultOkText}>{t("server_connected")}</Text>
                 </View>
               )}
               {serverPingResult === "fail" && (
-                <View style={[styles.pingBadge, { backgroundColor: "#FEE2E2" }]}>
-                  <Feather name="x-circle" size={16} color="#dc2626" />
-                  <Text style={[styles.pingText, { color: "#dc2626" }]}>Cannot reach server. Check IP and that the server is running.</Text>
+                <View style={styles.pingResultFail}>
+                  <Feather name="x-circle" size={16} color="#DC2626" />
+                  <Text style={styles.pingResultFailText}>{t("server_unreachable")}</Text>
                 </View>
               )}
-
-              <View style={{ flexDirection: "row", gap: 10, marginTop: 16 }}>
-                <TouchableOpacity
-                  style={[styles.modalSubmitBtn, { flex: 1, backgroundColor: "#F1F5F9" }]}
-                  onPress={handlePingServer}
-                  disabled={serverPinging}
-                >
-                  {serverPinging
-                    ? <ActivityIndicator size="small" color={Colors.primary} />
-                    : <Text style={[styles.modalSubmitText, { color: Colors.primary }]}>Test Connection</Text>
-                  }
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.modalSubmitBtn, { flex: 1 }]}
-                  onPress={handleSaveServerConfig}
-                >
-                  <Text style={styles.modalSubmitText}>Save</Text>
-                </TouchableOpacity>
-              </View>
             </View>
-          </KeyboardAvoidingView>
-        </Modal>
 
-        {/* Doctor ID Modal */}
-        <Modal visible={showDoctorModal} transparent animationType="fade">
-          <KeyboardAvoidingView
-            behavior={Platform.OS === "ios" ? "padding" : "height"}
-            style={styles.modalOverlay}
-          >
-            <View style={styles.modalBox}>
-              <View style={styles.modalIconBg}>
-                <Feather name="user-plus" size={28} color={Colors.primary} />
-              </View>
-              <Text style={styles.modalTitle}>
-                {profileData?.doctor_id ? "Update Doctor ID" : "Add Your Doctor"}
-              </Text>
-              <Text style={styles.modalDesc}>
-                Enter the ID provided by your doctor to connect with them on AmbiEye.
-              </Text>
-              <TextInput
-                style={styles.modalInput}
-                placeholder="Enter Doctor ID"
-                placeholderTextColor={Colors.textLight}
-                value={doctorId}
-                onChangeText={setDoctorId}
-                autoCapitalize="none"
-                autoCorrect={false}
-                editable={!isSubmitting}
-              />
-              <TouchableOpacity
-                style={[styles.modalSubmitBtn, (!doctorId.trim() || isSubmitting) && { opacity: 0.5 }]}
-                onPress={handleUpdateDoctorId}
-                disabled={!doctorId.trim() || isSubmitting}
-              >
-                {isSubmitting ? (
-                  <ActivityIndicator size="small" color="#fff" />
-                ) : (
-                  <Text style={styles.modalSubmitText}>Connect</Text>
-                )}
-              </TouchableOpacity>
-            </View>
-          </KeyboardAvoidingView>
-        </Modal>
-
-        {/* Help Modal */}
-        <Modal visible={showHelpModal} transparent animationType="fade" onRequestClose={() => setShowHelpModal(false)}>
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalBox}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>Help & Support</Text>
-                <TouchableOpacity onPress={() => setShowHelpModal(false)} style={styles.modalCloseBtn}>
-                  <Feather name="x" size={20} color={Colors.textSecondary} />
-                </TouchableOpacity>
-              </View>
-              <ScrollView style={{ maxHeight: 360 }} showsVerticalScrollIndicator={false}>
-                <TouchableOpacity style={styles.helpItem} onPress={() => Linking.openURL("mailto:support@ambieye.com")}>
-                  <Feather name="mail" size={18} color={Colors.primary} />
-                  <Text style={styles.helpItemText}>support@ambieye.com</Text>
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.helpItem} onPress={() => Linking.openURL("tel:+15551234567")}>
-                  <Feather name="phone" size={18} color={Colors.primary} />
-                  <Text style={styles.helpItemText}>+1 (555) 123-4567</Text>
-                </TouchableOpacity>
-                <View style={styles.faqItem}>
-                  <Text style={styles.faqQ}>How do I connect with my doctor?</Text>
-                  <Text style={styles.faqA}>Ask your doctor for their AmbiEye ID, then enter it in the "My Doctor" section.</Text>
-                </View>
-                <View style={styles.faqItem}>
-                  <Text style={styles.faqQ}>How often should I use the eye exercises?</Text>
-                  <Text style={styles.faqA}>We recommend daily practice. Your doctor may provide specific recommendations.</Text>
-                </View>
-              </ScrollView>
-              <TouchableOpacity style={styles.modalSubmitBtn} onPress={() => setShowHelpModal(false)}>
-                <Text style={styles.modalSubmitText}>Close</Text>
-              </TouchableOpacity>
-            </View>
+            <TouchableOpacity style={styles.saveBtn} onPress={handleSaveServer}>
+              <Text style={styles.saveBtnText}>{t("save_config_btn")}</Text>
+            </TouchableOpacity>
           </View>
-        </Modal>
-
-        {/* About Modal */}
-        <Modal visible={showAboutModal} transparent animationType="fade" onRequestClose={() => setShowAboutModal(false)}>
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalBox}>
-              <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>About AmbiEye</Text>
-                <TouchableOpacity onPress={() => setShowAboutModal(false)} style={styles.modalCloseBtn}>
-                  <Feather name="x" size={20} color={Colors.textSecondary} />
-                </TouchableOpacity>
-              </View>
-              <Text style={styles.aboutDesc}>
-                AmbiEye is a vision therapy platform designed to help treat amblyopia (lazy eye) through interactive games and exercises.
-              </Text>
-              <Text style={styles.aboutVersion}>Version 1.0.0</Text>
-              <TouchableOpacity style={styles.modalSubmitBtn} onPress={() => setShowAboutModal(false)}>
-                <Text style={styles.modalSubmitText}>Close</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </Modal>
-      </ScrollView>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "#0F172A" },
-  container: { flex: 1, backgroundColor: Colors.background },
-  scrollContent: { paddingBottom: 100 },
-  loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center", backgroundColor: Colors.background },
-
-  profileHeader: {
-    backgroundColor: "#0F172A",
-    alignItems: "center",
-    paddingTop: 24,
-    paddingBottom: 32,
-    paddingHorizontal: 24,
+  container: {
+    flex: 1,
+    backgroundColor: "#F8FAFC",
   },
-  avatarRing: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    borderWidth: 3,
-    borderColor: Colors.primary,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 14,
+  scrollContent: {
+    padding: Spacing.md,
   },
-  avatar: {
-    width: 76,
-    height: 76,
-    borderRadius: 38,
-    backgroundColor: Colors.primary,
-    justifyContent: "center",
-    alignItems: "center",
+  header: {
+    marginBottom: Spacing.md,
+    marginTop: Spacing.xs,
   },
-  avatarText: { color: "#fff", fontSize: 30, fontWeight: "800" },
-  profileName: { fontSize: 22, fontWeight: "800", color: "#fff", marginBottom: 8 },
-  rolePill: {
+  headerTitle: {
+    fontSize: 24,
+    fontWeight: "800",
+    color: "#0F172A",
+    letterSpacing: -0.5,
+  },
+  headerSubtitle: {
+    fontSize: 14,
+    color: "#64748B",
+    marginTop: 2,
+  },
+  profileCard: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 5,
-    backgroundColor: `${Colors.secondary}20`,
-    paddingHorizontal: 12,
-    paddingVertical: 4,
-    borderRadius: 20,
+    backgroundColor: "#FFFFFF",
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.lg,
+    marginBottom: Spacing.lg,
     borderWidth: 1,
-    borderColor: `${Colors.secondary}40`,
-    marginBottom: 6,
+    borderColor: "#E2E8F0",
+    ...Shadows.sm,
   },
-  roleText: { fontSize: 12, fontWeight: "700", color: Colors.secondary },
-  profileEmail: { fontSize: 13, color: "rgba(255,255,255,0.45)", marginBottom: 16 },
-  editBtn: {
+  avatarBg: {
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: "#EFF6FF",
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: Spacing.md,
+  },
+  avatarEmoji: {
+    fontSize: 28,
+  },
+  profileInfo: {
+    flex: 1,
+  },
+  profileName: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#0F172A",
+  },
+  profileRole: {
+    fontSize: 13,
+    color: "#2563EB",
+    fontWeight: "600",
+    marginTop: 2,
+  },
+  profileRegion: {
+    fontSize: 12,
+    color: "#64748B",
+    marginTop: 1,
+  },
+  sectionHeader: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#475569",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    marginTop: Spacing.md,
+    marginBottom: Spacing.sm,
+  },
+  settingCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    ...Shadows.sm,
+  },
+  settingRowHeader: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 6,
-    backgroundColor: `${Colors.primary}20`,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: `${Colors.primary}40`,
-  },
-  editBtnText: { fontSize: 13, fontWeight: "600", color: Colors.primary },
-
-  section: { paddingHorizontal: 16, marginTop: 20 },
-  sectionLabel: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: Colors.textSecondary,
-    letterSpacing: 1,
+    gap: 12,
     marginBottom: 10,
   },
-  card: {
-    backgroundColor: Colors.surface,
-    borderRadius: 16,
-    padding: 16,
-    ...Shadows.sm,
-  },
-
-  doctorRow: { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 14 },
-  doctorAvatar: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: Colors.primary,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  doctorAvatarText: { color: "#fff", fontSize: 18, fontWeight: "700" },
-  doctorName: { fontSize: 15, fontWeight: "700", color: Colors.text, marginBottom: 2 },
-  doctorSpecialty: { fontSize: 12, color: Colors.primary, fontWeight: "600", marginBottom: 2 },
-  doctorEmail: { fontSize: 12, color: Colors.textSecondary },
-  doctorActions: { flexDirection: "row", gap: 10 },
-  doctorActionBtn: {
-    flex: 1,
+  switchRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
+    gap: 12,
+  },
+  textSizePillsRow: {
+    flexDirection: "row",
     gap: 6,
-    paddingVertical: 10,
-    borderRadius: 12,
+    marginTop: 4,
   },
-  doctorActionText: { fontSize: 13, fontWeight: "600" },
-
-  notFoundRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  notFoundText: { flex: 1, fontSize: 14, color: Colors.textSecondary },
-  updateLink: { fontSize: 13, color: Colors.primary, fontWeight: "700" },
-
-  addDoctorCard: {
-    backgroundColor: Colors.surface,
-    borderRadius: 16,
-    padding: 16,
+  textSizePill: {
+    flex: 1,
+    paddingVertical: 8,
+    borderRadius: 10,
+    backgroundColor: "#F1F5F9",
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  textSizePillActive: {
+    backgroundColor: "#EFF6FF",
+    borderColor: "#2563EB",
+  },
+  textSizePillText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#475569",
+  },
+  textSizePillTextActive: {
+    color: "#1E40AF",
+  },
+  settingItem: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 14,
+    backgroundColor: "#FFFFFF",
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
     ...Shadows.sm,
   },
-  addDoctorIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    backgroundColor: '#EFF6FF',
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  addDoctorTitle: { fontSize: 15, fontWeight: "700", color: Colors.text, marginBottom: 2 },
-  addDoctorSubtitle: { fontSize: 12, color: Colors.textSecondary },
-
-  medRow: { marginBottom: 12 },
-  medLabel: { fontSize: 11, fontWeight: "700", color: Colors.textSecondary, letterSpacing: 0.5, marginBottom: 3 },
-  medValue: { fontSize: 14, color: Colors.text, lineHeight: 20 },
-
-  settingRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 14,
-    gap: 14,
-  },
-  settingRowBorder: { borderBottomWidth: 1, borderBottomColor: Colors.divider },
   settingIconBg: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    backgroundColor: '#EFF6FF',
+    width: 44,
+    height: 44,
+    borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
+    marginRight: Spacing.md,
   },
-  settingLabel: { flex: 1, fontSize: 15, color: Colors.text, fontWeight: "500" },
-
-  logoutBtn: {
-    backgroundColor: Colors.primary,
-    borderRadius: 14,
-    padding: 16,
-    margin: 16,
-    marginTop: 24,
+  settingContent: {
+    flex: 1,
+  },
+  settingTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#0F172A",
+  },
+  settingSub: {
+    fontSize: 12,
+    color: "#64748B",
+    marginTop: 2,
+  },
+  settingValue: {
+    fontSize: 13,
+    color: "#64748B",
+    marginTop: 2,
+  },
+  logoutButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
+    backgroundColor: "#FEE2E2",
+    borderRadius: BorderRadius.xl,
+    paddingVertical: 15,
+    marginTop: Spacing.lg,
     gap: 8,
+    borderWidth: 1,
+    borderColor: "#FCA5A5",
   },
-  logoutText: { color: "#fff", fontSize: 15, fontWeight: "700" },
-  deleteBtn: {
-    flexDirection: "row",
-    alignItems: "center",
+  logoutButtonText: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#DC2626",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(15, 23, 42, 0.65)",
     justifyContent: "center",
-    gap: 8,
-    paddingVertical: 14,
-    marginHorizontal: 16,
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: `${Colors.error}40`,
-    backgroundColor: '#FEF2F2',
+    alignItems: "center",
+    padding: Spacing.lg,
   },
-  deleteText: { color: Colors.error, fontSize: 14, fontWeight: "600" },
-  version: { textAlign: "center", fontSize: 12, color: Colors.textLight, marginTop: 20, marginBottom: 8 },
-
-  modalOverlay: { flex: 1, backgroundColor: "rgba(0,0,0,0.55)", justifyContent: "center", alignItems: "center", padding: 24 },
-  modalBox: {
-    backgroundColor: Colors.surface,
-    borderRadius: 24,
-    padding: 24,
+  modalCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: BorderRadius.xxl,
+    padding: Spacing.xl,
     width: "100%",
     maxWidth: 400,
     ...Shadows.lg,
   },
-  modalIconBg: {
-    width: 60,
-    height: 60,
-    borderRadius: 18,
-    backgroundColor: '#EFF6FF',
-    justifyContent: "center",
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
-    alignSelf: "center",
-    marginBottom: 16,
+    marginBottom: Spacing.lg,
   },
-  modalHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
-  modalCloseBtn: { width: 32, height: 32, borderRadius: 10, backgroundColor: Colors.background, justifyContent: "center", alignItems: "center" },
-  modalTitle: { fontSize: 18, fontWeight: "700", color: Colors.text, textAlign: "center", marginBottom: 8 },
-  modalDesc: { fontSize: 14, color: Colors.textSecondary, textAlign: "center", lineHeight: 20, marginBottom: 20 },
-  modalInput: {
-    borderWidth: 1.5,
-    borderColor: Colors.border,
-    borderRadius: 14,
-    padding: 14,
-    fontSize: 15,
-    color: Colors.text,
-    backgroundColor: Colors.background,
-    marginBottom: 16,
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#0F172A",
   },
-  modalSubmitBtn: {
-    backgroundColor: Colors.primary,
-    borderRadius: 14,
-    paddingVertical: 14,
-    alignItems: "center",
-    marginTop: 8,
+  langList: {
+    gap: 8,
   },
-  modalSubmitText: { color: "#fff", fontSize: 15, fontWeight: "700" },
-
-  helpItem: {
+  langCard: {
     flexDirection: "row",
     alignItems: "center",
+    padding: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1.5,
+    borderColor: "#E2E8F0",
     gap: 12,
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    backgroundColor: Colors.background,
-    borderRadius: 12,
-    marginBottom: 10,
   },
-  helpItemText: { fontSize: 14, color: Colors.text },
-  faqItem: { backgroundColor: Colors.background, borderRadius: 12, padding: 14, marginBottom: 10 },
-  faqQ: { fontSize: 14, fontWeight: "700", color: Colors.text, marginBottom: 6 },
-  faqA: { fontSize: 13, color: Colors.textSecondary, lineHeight: 19 },
-  aboutDesc: { fontSize: 14, color: Colors.textSecondary, lineHeight: 22, textAlign: "center", marginBottom: 12 },
-  aboutVersion: { fontSize: 13, color: Colors.textLight, textAlign: "center", marginBottom: 20 },
-  pingBadge: { flexDirection: "row", alignItems: "center", gap: 8, padding: 10, borderRadius: 10, marginTop: 10 },
-  pingText: { fontSize: 13, fontWeight: "500", flex: 1 },
+  langCardActive: {
+    backgroundColor: "#EFF6FF",
+    borderColor: "#2563EB",
+  },
+  langEmoji: {
+    fontSize: 24,
+  },
+  langNative: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#0F172A",
+  },
+  langRegion: {
+    fontSize: 12,
+    color: "#64748B",
+  },
+  inputLabel: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#334155",
+    marginBottom: 4,
+    marginTop: 8,
+  },
+  input: {
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1.5,
+    borderColor: "#E2E8F0",
+    borderRadius: BorderRadius.lg,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    fontSize: 14,
+    color: "#0F172A",
+  },
+  pingRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    marginTop: Spacing.md,
+    marginBottom: Spacing.lg,
+  },
+  pingBtn: {
+    backgroundColor: "#F1F5F9",
+    borderWidth: 1,
+    borderColor: "#CBD5E1",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 10,
+  },
+  pingBtnText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#334155",
+  },
+  pingResultOk: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  pingResultOkText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#16A34A",
+  },
+  pingResultFail: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
+  pingResultFailText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#DC2626",
+  },
+  saveBtn: {
+    backgroundColor: "#2563EB",
+    borderRadius: BorderRadius.lg,
+    paddingVertical: 12,
+    alignItems: "center",
+  },
+  saveBtnText: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#FFFFFF",
+  },
 });

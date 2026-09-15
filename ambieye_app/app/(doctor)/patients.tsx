@@ -24,12 +24,16 @@ import {
 } from "@/services/api/doctorService";
 import { patientService } from "@/services/api/patientService";
 import EyeTrackingBadge from "@/components/EyeTrackingBadge";
+import { useTranslation, SupportedLanguage } from "@/constants/i18n";
+import AshaCognitiveScreener from "@/components/AshaCognitiveScreener";
+import { dementiaCareStorage, AshaScreeningRecord } from "@/utils/dementiaCareStorage";
 
 // Define types for game history
 interface GameData {
   game: string;
   score: number;
   time: number;
+  details?: any;
 }
 
 interface DayGameData {
@@ -50,12 +54,15 @@ function PatientDetailsModal({
   patientId: string | null;
   onClose: () => void;
 }) {
+  const { t } = useTranslation();
   const [isLoading, setIsLoading] = useState(true);
   const [patient, setPatient] = useState<Patient | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [refreshing, setRefreshing] = useState(false);
   const [gameHistory, setGameHistory] = useState<DayGameData[]>([]);
   const [gameHistoryLoading, setGameHistoryLoading] = useState(false);
+  const [ashaModalVisible, setAshaModalVisible] = useState(false);
+  const [screeningRecords, setScreeningRecords] = useState<AshaScreeningRecord[]>([]);
 
   // State for editing modes and forms
   const [editingMedicalInfo, setEditingMedicalInfo] = useState(false);
@@ -238,6 +245,10 @@ function PatientDetailsModal({
         }
 
         setPatient(sortedPatient);
+
+        // Fetch ASHA cognitive screening records
+        const scr = await dementiaCareStorage.getScreeningRecords(patientId);
+        setScreeningRecords(scr);
 
         // Initialize medical info form with existing values
         if (sortedPatient.medicalInfo) {
@@ -430,7 +441,7 @@ function PatientDetailsModal({
         <Feather name="alert-circle" size={48} color="#e53935" />
         <Text style={modalStyles.errorText}>{error}</Text>
         <TouchableOpacity style={modalStyles.errorButton} onPress={onClose}>
-          <Text style={modalStyles.errorButtonText}>Close</Text>
+          <Text style={modalStyles.errorButtonText}>{t("close")}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -439,9 +450,9 @@ function PatientDetailsModal({
   if (!patient) {
     return (
       <View style={modalStyles.errorContainer}>
-        <Text style={modalStyles.errorText}>No patient data available</Text>
+        <Text style={modalStyles.errorText}>{t("no_patients_yet")}</Text>
         <TouchableOpacity style={modalStyles.errorButton} onPress={onClose}>
-          <Text style={modalStyles.errorButtonText}>Close</Text>
+          <Text style={modalStyles.errorButtonText}>{t("close")}</Text>
         </TouchableOpacity>
       </View>
     );
@@ -456,7 +467,7 @@ function PatientDetailsModal({
         <TouchableOpacity style={modalStyles.backButton} onPress={onClose}>
           <Feather name="arrow-left" size={24} color="white" />
         </TouchableOpacity>
-        <Text style={modalStyles.headerTitle}>Patient Details</Text>
+        <Text style={modalStyles.headerTitle}>{t("patient_details")}</Text>
         <TouchableOpacity
           style={modalStyles.moreButton}
           onPress={handleRefresh}
@@ -489,7 +500,7 @@ function PatientDetailsModal({
           </View>
           <Text style={modalStyles.patientName}>{patient.fullName}</Text>
           <View style={modalStyles.patientBasicInfo}>
-            <Text style={modalStyles.infoText}>{formattedAge} years</Text>
+            <Text style={modalStyles.infoText}>{formattedAge} {t("years_old")}</Text>
             <View style={modalStyles.dot} />
             <Text style={modalStyles.infoText}>{formattedGender}</Text>
           </View>
@@ -504,7 +515,7 @@ function PatientDetailsModal({
             },
           ]}
         >
-          <Text style={modalStyles.sectionTitle}>Contact Information</Text>
+          <Text style={modalStyles.sectionTitle}>{t("contact_info")}</Text>
           <View style={modalStyles.infoItem}>
             <Feather name="mail" size={16} color="#0EA5E9" />
             <Text style={modalStyles.infoItemText}>{patient.email}</Text>
@@ -529,6 +540,92 @@ function PatientDetailsModal({
           )}
         </Animated.View>
 
+        {/* ASHA Field Cognitive Screening (NER MMSE 30-Pt) */}
+        <Animated.View
+          style={[
+            modalStyles.infoSection,
+            {
+              opacity: fadeAnim,
+              transform: [{ translateY: slideAnim }],
+            },
+          ]}
+        >
+          <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 }}>
+            <View style={{ flex: 1, marginRight: 8 }}>
+              <View style={{ flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 2 }}>
+                <Text style={{ fontSize: 13 }}>🩺</Text>
+                <Text style={modalStyles.sectionTitle}>{t("asha_screener_title")}</Text>
+              </View>
+              <Text style={{ fontSize: 12, color: "#64748B" }}>{t("asha_screener_sub")}</Text>
+            </View>
+            <TouchableOpacity
+              style={modalStyles.ashaActionBtn}
+              onPress={() => setAshaModalVisible(true)}
+              activeOpacity={0.85}
+            >
+              <Feather name="plus-circle" size={15} color="#FFFFFF" />
+              <Text style={modalStyles.ashaActionBtnText}>{t("start_screener_btn")}</Text>
+            </TouchableOpacity>
+          </View>
+
+          {screeningRecords.length > 0 ? (
+            <View style={{ gap: 10 }}>
+              {screeningRecords.map((scr) => (
+                <View key={scr.id} style={modalStyles.screeningRecordCard}>
+                  <View style={{ flexDirection: "row", justifyContent: "space-between", alignItems: "center" }}>
+                    <Text style={modalStyles.screeningDate}>{scr.date}</Text>
+                    <View
+                      style={[
+                        modalStyles.screeningStageBadge,
+                        scr.stage === "stage_normal"
+                          ? { backgroundColor: "#DCFCE7" }
+                          : scr.stage === "stage_mci"
+                          ? { backgroundColor: "#FEF3C7" }
+                          : scr.stage === "stage_moderate"
+                          ? { backgroundColor: "#FFEDD5" }
+                          : { backgroundColor: "#FEE2E2" },
+                      ]}
+                    >
+                      <Text
+                        style={[
+                          modalStyles.screeningStageText,
+                          scr.stage === "stage_normal"
+                            ? { color: "#166534" }
+                            : scr.stage === "stage_mci"
+                            ? { color: "#92400E" }
+                            : scr.stage === "stage_moderate"
+                            ? { color: "#9A3412" }
+                            : { color: "#991B1B" },
+                        ]}
+                      >
+                        {t(scr.stage)}
+                      </Text>
+                    </View>
+                  </View>
+                  <View style={{ flexDirection: "row", alignItems: "center", justifyContent: "space-between", marginTop: 6 }}>
+                    <Text style={modalStyles.screeningScoreText}>
+                      {t("total_mmse_score")}:{" "}
+                      <Text style={{ fontWeight: "800", color: "#0F172A" }}>{scr.totalScore} / 30</Text>
+                    </Text>
+                    {scr.escalatedToDoctor && (
+                      <View style={modalStyles.escalatedFlag}>
+                        <Feather name="alert-circle" size={12} color="#DC2626" />
+                        <Text style={modalStyles.escalatedFlagText}>Escalated</Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={modalStyles.screenerByText}>Screener: {scr.screenerName}</Text>
+                  {scr.notes ? <Text style={modalStyles.screeningNotes}>"{scr.notes}"</Text> : null}
+                </View>
+              ))}
+            </View>
+          ) : (
+            <View style={{ padding: 14, backgroundColor: "#F8FAFC", borderRadius: 12, alignItems: "center" }}>
+              <Text style={{ fontSize: 13, color: "#94A3B8" }}>No cognitive screening records yet for this patient.</Text>
+            </View>
+          )}
+        </Animated.View>
+
         {/* Game Activity Section */}
         <Animated.View
           style={[
@@ -540,14 +637,14 @@ function PatientDetailsModal({
           ]}
         >
           <Text style={modalStyles.sectionTitle}>
-            Patient Game Activities & Progress
+            {t("cognitive_history")}
           </Text>
 
           {gameHistoryLoading ? (
             <View style={modalStyles.gameLoadingContainer}>
               <ActivityIndicator size="small" color="#0EA5E9" />
               <Text style={modalStyles.gameLoadingText}>
-                Loading patient game data...
+                {t("loading_patient_games")}
               </Text>
             </View>
           ) : gameHistory.length > 0 ? (
@@ -574,7 +671,7 @@ function PatientDetailsModal({
                           gameHistory[0].games.length}
                       </Text>
                       <Text style={progressStyles.progressSummaryStatLabel}>
-                        Games Played
+                        {t("games_played")}
                       </Text>
                     </View>
                     <View style={progressStyles.progressSummaryStatDivider} />
@@ -590,7 +687,7 @@ function PatientDetailsModal({
                         )}
                       </Text>
                       <Text style={progressStyles.progressSummaryStatLabel}>
-                        Avg Score
+                        {t("avg_score")}
                       </Text>
                     </View>
                     <View style={progressStyles.progressSummaryStatDivider} />
@@ -616,7 +713,7 @@ function PatientDetailsModal({
                         %
                       </Text>
                       <Text style={progressStyles.progressSummaryStatLabel}>
-                        Avg Accuracy
+                        {t("avg_accuracy")}
                       </Text>
                     </View>
                   </View>
@@ -626,7 +723,7 @@ function PatientDetailsModal({
                     <Text style={progressStyles.progressCompletionText}>
                       {gameHistory[0].summary?.totalGames ||
                         gameHistory[0].games.length}{" "}
-                      of 12 games completed (
+                      {t("games_completed_stat")} (
                       {Math.min(
                         Math.round(
                           ((gameHistory[0].summary?.totalGames ||
@@ -760,7 +857,7 @@ function PatientDetailsModal({
             <View style={modalStyles.noGameDataContainer}>
               <Feather name="activity" size={32} color="#ccc" />
               <Text style={modalStyles.noGameDataText}>
-                No game activity recorded for this patient
+                {t("no_games_recorded")}
               </Text>
             </View>
           )}
@@ -777,14 +874,14 @@ function PatientDetailsModal({
           ]}
         >
           <View style={modalStyles.sectionHeader}>
-            <Text style={modalStyles.sectionTitle}>Medical Information</Text>
+            <Text style={modalStyles.sectionTitle}>{t("medical_info")}</Text>
             {!editingMedicalInfo && (
               <TouchableOpacity
                 style={modalStyles.editButton}
                 onPress={() => setEditingMedicalInfo(true)}
               >
                 <Feather name="edit-2" size={16} color="#0EA5E9" />
-                <Text style={modalStyles.editButtonText}>Edit</Text>
+                <Text style={modalStyles.editButtonText}>{t("edit_profile")}</Text>
               </TouchableOpacity>
             )}
           </View>
@@ -1345,7 +1442,7 @@ function PatientDetailsModal({
             <View style={modalStyles.noRecordsContainer}>
               <Feather name="file-text" size={40} color="#ccc" />
               <Text style={modalStyles.noRecordsText}>
-                No visit records available
+                {t("visit_records")}
               </Text>
             </View>
           )}
@@ -1361,7 +1458,7 @@ function PatientDetailsModal({
           <View style={modalStyles.modalOverlay}>
             <View style={modalStyles.modalContent}>
               <View style={modalStyles.modalHeader}>
-                <Text style={modalStyles.modalTitle}>Add Visit Record</Text>
+                <Text style={modalStyles.modalTitle}>{t("add_visit_record")}</Text>
                 <TouchableOpacity onPress={() => setAddingVisitRecord(false)}>
                   <Feather name="x" size={24} color="#333" />
                 </TouchableOpacity>
@@ -1627,13 +1724,13 @@ function PatientDetailsModal({
                   style={modalStyles.cancelButton}
                   onPress={() => setAddingVisitRecord(false)}
                 >
-                  <Text style={modalStyles.cancelButtonText}>Cancel</Text>
+                  <Text style={modalStyles.cancelButtonText}>{t("cancel")}</Text>
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={modalStyles.saveButton}
                   onPress={addVisitRecord}
                 >
-                  <Text style={modalStyles.saveButtonText}>Save Record</Text>
+                  <Text style={modalStyles.saveButtonText}>{t("save_record")}</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -1642,11 +1739,22 @@ function PatientDetailsModal({
 
         <View style={modalStyles.footer} />
       </ScrollView>
+
+      {/* ASHA Cognitive Screener Modal */}
+      <AshaCognitiveScreener
+        visible={ashaModalVisible}
+        onClose={() => setAshaModalVisible(false)}
+        patientId={patientId || ""}
+        patientName={patient.fullName || "Patient"}
+        onSaveSuccess={(newRecord) => setScreeningRecords((prev) => [newRecord, ...prev])}
+      />
     </SafeAreaView>
   );
 }
 
 export default function PatientsScreen() {
+  const { t, currentLang, changeLanguage, supportedLanguages } = useTranslation();
+  const [langModalVisible, setLangModalVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [patients, setPatients] = useState<Patient[]>([]);
@@ -1742,7 +1850,7 @@ export default function PatientsScreen() {
             <View style={styles.infoRow}>
               <Feather name="user" size={14} color="#888" />
               <Text style={styles.infoText}>
-                {item.age ? `${item.age}` : "N/A"}
+                {item.age ? `${item.age} ${t("years_old")}` : "N/A"}
               </Text>
               {item.gender && (
                 <>
@@ -1778,14 +1886,28 @@ export default function PatientsScreen() {
           ]}
         >
           <View style={styles.headerContent}>
-            <Text style={styles.headerTitle}>Patients</Text>
-            <TouchableOpacity
-              style={styles.refreshButton}
-              onPress={handleRefresh}
-              disabled={isLoading}
-            >
-              <Feather name="refresh-cw" size={20} color="#0EA5E9" />
-            </TouchableOpacity>
+            <Text style={styles.headerTitle}>{t("tab_patients")}</Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <TouchableOpacity
+                style={styles.langPill}
+                onPress={() => setLangModalVisible(true)}
+              >
+                <Text style={styles.langFlag}>
+                  {supportedLanguages.find((l) => l.code === currentLang)?.flagEmoji}
+                </Text>
+                <Text style={styles.langName}>
+                  {supportedLanguages.find((l) => l.code === currentLang)?.nativeName}
+                </Text>
+                <Feather name="globe" size={13} color="#38BDF8" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.refreshButton}
+                onPress={handleRefresh}
+                disabled={isLoading}
+              >
+                <Feather name="refresh-cw" size={20} color="#0EA5E9" />
+              </TouchableOpacity>
+            </View>
           </View>
         </Animated.View>
 
@@ -1799,7 +1921,7 @@ export default function PatientsScreen() {
             />
             <TextInput
               style={styles.searchInput}
-              placeholder="Search patients..."
+              placeholder={t("search_patients_placeholder")}
               value={searchQuery}
               onChangeText={setSearchQuery}
               placeholderTextColor="#888"
@@ -1823,7 +1945,7 @@ export default function PatientsScreen() {
                 style={styles.retryButton}
                 onPress={fetchPatients}
               >
-                <Text style={styles.retryButtonText}>Retry</Text>
+                <Text style={styles.retryButtonText}>{t("retry")}</Text>
               </TouchableOpacity>
             </View>
           ) : filteredPatients.length > 0 ? (
@@ -1845,15 +1967,15 @@ export default function PatientsScreen() {
               <Feather name="user-x" size={50} color="#0EA5E9" />
               <Text style={styles.emptyText}>
                 {searchQuery.length > 0
-                  ? "No patients match your search"
-                  : "No patients found"}
+                  ? t("no_patients_match")
+                  : t("no_patients_yet")}
               </Text>
               {searchQuery.length > 0 && (
                 <TouchableOpacity
                   style={styles.clearSearchButton}
                   onPress={() => setSearchQuery("")}
                 >
-                  <Text style={styles.clearSearchText}>Clear Search</Text>
+                  <Text style={styles.clearSearchText}>{t("clear_search")}</Text>
                 </TouchableOpacity>
               )}
             </View>
@@ -1872,6 +1994,56 @@ export default function PatientsScreen() {
           patientId={selectedPatientId}
           onClose={closePatientDetails}
         />
+      </Modal>
+
+      {/* Language Selector Bottom Sheet Modal */}
+      <Modal
+        visible={langModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setLangModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <Text style={styles.modalHeaderTitle}>{t("select_language")}</Text>
+            <Text style={styles.modalSubtitle}>
+              Select your preferred North-Eastern regional dialect
+            </Text>
+            {supportedLanguages.map((lang) => {
+              const isSelected = currentLang === lang.code;
+              return (
+                <TouchableOpacity
+                  key={lang.code}
+                  style={[
+                    styles.langOptionCard,
+                    isSelected && styles.langOptionActive,
+                  ]}
+                  onPress={() => {
+                    changeLanguage(lang.code as SupportedLanguage);
+                    setLangModalVisible(false);
+                  }}
+                >
+                  <Text style={styles.langOptionEmoji}>{lang.flagEmoji}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.langOptionNative}>{lang.nativeName}</Text>
+                    <Text style={styles.langOptionRegion}>
+                      {lang.name} • {lang.region}
+                    </Text>
+                  </View>
+                  {isSelected && (
+                    <Feather name="check-circle" size={20} color="#38BDF8" />
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+            <TouchableOpacity
+              style={styles.modalCloseBtn}
+              onPress={() => setLangModalVisible(false)}
+            >
+              <Text style={styles.modalCloseText}>{t("close")}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </Modal>
     </View>
   );
@@ -2500,6 +2672,75 @@ const modalStyles = StyleSheet.create({
     fontSize: 14,
     marginTop: 10,
   },
+
+  // ASHA Screening Styles
+  ashaActionBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#2563EB",
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 10,
+    gap: 6,
+  },
+  ashaActionBtnText: {
+    color: "#FFFFFF",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  screeningRecordCard: {
+    backgroundColor: "#F8FAFC",
+    borderRadius: 12,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  screeningDate: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#475569",
+  },
+  screeningStageBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  screeningStageText: {
+    fontSize: 11,
+    fontWeight: "800",
+  },
+  screeningScoreText: {
+    fontSize: 13,
+    color: "#475569",
+  },
+  escalatedFlag: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FEE2E2",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    gap: 4,
+  },
+  escalatedFlagText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#DC2626",
+  },
+  screenerByText: {
+    fontSize: 11,
+    color: "#64748B",
+    marginTop: 4,
+  },
+  screeningNotes: {
+    fontSize: 12,
+    color: "#334155",
+    fontStyle: "italic",
+    marginTop: 4,
+    backgroundColor: "#FFFFFF",
+    padding: 6,
+    borderRadius: 6,
+  },
 });
 // Add these additional styles to the styles:
 const styles = StyleSheet.create({
@@ -2685,6 +2926,89 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
     fontWeight: "600",
     fontSize: 14,
+  },
+  langPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(14, 165, 233, 0.15)",
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 20,
+    gap: 5,
+    borderWidth: 1,
+    borderColor: "rgba(14, 165, 233, 0.3)",
+  },
+  langFlag: {
+    fontSize: 13,
+  },
+  langName: {
+    color: "#38BDF8",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    justifyContent: "flex-end",
+  },
+  modalSheet: {
+    backgroundColor: "#0F172A",
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    padding: 24,
+    borderTopWidth: 1,
+    borderColor: "#1E293B",
+  },
+  modalHeaderTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    marginBottom: 4,
+  },
+  modalSubtitle: {
+    fontSize: 13,
+    color: "#94A3B8",
+    marginBottom: 20,
+  },
+  langOptionCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#1E293B",
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 10,
+    borderWidth: 1.5,
+    borderColor: "transparent",
+  },
+  langOptionActive: {
+    backgroundColor: "#0C4A6E",
+    borderColor: "#38BDF8",
+  },
+  langOptionEmoji: {
+    fontSize: 24,
+    marginRight: 14,
+  },
+  langOptionNative: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  langOptionRegion: {
+    fontSize: 12,
+    color: "#94A3B8",
+    marginTop: 2,
+  },
+  modalCloseBtn: {
+    marginTop: 12,
+    backgroundColor: "#1E293B",
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+  modalCloseText: {
+    color: "#94A3B8",
+    fontWeight: "600",
+    fontSize: 15,
   },
 });
 

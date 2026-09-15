@@ -1,4 +1,5 @@
-type VisionCameraModule = typeof import("react-native-vision-camera");
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type VisionCameraModule = any;
 
 let cachedModule: VisionCameraModule | null | undefined;
 
