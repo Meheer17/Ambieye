@@ -6,7 +6,9 @@ import {
   antakshariMatcher,
   AntakshariMatcher,
 } from "./antakshariMatcher";
-import { songRepository as defaultSongRepo } from "./index";
+import { LocalSongRepository } from "./localSongRepository";
+
+const defaultSongRepo: SongRepository = new LocalSongRepository();
 
 export const TOTAL_ROUNDS = 5;
 export const BASE_POINTS_PER_MATCH = 100;
