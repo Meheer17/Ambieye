@@ -246,6 +246,7 @@ export default function DoctorDashboard() {
     <SafeAreaView style={{ flex: 1, backgroundColor: '#0F172A' }} edges={["top"]}>
     <ScrollView
       style={styles.container}
+      contentContainerStyle={{ paddingBottom: 100 }}
       showsVerticalScrollIndicator={false}
       refreshControl={
         <RefreshControl

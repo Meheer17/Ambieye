@@ -1,8 +1,9 @@
 import React from "react";
 import { View, StyleSheet, Platform } from "react-native";
 import Feather from "@expo/vector-icons/Feather";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { Tabs } from "expo-router";
-import { WarmPalette } from "@/constants/theme";
+import { WarmPalette, PastelPalette } from "@/constants/theme";
 
 const ICON_SIZE = 22;
 
@@ -10,7 +11,7 @@ export default function CaregiverTabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: WarmPalette.roseDusty,
+        tabBarActiveTintColor: PastelPalette.rosePrimary,
         tabBarInactiveTintColor: WarmPalette.charcoalWarm + "80",
         tabBarStyle: {
           position: "absolute",
@@ -53,10 +54,10 @@ export default function CaregiverTabLayout() {
       <Tabs.Screen
         name="care"
         options={{
-          title: "Care",
+          title: "Tele-Care",
           tabBarIcon: ({ color, focused }) => (
             <View style={focused ? styles.activeIconBg : styles.iconBg}>
-              <Feather name="heart" size={ICON_SIZE} color={color} />
+              <MaterialCommunityIcons name="doctor" size={24} color={color} />
             </View>
           ),
         }}

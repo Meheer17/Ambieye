@@ -2820,7 +2820,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
   listContainer: {
-    paddingBottom: 80,
+    paddingBottom: 100,
   },
   patientCard: {
     backgroundColor: "#FFFFFF",

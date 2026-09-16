@@ -7,6 +7,7 @@ import {
   Dimensions,
   Animated,
   Easing,
+  Platform,
 } from "react-native";
 import Feather from "@expo/vector-icons/Feather";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
@@ -35,13 +36,13 @@ export function BaganorKothaWeather() {
           toValue: 1.06,
           duration: 1500,
           easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
+          useNativeDriver: Platform.OS !== "web",
         }),
         Animated.timing(pulseAnim, {
           toValue: 1,
           duration: 1500,
           easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
+          useNativeDriver: Platform.OS !== "web",
         }),
       ])
     ).start();

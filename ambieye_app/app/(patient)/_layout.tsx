@@ -89,10 +89,10 @@ export default function PatientTabLayout() {
       <Tabs.Screen
         name="settings"
         options={{
-          title: "Help & Voice",
+          title: "Profile",
           tabBarIcon: ({ color, focused }) => (
             <View style={focused ? styles.activeIconBg : styles.iconBg}>
-              <Feather name="help-circle" size={22} color={color} />
+              <Feather name="user" size={22} color={color} />
             </View>
           ),
         }}
@@ -101,6 +101,7 @@ export default function PatientTabLayout() {
         name="(stack)"
         options={{
           href: null,
+          tabBarStyle: { display: "none" },
         }}
       />
     </Tabs>

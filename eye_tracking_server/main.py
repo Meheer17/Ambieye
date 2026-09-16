@@ -22,7 +22,7 @@ import tempfile
 import asyncio
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict, Any, Union
 
 import cv2
 import numpy as np
@@ -1419,6 +1419,62 @@ async def websocket_call_signaling(websocket: WebSocket, userId: Optional[str] =
     except Exception as e:
         logger.error("[CallWS] Unexpected disconnect for %s: %s", client_id, e)
         call_signaling_manager.unregister_user(client_id, websocket)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# MUSIC INTERACTIONS & CAREGIVER ANALYTICS REST API
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.post("/api/music/events")
+async def record_music_events(payload: Union[Dict[str, Any], List[Dict[str, Any]]]):
+    """
+    Ingests raw factual music interaction events (single event or batch).
+    Duplicate events are automatically discarded via SQLite primary key uniqueness.
+    """
+    if isinstance(payload, list):
+        inserted = database.record_music_interactions_batch(payload)
+        return {"status": "success", "inserted": inserted, "totalReceived": len(payload)}
+    else:
+        record = database.record_music_interaction(payload)
+        return {"status": "success", "event": record}
+
+
+@app.get("/api/patients/{patient_id}/music/events")
+async def get_patient_music_events(patient_id: str, limit: int = 100):
+    """Retrieves raw recorded music interactions for a patient."""
+    events = database.get_patient_music_interactions(patient_id, limit)
+    return {"patientId": patient_id, "events": events, "count": len(events)}
+
+
+@app.get("/api/patients/{patient_id}/music/summary")
+async def get_patient_music_summary(patient_id: str):
+    """
+    Computes factual caregiver-facing music activity metrics
+    derived from SQLite raw interaction events.
+    """
+    summary = database.get_patient_music_summary(patient_id)
+    return summary
+
+
+@app.get("/api/patients/{patient_id}/music/favorites")
+async def get_patient_music_favorites(patient_id: str):
+    """Returns the list of favorite music track IDs for a patient."""
+    favs = database.get_patient_music_favorites(patient_id)
+    return {"patientId": patient_id, "favorites": favs, "count": len(favs)}
+
+
+@app.post("/api/patients/{patient_id}/music/favorites")
+async def toggle_patient_music_favorite(patient_id: str, payload: Dict[str, Any]):
+    """Toggles or sets a track's favorite status for a patient."""
+    track_id = payload.get("trackId") or payload.get("track_id")
+    is_favorite = payload.get("isFavorite", True)
+    if not track_id:
+        raise HTTPException(status_code=400, detail="trackId is required")
+
+    database.toggle_music_favorite(patient_id, track_id, is_favorite)
+    favs = database.get_patient_music_favorites(patient_id)
+    return {"patientId": patient_id, "trackId": track_id, "isFavorite": is_favorite, "favorites": favs}
+
 
 
 

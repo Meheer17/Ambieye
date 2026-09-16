@@ -1058,7 +1058,7 @@ const styles = StyleSheet.create({
   listContainer: {
     padding: 16,
     paddingTop: 0,
-    paddingBottom: 80,
+    paddingBottom: 100,
   },
   queryCard: {
     backgroundColor: "#FFFFFF",

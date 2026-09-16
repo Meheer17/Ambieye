@@ -63,5 +63,11 @@ export const API_CONFIG = {
       HISTORY: (patientId?: string) =>
         patientId ? `/patients/${patientId}/calls` : "/calls/history",
     },
+    MUSIC: {
+      EVENTS: "/music/events",
+      PATIENT_EVENTS: (patientId: string) => `/patients/${patientId}/music/events`,
+      SUMMARY: (patientId: string) => `/patients/${patientId}/music/summary`,
+      FAVORITES: (patientId: string) => `/patients/${patientId}/music/favorites`,
+    },
   },
 };

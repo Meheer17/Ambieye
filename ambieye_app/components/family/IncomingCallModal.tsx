@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Modal,
   Animated,
+  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Feather from "@expo/vector-icons/Feather";
@@ -37,12 +38,12 @@ export function IncomingCallModal({
           Animated.timing(pulseAnim, {
             toValue: 1.18,
             duration: 700,
-            useNativeDriver: true,
+            useNativeDriver: Platform.OS !== "web",
           }),
           Animated.timing(pulseAnim, {
             toValue: 1,
             duration: 700,
-            useNativeDriver: true,
+            useNativeDriver: Platform.OS !== "web",
           }),
         ])
       );

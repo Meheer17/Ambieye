@@ -14,6 +14,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { WarmPalette } from "../../constants/theme";
 import { caregiverStorage, MemoryBankItem } from "../../utils/caregiverStorage";
+import { musicService } from "../../services/music/musicService";
 
 interface Props {
   visible: boolean;
@@ -73,6 +74,24 @@ export const CaregiverMemoryBankModal: React.FC<Props> = ({ visible, onClose, el
         yearOrDate: newYear.trim() || undefined,
         photoEmoji: newEmoji || "❤️",
       });
+
+      if (activeTab === "songs") {
+        try {
+          await musicService.addCustomTrack({
+            title: newTitle.trim(),
+            artist: `Memory Bank (${newYear.trim() || "Cherished"})`,
+            category: "hindi_classics",
+            region: newYear.trim() || "Memory Bank",
+            language: "Hindi / Regional",
+            description: newDesc.trim() || "Added to personal memory bank",
+            durationSeconds: 180,
+            isFamilyRecommended: true,
+            recommendedBy: "Caregiver (Memory Bank)",
+          });
+        } catch (musicErr) {
+          console.warn("Could not sync memory song to music service:", musicErr);
+        }
+      }
 
       setItems(updated);
       setNewTitle("");

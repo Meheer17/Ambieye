@@ -1462,7 +1462,7 @@ const styles = StyleSheet.create({
     marginBottom: Spacing.lg,
   },
   statBox: {
-    width: (width - Spacing.xl * 2 - Spacing.xl * 2 - Spacing.sm) / 2,
+    width: "47%",
     backgroundColor: "#F8FAFC",
     borderWidth: 1,
     borderColor: "#E2E8F0",

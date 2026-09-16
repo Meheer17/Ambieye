@@ -34,7 +34,7 @@ import { VoiceAssistant } from "@/utils/voiceAssistant";
 import CalmCornerModal from "@/components/CalmCornerModal";
 import { VirtualAvatar, AvatarState } from "@/components/companion/VirtualAvatar";
 import { CompanionScreen } from "@/components/companion/CompanionScreen";
-import { SmritiGeetiRadio } from "@/components/patient/SmritiGeetiRadio";
+import { MusicHubModal } from "@/components/patient/MusicHubModal";
 import { SmritiPhotobook } from "@/components/patient/SmritiPhotobook";
 import { AponManuhSpeedDial } from "@/components/patient/AponManuhSpeedDial";
 import { GharorBartaPostcards } from "@/components/patient/GharorBartaPostcards";
@@ -582,32 +582,11 @@ export default function PatientHomeScreen() {
       </Modal>
 
       {/* 2. Music Modal */}
-      <Modal
+      <MusicHubModal
         visible={musicModalVisible}
-        animationType="slide"
-        presentationStyle="pageSheet"
-        onRequestClose={() => setMusicModalVisible(false)}
-      >
-        <SafeAreaView style={styles.modalSafeArea}>
-          <View style={styles.modalTopBar}>
-            <Text style={styles.modalTopBarTitle}>
-              {currentLang === "as" ? "স্মৃতি গীতি ৰেডিঅ’" : "Courtyard Radio"}
-            </Text>
-            <TouchableOpacity
-              onPress={() => setMusicModalVisible(false)}
-              style={styles.modalCloseBtn}
-            >
-              <Feather name="x" size={22} color="#0F172A" />
-            </TouchableOpacity>
-          </View>
-          <ScrollView
-            contentContainerStyle={styles.modalInnerScroll}
-            showsVerticalScrollIndicator={false}
-          >
-            <SmritiGeetiRadio />
-          </ScrollView>
-        </SafeAreaView>
-      </Modal>
+        onClose={() => setMusicModalVisible(false)}
+        patientId={profile?.id || username || "mahi"}
+      />
 
       {/* 3. Photos Modal */}
       <Modal

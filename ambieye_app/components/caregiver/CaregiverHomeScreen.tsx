@@ -660,7 +660,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 16,
     paddingTop: 12,
-    paddingBottom: 96,
+    paddingBottom: 110,
   },
   heroCard: {
     flexDirection: "row",

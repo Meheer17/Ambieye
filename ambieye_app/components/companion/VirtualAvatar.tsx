@@ -6,6 +6,7 @@ import {
   Easing,
   Text,
   TouchableOpacity,
+  Platform,
 } from "react-native";
 import Feather from "@expo/vector-icons/Feather";
 import { WarmPalette } from "../../constants/theme";
@@ -44,13 +45,13 @@ export const VirtualAvatar: React.FC<VirtualAvatarProps> = ({
           toValue: 1.04,
           duration: 2400,
           easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
+          useNativeDriver: Platform.OS !== "web",
         }),
         Animated.timing(breatheAnim, {
           toValue: 1,
           duration: 2600,
           easing: Easing.inOut(Easing.sin),
-          useNativeDriver: true,
+          useNativeDriver: Platform.OS !== "web",
         }),
       ])
     );
@@ -66,12 +67,12 @@ export const VirtualAvatar: React.FC<VirtualAvatarProps> = ({
         Animated.timing(blinkAnim, {
           toValue: 0.1,
           duration: 100,
-          useNativeDriver: true,
+          useNativeDriver: Platform.OS !== "web",
         }),
         Animated.timing(blinkAnim, {
           toValue: 1,
           duration: 120,
-          useNativeDriver: true,
+          useNativeDriver: Platform.OS !== "web",
         }),
       ]).start(() => {
         // Next blink between 2.5 and 5.5 seconds
@@ -141,13 +142,13 @@ export const VirtualAvatar: React.FC<VirtualAvatarProps> = ({
             toValue: 1.15,
             duration: state === "listening" ? 900 : 1500,
             easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
+            useNativeDriver: Platform.OS !== "web",
           }),
           Animated.timing(pulseAuraAnim, {
             toValue: 1,
             duration: state === "listening" ? 900 : 1500,
             easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
+            useNativeDriver: Platform.OS !== "web",
           }),
         ])
       );
@@ -157,7 +158,7 @@ export const VirtualAvatar: React.FC<VirtualAvatarProps> = ({
       Animated.timing(pulseAuraAnim, {
         toValue: 1,
         duration: 300,
-        useNativeDriver: true,
+        useNativeDriver: Platform.OS !== "web",
       }).start();
     }
   }, [state, pulseAuraAnim]);
@@ -169,19 +170,19 @@ export const VirtualAvatar: React.FC<VirtualAvatarProps> = ({
         toValue: 1,
         duration: 400,
         easing: Easing.out(Easing.ease),
-        useNativeDriver: true,
+        useNativeDriver: Platform.OS !== "web",
       }).start();
     } else if (state === "thinking") {
       Animated.timing(headTiltAnim, {
         toValue: -1,
         duration: 400,
-        useNativeDriver: true,
+        useNativeDriver: Platform.OS !== "web",
       }).start();
     } else {
       Animated.timing(headTiltAnim, {
         toValue: 0,
         duration: 400,
-        useNativeDriver: true,
+        useNativeDriver: Platform.OS !== "web",
       }).start();
     }
   }, [state, headTiltAnim]);

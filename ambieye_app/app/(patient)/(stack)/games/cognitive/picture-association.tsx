@@ -1290,8 +1290,8 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   choiceCard: {
-    width: (width - 44) / 2,
-    height: 135,
+    width: "47%",
+    minHeight: 130,
     backgroundColor: "#FFFFFF",
     borderRadius: 22,
     borderWidth: 2,

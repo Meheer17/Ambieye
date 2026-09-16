@@ -48,8 +48,22 @@ if (Platform.OS === "web") {
     }
   };
 }
+// Prevent fontfaceobserver unhandled rejection timeout logs on Web
+if (Platform.OS === "web" && typeof window !== "undefined") {
+  window.addEventListener("unhandledrejection", (event) => {
+    const msg = event?.reason?.message || event?.reason?.toString() || "";
+    if (
+      msg.includes("12000ms timeout exceeded") ||
+      msg.includes("fontfaceobserver") ||
+      msg.includes("timeout exceeded")
+    ) {
+      event.preventDefault(); // Silently handle font loading delay on web
+    }
+  });
+}
+
 // Prevent the splash screen from auto-hiding
-SplashScreen.preventAutoHideAsync();
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 export default function RootLayout() {
   const colorScheme = useColorScheme();
@@ -59,12 +73,13 @@ export default function RootLayout() {
   });
 
   useEffect(() => {
-    if (loaded || error) {
-      SplashScreen.hideAsync();
+    if (loaded || error || Platform.OS === "web") {
+      SplashScreen.hideAsync().catch(() => {});
     }
   }, [loaded, error]);
 
-  if (!loaded && !error) {
+  // On Web, render immediately to avoid blocking if fonts take time to load
+  if (!loaded && !error && Platform.OS !== "web") {
     return null;
   }
 

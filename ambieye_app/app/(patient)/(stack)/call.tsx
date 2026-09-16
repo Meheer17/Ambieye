@@ -8,7 +8,7 @@ import {
   Dimensions,
   Platform,
 } from "react-native";
-import { useLocalSearchParams, useRouter } from "expo-router";
+import { useLocalSearchParams, useRouter, useNavigation } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Feather from "@expo/vector-icons/Feather";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
@@ -23,6 +23,7 @@ const { width, height } = Dimensions.get("window");
 
 export default function ActiveCallScreen() {
   const router = useRouter();
+  const navigation = useNavigation();
   const { currentLang } = useTranslation();
   const params = useLocalSearchParams<{
     contactId?: string;
@@ -99,6 +100,23 @@ export default function ActiveCallScreen() {
     };
   }, [router]);
 
+  // Hide bottom tab bar while on active call screen
+  useEffect(() => {
+    const parent = navigation.getParent();
+    if (parent) {
+      parent.setOptions({
+        tabBarStyle: { display: "none" },
+      });
+    }
+    return () => {
+      if (parent) {
+        parent.setOptions({
+          tabBarStyle: undefined,
+        });
+      }
+    };
+  }, [navigation]);
+
   // Pulsing animation for calling / ringing state
   useEffect(() => {
     if (callState.callStatus === "initiating" || callState.callStatus === "ringing") {
@@ -107,12 +125,12 @@ export default function ActiveCallScreen() {
           Animated.timing(pulseAnim, {
             toValue: 1.15,
             duration: 800,
-            useNativeDriver: true,
+            useNativeDriver: Platform.OS !== "web",
           }),
           Animated.timing(pulseAnim, {
             toValue: 1,
             duration: 800,
-            useNativeDriver: true,
+            useNativeDriver: Platform.OS !== "web",
           }),
         ])
       );
@@ -335,8 +353,8 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: Spacing.lg,
-    paddingVertical: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
   },
   secureBadge: {
     flexDirection: "row",
@@ -377,7 +395,8 @@ const styles = StyleSheet.create({
   },
   mediaContainer: {
     flex: 1,
-    padding: Spacing.md,
+    paddingHorizontal: Spacing.sm,
+    paddingVertical: 4,
     position: "relative",
   },
   permissionBanner: {
@@ -408,10 +427,10 @@ const styles = StyleSheet.create({
     color: "#FFFFFF",
   },
   controlDeckContainer: {
-    paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.lg,
-    paddingTop: Spacing.sm,
-    gap: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    paddingBottom: Platform.OS === "ios" ? 22 : 16,
+    paddingTop: 6,
+    gap: 12,
   },
   controlsRow: {
     flexDirection: "row",
@@ -421,11 +440,14 @@ const styles = StyleSheet.create({
   controlBtn: {
     alignItems: "center",
     justifyContent: "center",
-    width: 68,
-    height: 68,
-    borderRadius: 34,
+    minWidth: 50,
+    maxWidth: 64,
+    height: 56,
+    borderRadius: 28,
     backgroundColor: "rgba(255, 255, 255, 0.12)",
-    gap: 3,
+    gap: 2,
+    flex: 1,
+    marginHorizontal: 3,
   },
   controlBtnActive: {
     backgroundColor: "rgba(239, 68, 68, 0.2)",
@@ -447,13 +469,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#DC2626",
-    paddingVertical: 18,
+    paddingVertical: 14,
     borderRadius: BorderRadius.xl,
-    gap: 12,
-    ...Shadows.lg,
+    gap: 10,
+    ...Shadows.md,
   },
   endCallText: {
-    fontSize: 20,
+    fontSize: 18,
     fontWeight: "800",
     color: "#FFFFFF",
     letterSpacing: 0.5,

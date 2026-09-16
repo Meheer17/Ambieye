@@ -1321,13 +1321,13 @@ const styles = StyleSheet.create({
     ...Shadows.sm,
   },
   itemCardFour: {
-    width: (width - 44) / 2,
-    height: 140,
+    width: "47%",
+    minHeight: 135,
     padding: 12,
   },
   itemCardSix: {
-    width: (width - 44) / 2,
-    height: 125,
+    width: "47%",
+    minHeight: 120,
     padding: 10,
   },
   itemCardSelected: {

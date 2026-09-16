@@ -15,27 +15,38 @@ import {
   CaregiverActivity,
 } from "../../utils/caregiverStorage";
 import { reminderStorage, DailyHydration } from "../../utils/reminderStorage";
+import { musicService } from "@/services/music/musicService";
+import { CaregiverMusicSummary, CURATED_MUSIC_TRACKS, MusicTrack } from "@/types/music";
 
 import { CaregiverAddActivityModal } from "./CaregiverAddActivityModal";
+import { CaregiverAddMusicModal } from "./CaregiverAddMusicModal";
 
 export const CaregiverActivitiesScreen: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<"routines" | "games" | "offline">("routines");
+  const [activeTab, setActiveTab] = useState<"routines" | "games" | "music" | "offline">("routines");
 
   const [activities, setActivities] = useState<CaregiverActivity[]>([]);
   const [gameSessions, setGameSessions] = useState<CognitiveGameSession[]>([]);
+  const [musicSummary, setMusicSummary] = useState<CaregiverMusicSummary | null>(null);
+  const [customTracks, setCustomTracks] = useState<MusicTrack[]>([]);
+  const [previewTrackId, setPreviewTrackId] = useState<string | null>(null);
   const [hydration, setHydration] = useState<DailyHydration>({ date: "", glassesDrunk: 6, dailyGoal: 8 });
   const [refreshing, setRefreshing] = useState(false);
 
-  // Modal
+  // Modals
   const [showAddActivityModal, setShowAddActivityModal] = useState(false);
+  const [showAddMusicModal, setShowAddMusicModal] = useState(false);
 
   const loadData = useCallback(async () => {
     try {
       const acts = await caregiverStorage.getActivities();
       const sessions = await caregiverStorage.getGameSessions();
       const hyd = await reminderStorage.getTodayHydration();
+      const mSummary = await musicService.getCaregiverSummary("mahi");
+      const cTracks = await musicService.getCustomTracks();
       setActivities(acts);
       setGameSessions(sessions);
+      setMusicSummary(mSummary);
+      setCustomTracks(cTracks);
       if (hyd && hyd.glassesDrunk !== undefined) {
         setHydration(hyd);
       }
@@ -53,6 +64,33 @@ export const CaregiverActivitiesScreen: React.FC = () => {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  const handleTogglePreview = async (track: MusicTrack) => {
+    try {
+      if (previewTrackId === track.id) {
+        await musicService.stop();
+        setPreviewTrackId(null);
+      } else {
+        setPreviewTrackId(track.id);
+        await musicService.playTrack(track);
+      }
+    } catch (e) {
+      console.warn("Preview playback error:", e);
+    }
+  };
+
+  const handleDeleteCustomTrack = async (trackId: string) => {
+    try {
+      if (previewTrackId === trackId) {
+        await musicService.stop();
+        setPreviewTrackId(null);
+      }
+      await musicService.deleteCustomTrack(trackId);
+      await loadData();
+    } catch (e) {
+      console.warn("Could not delete custom track:", e);
+    }
+  };
 
   const handleToggleActivity = async (id: string, currentStatus: boolean) => {
     try {
@@ -80,7 +118,7 @@ export const CaregiverActivitiesScreen: React.FC = () => {
         </Text>
       </View>
 
-      {/* ── 3-WAY SEGMENTED CONTROL ───────────────────────────────────── */}
+      {/* ── 4-WAY SEGMENTED CONTROL ───────────────────────────────────── */}
       <View style={styles.segmentContainer}>
         <TouchableOpacity
           style={[styles.segmentBtn, activeTab === "routines" && styles.segmentBtnActive]}
@@ -88,7 +126,7 @@ export const CaregiverActivitiesScreen: React.FC = () => {
           activeOpacity={0.8}
         >
           <Text style={[styles.segmentBtnText, activeTab === "routines" && styles.segmentBtnTextActive]}>
-            Today Schedule
+            Today
           </Text>
         </TouchableOpacity>
 
@@ -98,7 +136,17 @@ export const CaregiverActivitiesScreen: React.FC = () => {
           activeOpacity={0.8}
         >
           <Text style={[styles.segmentBtnText, activeTab === "games" && styles.segmentBtnTextActive]}>
-            Game Metrics
+            Games
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.segmentBtn, activeTab === "music" && styles.segmentBtnActive]}
+          onPress={() => setActiveTab("music")}
+          activeOpacity={0.8}
+        >
+          <Text style={[styles.segmentBtnText, activeTab === "music" && styles.segmentBtnTextActive]}>
+            Music
           </Text>
         </TouchableOpacity>
 
@@ -108,7 +156,7 @@ export const CaregiverActivitiesScreen: React.FC = () => {
           activeOpacity={0.8}
         >
           <Text style={[styles.segmentBtnText, activeTab === "offline" && styles.segmentBtnTextActive]}>
-            Sensory Ideas
+            Sensory
           </Text>
         </TouchableOpacity>
       </View>
@@ -293,7 +341,224 @@ export const CaregiverActivitiesScreen: React.FC = () => {
           </View>
         )}
 
-        {/* ══════════ 3. OFFLINE SENSORY IDEAS SUB-VIEW ══════════ */}
+        {/* ══════════ 3. MUSIC ACTIVITY & REMINISCENCE SUB-VIEW ══════════ */}
+        {activeTab === "music" && (
+          <View>
+            {/* Dedicated Songs Header & Action */}
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionHeaderTitle}>
+                DEDICATED FAMILY SONGS ({customTracks.length})
+              </Text>
+              <TouchableOpacity
+                style={[styles.addActBtn, { backgroundColor: "#7C3AED" }]}
+                onPress={() => setShowAddMusicModal(true)}
+                activeOpacity={0.8}
+              >
+                <Feather name="plus" size={14} color="#FFFFFF" />
+                <Text style={styles.addActBtnText}>Dedicate Song</Text>
+              </TouchableOpacity>
+            </View>
+
+            {/* Dedicated Songs List */}
+            <View style={styles.listSection}>
+              {customTracks.length > 0 ? (
+                customTracks.map((ct) => {
+                  const isPlaying = previewTrackId === ct.id;
+                  return (
+                    <View key={ct.id} style={styles.customSongCard}>
+                      <View style={[styles.favArtwork, { backgroundColor: ct.artworkBg || "#FAF5FF" }]}>
+                        <Text style={{ fontSize: 18 }}>{ct.artworkEmoji || "🎵"}</Text>
+                      </View>
+                      <View style={{ flex: 1, marginLeft: 10 }}>
+                        <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                          <Text style={styles.customSongTitle}>{ct.title}</Text>
+                          <View style={styles.familyBadge}>
+                            <Text style={styles.familyBadgeText}>🌟 Family Pick</Text>
+                          </View>
+                        </View>
+                        <Text style={styles.customSongArtist}>
+                          {ct.artist} • {ct.language || "Folk"}
+                        </Text>
+                        {ct.description ? (
+                          <Text style={styles.customSongDesc}>"{ct.description}"</Text>
+                        ) : null}
+                      </View>
+
+                      {/* Actions: Play Preview & Delete */}
+                      <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
+                        <TouchableOpacity
+                          style={[styles.previewBtn, isPlaying && styles.previewBtnActive]}
+                          onPress={() => handleTogglePreview(ct)}
+                          activeOpacity={0.8}
+                        >
+                          <Feather
+                            name={isPlaying ? "square" : "play"}
+                            size={14}
+                            color={isPlaying ? "#FFFFFF" : "#7C3AED"}
+                          />
+                          <Text style={[styles.previewBtnText, isPlaying && styles.previewBtnTextActive]}>
+                            {isPlaying ? "Stop" : "Preview"}
+                          </Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.deleteTrackBtn}
+                          onPress={() => handleDeleteCustomTrack(ct.id)}
+                          activeOpacity={0.7}
+                        >
+                          <Feather name="trash-2" size={15} color="#EF4444" />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  );
+                })
+              ) : (
+                <View style={styles.emptyCustomMusicCard}>
+                  <Text style={{ fontSize: 24 }}>🎵</Text>
+                  <Text style={styles.emptyCustomTitle}>No dedicated songs added yet</Text>
+                  <Text style={styles.emptyCustomSub}>
+                    Dedicate nostalgic tracks (Bihu, Kishore Kumar, Temple Bhajans) to create moments of joy for your elder.
+                  </Text>
+                  <TouchableOpacity
+                    style={styles.addFirstSongBtn}
+                    onPress={() => setShowAddMusicModal(true)}
+                    activeOpacity={0.85}
+                  >
+                    <Feather name="plus" size={14} color="#FFFFFF" />
+                    <Text style={styles.addFirstSongText}>Dedicate First Song</Text>
+                  </TouchableOpacity>
+                </View>
+              )}
+            </View>
+
+            {/* Factual Listening Summary Card */}
+            <View style={[styles.musicHeroCard, { marginTop: 14 }]}>
+              <View style={styles.musicHeroHeader}>
+                <View>
+                  <Text style={styles.cardHeaderLabel}>FACTUAL MUSIC ACTIVITY</Text>
+                  <Text style={styles.musicHeroTitle}>
+                    {musicSummary && musicSummary.totalListeningDurationSeconds > 0
+                      ? `${Math.floor(musicSummary.totalListeningDurationSeconds / 60)}m ${musicSummary.totalListeningDurationSeconds % 60}s Listened`
+                      : "No listening data yet"}
+                  </Text>
+                  <Text style={styles.musicHeroSub}>
+                    Derived strictly from persisted playback position timestamps.
+                  </Text>
+                </View>
+                <View style={styles.musicIconCircle}>
+                  <Text style={{ fontSize: 22 }}>📻</Text>
+                </View>
+              </View>
+
+              <View style={styles.musicStatsGrid}>
+                <View style={styles.musicStatBox}>
+                  <Text style={styles.musicStatVal}>{musicSummary?.songsStartedCount || 0}</Text>
+                  <Text style={styles.musicStatLabel}>Started</Text>
+                </View>
+                <View style={styles.musicStatBox}>
+                  <Text style={[styles.musicStatVal, { color: "#16A34A" }]}>{musicSummary?.songsCompletedCount || 0}</Text>
+                  <Text style={styles.musicStatLabel}>Completed</Text>
+                </View>
+                <View style={styles.musicStatBox}>
+                  <Text style={[styles.musicStatVal, { color: "#D97706" }]}>{musicSummary?.songsSkippedCount || 0}</Text>
+                  <Text style={styles.musicStatLabel}>Skipped</Text>
+                </View>
+                <View style={styles.musicStatBox}>
+                  <Text style={[styles.musicStatVal, { color: "#E11D48" }]}>{musicSummary?.favoritesCount || 0}</Text>
+                  <Text style={styles.musicStatLabel}>Favorites</Text>
+                </View>
+              </View>
+
+              {musicSummary && (
+                <View style={styles.musicActiveDaysRow}>
+                  <Feather name="calendar" size={13} color="#6366F1" />
+                  <Text style={styles.musicActiveDaysText}>
+                    Listened on {musicSummary.activeDaysLast7} of the last 7 days
+                  </Text>
+                </View>
+              )}
+            </View>
+
+            {/* Subjective Reminiscence Reactions */}
+            <View style={[styles.sectionHeaderRow, { marginTop: 14 }]}>
+              <Text style={styles.sectionHeaderTitle}>PATIENT SELF-REPORTED REACTIONS</Text>
+            </View>
+            <Text style={styles.musicDisclaimerText}>
+              Direct patient selections during gentle reminiscence. Not a clinical memory diagnosis.
+            </Text>
+
+            <View style={[styles.listSection, { marginTop: 8 }]}>
+              {musicSummary && musicSummary.recentReactions && musicSummary.recentReactions.length > 0 ? (
+                musicSummary.recentReactions.map((r, idx) => {
+                  const reactionEmoji =
+                    r.reaction === "like"
+                      ? "❤️"
+                      : r.reaction === "familiar"
+                      ? "😊"
+                      : r.reaction === "talk"
+                      ? "🗣️"
+                      : "⏭️";
+                  const reactionLabel =
+                    r.reaction === "like"
+                      ? "Liked the melody"
+                      : r.reaction === "familiar"
+                      ? "Felt familiar"
+                      : r.reaction === "talk"
+                      ? "Wanted to talk about it"
+                      : "Skipped";
+
+                  return (
+                    <View key={idx} style={styles.reactionCard}>
+                      <Text style={{ fontSize: 20 }}>{reactionEmoji}</Text>
+                      <View style={{ flex: 1, marginLeft: 10 }}>
+                        <Text style={styles.reactionTitle}>{reactionLabel}</Text>
+                        <Text style={styles.reactionTrack}>{r.trackTitle}</Text>
+                      </View>
+                      <Text style={styles.reactionTime}>
+                        {new Date(r.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </Text>
+                    </View>
+                  );
+                })
+              ) : (
+                <View style={styles.emptyCard}>
+                  <Text style={styles.emptyText}>No reminiscence reactions recorded yet.</Text>
+                </View>
+              )}
+            </View>
+
+            {/* Favorite Tracks List */}
+            <View style={[styles.sectionHeaderRow, { marginTop: 16 }]}>
+              <Text style={styles.sectionHeaderTitle}>FAVORITE TRACKS ({musicSummary?.favoritesCount || 0})</Text>
+            </View>
+            <View style={styles.listSection}>
+              {musicSummary && musicSummary.favoriteTrackIds && musicSummary.favoriteTrackIds.length > 0 ? (
+                musicSummary.favoriteTrackIds.map((tid) => {
+                  const track = CURATED_MUSIC_TRACKS.find((t) => t.id === tid);
+                  return (
+                    <View key={tid} style={styles.favTrackCard}>
+                      <View style={[styles.favArtwork, { backgroundColor: track?.artworkBg || "#EEF2FF" }]}>
+                        <Text style={{ fontSize: 18 }}>{track?.artworkEmoji || "🎵"}</Text>
+                      </View>
+                      <View style={{ flex: 1, marginLeft: 10 }}>
+                        <Text style={styles.favTrackTitle}>{track?.title || tid}</Text>
+                        <Text style={styles.favTrackArtist}>
+                          {track?.artist || "Regional Artist"} • {track?.language || "Folk"}
+                        </Text>
+                      </View>
+                      <Feather name="heart" size={16} color="#E11D48" />
+                    </View>
+                  );
+                })
+              ) : (
+                <View style={styles.emptyCard}>
+                  <Text style={styles.emptyText}>No songs marked as favorite yet.</Text>
+                </View>
+              )}
+            </View>
+          </View>
+        )}
+
+        {/* ══════════ 4. OFFLINE SENSORY IDEAS SUB-VIEW ══════════ */}
         {activeTab === "offline" && (
           <View>
             <View style={styles.sensoryHeroCard}>
@@ -356,6 +621,12 @@ export const CaregiverActivitiesScreen: React.FC = () => {
         onClose={() => setShowAddActivityModal(false)}
         onAdded={loadData}
       />
+      <CaregiverAddMusicModal
+        visible={showAddMusicModal}
+        onClose={() => setShowAddMusicModal(false)}
+        onSongAdded={loadData}
+        elderName="Mahi"
+      />
     </View>
   );
 };
@@ -414,7 +685,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 16,
     paddingTop: 6,
-    paddingBottom: 96,
+    paddingBottom: 110,
   },
   hydrationVisualCard: {
     backgroundColor: "#FFFFFF",
@@ -759,5 +1030,257 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#475569",
     lineHeight: 17,
+  },
+  musicHeroCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  musicHeroHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 12,
+  },
+  musicHeroTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#0F172A",
+    marginTop: 2,
+  },
+  musicHeroSub: {
+    fontSize: 11.5,
+    color: "#64748B",
+    marginTop: 2,
+    maxWidth: 240,
+  },
+  musicIconCircle: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: "#FAF5FF",
+    borderWidth: 1,
+    borderColor: "#E9D5FF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  musicStatsGrid: {
+    flexDirection: "row",
+    gap: 8,
+  },
+  musicStatBox: {
+    flex: 1,
+    backgroundColor: "#F8FAFC",
+    paddingVertical: 8,
+    paddingHorizontal: 6,
+    borderRadius: 10,
+    alignItems: "center",
+  },
+  musicStatVal: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#0F172A",
+  },
+  musicStatLabel: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#64748B",
+    marginTop: 2,
+  },
+  musicActiveDaysRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    marginTop: 12,
+    paddingTop: 10,
+    borderTopWidth: 1,
+    borderTopColor: "#F1F5F9",
+  },
+  musicActiveDaysText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#4F46E5",
+  },
+  musicDisclaimerText: {
+    fontSize: 11,
+    color: "#64748B",
+    lineHeight: 15,
+    marginBottom: 6,
+  },
+  reactionCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  reactionTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#0F172A",
+  },
+  reactionTrack: {
+    fontSize: 11.5,
+    color: "#64748B",
+    marginTop: 1,
+  },
+  reactionTime: {
+    fontSize: 11,
+    color: "#94A3B8",
+    fontWeight: "600",
+  },
+  favTrackCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  favArtwork: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  favTrackTitle: {
+    fontSize: 13.5,
+    fontWeight: "700",
+    color: "#0F172A",
+  },
+  favTrackArtist: {
+    fontSize: 11.5,
+    color: "#64748B",
+    marginTop: 1,
+  },
+  emptyCard: {
+    backgroundColor: "#F8FAFC",
+    borderRadius: 14,
+    padding: 16,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderStyle: "dashed",
+    borderColor: "#CBD5E1",
+  },
+  emptyText: {
+    fontSize: 12.5,
+    color: "#94A3B8",
+    fontWeight: "600",
+  },
+  customSongCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 12,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
+  },
+  customSongTitle: {
+    fontSize: 13.5,
+    fontWeight: "800",
+    color: "#0F172A",
+  },
+  customSongArtist: {
+    fontSize: 11.5,
+    color: "#64748B",
+    marginTop: 1,
+  },
+  customSongDesc: {
+    fontSize: 11,
+    fontStyle: "italic",
+    color: "#7C3AED",
+    marginTop: 2,
+  },
+  familyBadge: {
+    backgroundColor: "#FAF5FF",
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: "#DDD6FE",
+  },
+  familyBadgeText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#7C3AED",
+  },
+  previewBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#FAF5FF",
+    borderWidth: 1,
+    borderColor: "#DDD6FE",
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  previewBtnActive: {
+    backgroundColor: "#7C3AED",
+    borderColor: "#7C3AED",
+  },
+  previewBtnText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#7C3AED",
+  },
+  previewBtnTextActive: {
+    color: "#FFFFFF",
+  },
+  deleteTrackBtn: {
+    padding: 6,
+    borderRadius: 8,
+    backgroundColor: "#FEF2F2",
+  },
+  emptyCustomMusicCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 16,
+    padding: 20,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  emptyCustomTitle: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#0F172A",
+    marginTop: 8,
+  },
+  emptyCustomSub: {
+    fontSize: 12,
+    color: "#64748B",
+    textAlign: "center",
+    marginTop: 4,
+    lineHeight: 16,
+    maxWidth: 280,
+  },
+  addFirstSongBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#7C3AED",
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 10,
+    marginTop: 14,
+  },
+  addFirstSongText: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#FFFFFF",
   },
 });

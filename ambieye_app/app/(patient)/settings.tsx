@@ -10,6 +10,7 @@ import {
   Platform,
   Alert,
   Switch,
+  Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
@@ -25,11 +26,7 @@ import {
   AccessibilitySettings,
   TextSizeOption,
 } from "@/utils/accessibilityStorage";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useFocusEffect } from "expo-router";
-import { Colors, BorderRadius, Shadows, Spacing, WarmPalette } from "@/constants/theme";
-import { dementiaCareStorage } from "@/utils/dementiaCareStorage";
-import { CaregiverProfileScreen } from "@/components/caregiver/CaregiverProfileScreen";
+import { PastelPalette, Spacing, BorderRadius } from "@/constants/theme";
 
 function showAlert(title: string, message?: string) {
   if (Platform.OS === "web") {
@@ -39,12 +36,11 @@ function showAlert(title: string, message?: string) {
   }
 }
 
-export default function SettingsScreen() {
+export default function PatientSettingsScreen() {
   const router = useRouter();
   const { logout, username } = useAuth();
   const { t, currentLang, changeLanguage } = useTranslation();
 
-  const [viewMode, setViewMode] = useState<"elderly" | "caregiver">("elderly");
   const [profileData, setProfileData] = useState<any>(null);
   const [showLangModal, setShowLangModal] = useState(false);
   const [showServerModal, setShowServerModal] = useState(false);
@@ -61,22 +57,7 @@ export default function SettingsScreen() {
     voiceAssistEnabled: true,
   });
 
-  useFocusEffect(
-    React.useCallback(() => {
-      (async () => {
-        const activeMode = await AsyncStorage.getItem("ambieye_active_mode");
-        const savedMode = await dementiaCareStorage.getActiveViewMode();
-        if (activeMode === "caregiver" || username?.toLowerCase() === "caregiver") {
-          setViewMode("caregiver");
-        } else {
-          setViewMode(savedMode);
-        }
-      })();
-    }, [username])
-  );
-
   useEffect(() => {
-    if (viewMode === "caregiver") return;
     patientService.getProfile().then((res) => {
       if (res.success) setProfileData(res.profile);
     });
@@ -87,15 +68,7 @@ export default function SettingsScreen() {
     });
 
     accessibilityStorage.getSettings().then(setAccessibility);
-  }, [viewMode]);
-
-  if (viewMode === "caregiver") {
-    return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: WarmPalette.ivory }} edges={["top"]}>
-        <CaregiverProfileScreen />
-      </SafeAreaView>
-    );
-  }
+  }, []);
 
   const handleUpdateTextSize = async (size: TextSizeOption) => {
     const updated = await accessibilityStorage.updateSettings({ textSize: size });
@@ -119,7 +92,18 @@ export default function SettingsScreen() {
   };
 
   const handleTestVoice = () => {
-    VoiceAssistant.speak(t("voice_test_msg"), currentLang);
+    VoiceAssistant.speak(
+      currentLang === "as"
+        ? "নমস্কাৰ, আপোনাৰ ভইচ সহায়িকা সুন্দৰভাৱে চলি আছে।"
+        : currentLang === "hi"
+        ? "नमस्ते, आपकी आवाज सहायिका तैयार है।"
+        : "Hello, your voice assistant is active and working smoothly.",
+      currentLang
+    );
+  };
+
+  const handleCallCaregiver = (phone: string) => {
+    Linking.openURL(`tel:${phone}`);
   };
 
   const handleSaveServer = async () => {
@@ -151,6 +135,7 @@ export default function SettingsScreen() {
         style: "destructive",
         onPress: async () => {
           await logout();
+          router.replace("/auth/login");
         },
       },
     ]);
@@ -161,45 +146,86 @@ export default function SettingsScreen() {
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Header */}
+        {/* ── HEADER ─────────────────────────────────────────────────── */}
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>{t("settings_title")}</Text>
-          <Text style={styles.headerSubtitle}>{t("settings_subtitle")}</Text>
+          <Text style={styles.headerTitle}>
+            {currentLang === "as" ? "মোৰ প্ৰফাইল আৰু সহায়" : "My Profile & Voice"}
+          </Text>
+          <Text style={styles.headerSubtitle}>
+            {currentLang === "as"
+              ? "ভাষা, আখৰৰ আকাৰ আৰু সহায়কাৰী সুবিধা"
+              : "Language, text size & voice comfort settings"}
+          </Text>
         </View>
 
-        {/* ── User Profile Card ─────────────────────────────────────── */}
+        {/* ── USER PROFILE CARD ──────────────────────────────────────── */}
         <View style={styles.profileCard}>
           <View style={styles.avatarBg}>
-            <Text style={styles.avatarEmoji}>👵</Text>
+            <Text style={styles.avatarEmoji}>🧓</Text>
           </View>
           <View style={styles.profileInfo}>
-            <Text style={styles.profileName}>{username || profileData?.fullName || "Aita / Koka"}</Text>
-            <Text style={styles.profileRole}>{t("dementia_participant")}</Text>
-            <Text style={styles.profileRegion}>{t("ner_region_label")}</Text>
+            <Text style={styles.profileName}>{profileData?.name || username || "Bhaben Barman"}</Text>
+            <Text style={styles.profileRole}>
+              🌸 {currentLang === "as" ? "স্মৃতি সেৱা অংশগ্ৰহণকাৰী" : "Dementia Care Participant"}
+            </Text>
+            <Text style={styles.profileRegion}>
+              📍 Majuli, Assam · {profileData?.primaryCaregiver || "Anita Barman (Daughter)"}
+            </Text>
           </View>
         </View>
 
-        {/* ════════════ ⚙️ ACCESSIBILITY SETTINGS ════════════ */}
-        <Text style={styles.sectionHeader}>⚙️ Accessibility & Visual Comfort</Text>
+        {/* ── EMERGENCY CAREGIVER CONNECT ────────────────────────────── */}
+        <View style={styles.caregiverConnectCard}>
+          <View style={styles.caregiverIconCircle}>
+            <MaterialCommunityIcons name="heart-pulse" size={24} color={PastelPalette.rosePrimary} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.caregiverConnectTitle}>
+              {currentLang === "as" ? "মুখ্য সহায়িকা: অনিতা" : "Primary Caregiver: Anita"}
+            </Text>
+            <Text style={styles.caregiverConnectSub}>
+              {currentLang === "as" ? "যিকোনো সহায়ৰ বাবে জনাওক" : "Daughter · Always connected"}
+            </Text>
+          </View>
+          <TouchableOpacity
+            style={styles.callCaregiverBtn}
+            onPress={() => handleCallCaregiver(profileData?.emergencyContact || "+919864012345")}
+            activeOpacity={0.85}
+          >
+            <Feather name="phone-call" size={14} color="#FFFFFF" />
+            <Text style={styles.callCaregiverBtnText}>
+              {currentLang === "as" ? "কল কৰক" : "Call"}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* ════════════ ⚙️ ACCESSIBILITY & COMFORT ════════════ */}
+        <Text style={styles.sectionHeader}>
+          {currentLang === "as" ? "⚙️ আখৰ আৰু পঢ়াৰ সুবিধা" : "⚙️ Accessibility & Visual Comfort"}
+        </Text>
 
         {/* 1. Text Size Control */}
         <View style={styles.settingCard}>
           <View style={styles.settingRowHeader}>
-            <View style={[styles.settingIconBg, { backgroundColor: "#DBEAFE" }]}>
-              <Feather name="type" size={20} color="#2563EB" />
+            <View style={[styles.settingIconBg, { backgroundColor: PastelPalette.lavenderSoft }]}>
+              <Feather name="type" size={20} color={PastelPalette.lavenderPrimary} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.settingTitle}>Text Size Control</Text>
-              <Text style={styles.settingSub}>Adjust typography for easy reading</Text>
+              <Text style={styles.settingTitle}>
+                {currentLang === "as" ? "আখৰৰ আকাৰ" : "Text Size Control"}
+              </Text>
+              <Text style={styles.settingSub}>
+                {currentLang === "as" ? "পঢ়িবলৈ সহজ হোৱাকৈ বাছক" : "Adjust typography for easy reading"}
+              </Text>
             </View>
           </View>
 
           <View style={styles.textSizePillsRow}>
             {[
-              { key: "small", label: "Small" },
-              { key: "normal", label: "Normal" },
-              { key: "large", label: "Large" },
-              { key: "xlarge", label: "Extra Large" },
+              { key: "small", label: currentLang === "as" ? "সৰু" : "Small" },
+              { key: "normal", label: currentLang === "as" ? "সাধাৰণ" : "Normal" },
+              { key: "large", label: currentLang === "as" ? "ডাঙৰ" : "Large" },
+              { key: "xlarge", label: currentLang === "as" ? "অতি ডাঙৰ" : "Extra" },
             ].map((item) => {
               const isSelected = accessibility.textSize === item.key;
               return (
@@ -220,17 +246,22 @@ export default function SettingsScreen() {
         {/* 2. High Contrast Mode */}
         <View style={styles.settingCard}>
           <View style={styles.switchRow}>
-            <View style={[styles.settingIconBg, { backgroundColor: "#FEF3C7" }]}>
-              <Feather name="sun" size={20} color="#D97706" />
+            <View style={[styles.settingIconBg, { backgroundColor: PastelPalette.peachSoft }]}>
+              <Feather name="sun" size={20} color={PastelPalette.peachPrimary} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.settingTitle}>High Contrast Mode</Text>
-              <Text style={styles.settingSub}>Stronger borders & crisp contrast</Text>
+              <Text style={styles.settingTitle}>
+                {currentLang === "as" ? "স্পষ্ট ৰং আৰু কণ্ট্ৰাষ্ট" : "High Contrast Mode"}
+              </Text>
+              <Text style={styles.settingSub}>
+                {currentLang === "as" ? "পোহৰ আৰু ডাঠ সীমাৰেখা" : "Stronger borders & crisp contrast"}
+              </Text>
             </View>
             <Switch
               value={accessibility.highContrast}
               onValueChange={handleToggleHighContrast}
-              trackColor={{ false: "#CBD5E1", true: "#2563EB" }}
+              trackColor={{ false: "#E2E8F0", true: PastelPalette.mintSoft }}
+              thumbColor={accessibility.highContrast ? PastelPalette.mintPrimary : "#94A3B8"}
             />
           </View>
         </View>
@@ -238,17 +269,22 @@ export default function SettingsScreen() {
         {/* 3. Reduce Motion for Comfort */}
         <View style={styles.settingCard}>
           <View style={styles.switchRow}>
-            <View style={[styles.settingIconBg, { backgroundColor: "#DCFCE7" }]}>
-              <Feather name="shield" size={20} color="#16A34A" />
+            <View style={[styles.settingIconBg, { backgroundColor: PastelPalette.mintSoft }]}>
+              <Feather name="shield" size={20} color={PastelPalette.mintPrimary} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.settingTitle}>Reduce Motion</Text>
-              <Text style={styles.settingSub}>Calmer static UI without heavy transitions</Text>
+              <Text style={styles.settingTitle}>
+                {currentLang === "as" ? "স্থিৰ এনিমেচন" : "Reduce Motion"}
+              </Text>
+              <Text style={styles.settingSub}>
+                {currentLang === "as" ? "শান্ত আৰু লৰচৰ নোহোৱা স্ক্ৰীন" : "Calmer static UI without heavy motion"}
+              </Text>
             </View>
             <Switch
               value={accessibility.reduceMotion}
               onValueChange={handleToggleReduceMotion}
-              trackColor={{ false: "#CBD5E1", true: "#16A34A" }}
+              trackColor={{ false: "#E2E8F0", true: PastelPalette.mintSoft }}
+              thumbColor={accessibility.reduceMotion ? PastelPalette.mintPrimary : "#94A3B8"}
             />
           </View>
         </View>
@@ -256,210 +292,194 @@ export default function SettingsScreen() {
         {/* 4. Spoken Voice Assist */}
         <View style={styles.settingCard}>
           <View style={styles.switchRow}>
-            <View style={[styles.settingIconBg, { backgroundColor: "#FAF5FF" }]}>
-              <Feather name="volume-2" size={20} color="#9333EA" />
+            <View style={[styles.settingIconBg, { backgroundColor: PastelPalette.lavenderSoft }]}>
+              <Feather name="volume-2" size={20} color={PastelPalette.lavenderPrimary} />
             </View>
             <View style={{ flex: 1 }}>
-              <Text style={styles.settingTitle}>Voice Assistant</Text>
-              <Text style={styles.settingSub}>Read aloud greetings, reminders & games</Text>
+              <Text style={styles.settingTitle}>
+                {currentLang === "as" ? "ভইচ সহায়িকা" : "Voice Assistant"}
+              </Text>
+              <Text style={styles.settingSub}>
+                {currentLang === "as" ? "সম্ভাষণ আৰু পৰামৰ্শ শুনক" : "Read aloud greetings, reminders & advice"}
+              </Text>
             </View>
             <Switch
               value={accessibility.voiceAssistEnabled}
               onValueChange={handleToggleVoiceAssist}
-              trackColor={{ false: "#CBD5E1", true: "#9333EA" }}
+              trackColor={{ false: "#E2E8F0", true: PastelPalette.mintSoft }}
+              thumbColor={accessibility.voiceAssistEnabled ? PastelPalette.mintPrimary : "#94A3B8"}
             />
           </View>
         </View>
 
         {/* ── Section: Language & Voice ─────────────────────────────── */}
-        <Text style={styles.sectionHeader}>{t("language_section")}</Text>
+        <Text style={styles.sectionHeader}>
+          {currentLang === "as" ? "🗣️ ভাষা আৰু কণ্ঠস্বৰ" : "🗣️ Language & Voice"}
+        </Text>
 
         {/* Language Switcher Button */}
         <TouchableOpacity
           style={styles.settingItem}
           onPress={() => setShowLangModal(true)}
-          activeOpacity={0.7}
+          activeOpacity={0.75}
         >
-          <View style={[styles.settingIconBg, { backgroundColor: "#EFF6FF" }]}>
-            <Feather name="globe" size={22} color="#2563EB" />
+          <View style={[styles.settingIconBg, { backgroundColor: PastelPalette.pinkSoft }]}>
+            <Feather name="globe" size={22} color={PastelPalette.rosePrimary} />
           </View>
           <View style={styles.settingContent}>
-            <Text style={styles.settingTitle}>{t("select_language")}</Text>
+            <Text style={styles.settingTitle}>
+              {currentLang === "as" ? "ভাষা বাছক" : "Select Language"}
+            </Text>
             <Text style={styles.settingValue}>
               {currentLangObj.flagEmoji} {currentLangObj.nativeName} ({currentLangObj.name})
             </Text>
           </View>
-          <Feather name="chevron-right" size={20} color="#94A3B8" />
+          <Feather name="chevron-right" size={20} color={PastelPalette.lavenderPrimary} />
         </TouchableOpacity>
 
         {/* Voice Assistant Test Button */}
         <TouchableOpacity
           style={styles.settingItem}
           onPress={handleTestVoice}
-          activeOpacity={0.7}
+          activeOpacity={0.75}
         >
-          <View style={[styles.settingIconBg, { backgroundColor: "#DCFCE7" }]}>
-            <Feather name="volume-2" size={22} color="#16A34A" />
+          <View style={[styles.settingIconBg, { backgroundColor: PastelPalette.lavenderSoft }]}>
+            <Feather name="mic" size={22} color={PastelPalette.lavenderPrimary} />
           </View>
           <View style={styles.settingContent}>
-            <Text style={styles.settingTitle}>{t("voice_test_btn")}</Text>
-            <Text style={styles.settingValue}>{t("voice_test_sub")}</Text>
+            <Text style={styles.settingTitle}>
+              {currentLang === "as" ? "কণ্ঠস্বৰ পৰীক্ষা কৰক" : "Test Voice Assistant"}
+            </Text>
+            <Text style={styles.settingValue}>
+              {currentLang === "as" ? "শুনিবলৈ ইয়াত স্পৰ্শ কৰক" : "Tap to hear sample spoken audio"}
+            </Text>
           </View>
-          <Feather name="play-circle" size={22} color="#16A34A" />
+          <Feather name="volume-2" size={20} color={PastelPalette.lavenderPrimary} />
         </TouchableOpacity>
 
-        {/* ── Section: Hardware & Server ────────────────────────────── */}
-        <Text style={styles.sectionHeader}>{t("hardware_section")}</Text>
-
-        {/* OpenCV Server Config */}
+        {/* Eye Tracking Server Settings */}
         <TouchableOpacity
           style={styles.settingItem}
           onPress={() => setShowServerModal(true)}
-          activeOpacity={0.7}
+          activeOpacity={0.75}
         >
-          <View style={[styles.settingIconBg, { backgroundColor: "#FAF5FF" }]}>
-            <Feather name="server" size={22} color="#9333EA" />
+          <View style={[styles.settingIconBg, { backgroundColor: PastelPalette.mintSoft }]}>
+            <Feather name="cpu" size={20} color={PastelPalette.mintPrimary} />
           </View>
           <View style={styles.settingContent}>
-            <Text style={styles.settingTitle}>{t("server_config_title")}</Text>
-            <Text style={styles.settingValue}>
-              {serverIp ? `${serverIp}:${serverPort}` : t("server_config_sub")}
-            </Text>
+            <Text style={styles.settingTitle}>Eye Tracking Device Link</Text>
+            <Text style={styles.settingValue}>{serverIp}:{serverPort}</Text>
           </View>
-          <Feather name="settings" size={20} color="#94A3B8" />
+          <Feather name="chevron-right" size={20} color={PastelPalette.lavenderPrimary} />
         </TouchableOpacity>
 
-        {/* Caregiver & ASHA Support Info */}
-        <View style={styles.settingItem}>
-          <View style={[styles.settingIconBg, { backgroundColor: "#FEF3C7" }]}>
-            <Feather name="heart" size={22} color="#D97706" />
-          </View>
-          <View style={styles.settingContent}>
-            <Text style={styles.settingTitle}>{t("caregiver_link_title")}</Text>
-            <Text style={styles.settingValue}>{t("asha_linked_desc")}</Text>
-          </View>
-        </View>
-
-        {/* ── Logout Button ─────────────────────────────────────────── */}
+        {/* Logout Button */}
         <TouchableOpacity
           style={styles.logoutButton}
           onPress={handleLogout}
-          activeOpacity={0.8}
+          activeOpacity={0.85}
         >
-          <Feather name="log-out" size={20} color="#DC2626" />
+          <Feather name="log-out" size={18} color="#DC2626" />
           <Text style={styles.logoutButtonText}>{t("logout_btn")}</Text>
         </TouchableOpacity>
-
-        <View style={{ height: 110 }} />
       </ScrollView>
 
-      {/* ── Language Selection Modal ─────────────────────────────────── */}
-      <Modal
-        visible={showLangModal}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setShowLangModal(false)}
-      >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setShowLangModal(false)}
-        >
-          <View style={styles.modalCard} onStartShouldSetResponder={() => true}>
+      {/* ── LANGUAGE MODAL ─────────────────────────────────────────── */}
+      <Modal visible={showLangModal} transparent animationType="fade" onRequestClose={() => setShowLangModal(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{t("select_language")}</Text>
+              <Text style={styles.modalTitle}>
+                {currentLang === "as" ? "ভাষা বাছক" : "Choose Language"}
+              </Text>
               <TouchableOpacity onPress={() => setShowLangModal(false)}>
-                <Feather name="x" size={22} color="#0F172A" />
+                <Feather name="x" size={22} color="#64748B" />
               </TouchableOpacity>
             </View>
 
             <View style={styles.langList}>
-              {SUPPORTED_LANGUAGES.map((lang) => {
-                const isSelected = currentLang === lang.code;
+              {SUPPORTED_LANGUAGES.map((item) => {
+                const isActive = currentLang === item.code;
                 return (
                   <TouchableOpacity
-                    key={lang.code}
-                    style={[styles.langCard, isSelected && styles.langCardActive]}
+                    key={item.code}
+                    style={[styles.langCard, isActive && styles.langCardActive]}
                     onPress={async () => {
-                      await changeLanguage(lang.code);
+                      await changeLanguage(item.code as SupportedLanguage);
                       setShowLangModal(false);
-                      VoiceAssistant.speak(`Language set to ${lang.name}`, lang.code);
                     }}
+                    activeOpacity={0.8}
                   >
-                    <Text style={styles.langEmoji}>{lang.flagEmoji}</Text>
+                    <Text style={styles.langEmoji}>{item.flagEmoji}</Text>
                     <View style={{ flex: 1 }}>
-                      <Text style={styles.langNative}>{lang.nativeName}</Text>
-                      <Text style={styles.langRegion}>{lang.name} • {lang.region}</Text>
+                      <Text style={[styles.langNative, isActive && { color: PastelPalette.lavenderPrimary }]}>
+                        {item.nativeName}
+                      </Text>
+                      <Text style={styles.langRegion}>{item.name}</Text>
                     </View>
-                    {isSelected && <Feather name="check-circle" size={22} color="#2563EB" />}
+                    {isActive && <Feather name="check" size={18} color={PastelPalette.lavenderPrimary} />}
                   </TouchableOpacity>
                 );
               })}
             </View>
           </View>
-        </TouchableOpacity>
+        </View>
       </Modal>
 
-      {/* ── Server Modal ────────────────────────────────────────────── */}
-      <Modal
-        visible={showServerModal}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setShowServerModal(false)}
-      >
+      {/* ── SERVER CONFIG MODAL ────────────────────────────────────── */}
+      <Modal visible={showServerModal} transparent animationType="fade" onRequestClose={() => setShowServerModal(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>{t("server_config_title")}</Text>
+              <Text style={styles.modalTitle}>Eye Tracking Server</Text>
               <TouchableOpacity onPress={() => setShowServerModal(false)}>
-                <Feather name="x" size={22} color="#0F172A" />
+                <Feather name="x" size={22} color="#64748B" />
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.inputLabel}>{t("server_ip_label")}</Text>
+            <Text style={styles.inputLabel}>Server IP</Text>
             <TextInput
               style={styles.input}
-              placeholder="e.g. 192.168.29.140"
               value={serverIp}
               onChangeText={setServerIp}
+              placeholder="e.g. 192.168.1.100"
+              placeholderTextColor="#94A3B8"
+              autoCapitalize="none"
+              autoCorrect={false}
             />
 
-            <Text style={styles.inputLabel}>{t("server_port_label")}</Text>
+            <Text style={styles.inputLabel}>Port</Text>
             <TextInput
               style={styles.input}
-              placeholder="8000"
               value={serverPort}
               onChangeText={setServerPort}
-              keyboardType="numeric"
+              placeholder="8000"
+              placeholderTextColor="#94A3B8"
+              keyboardType="number-pad"
             />
 
             <View style={styles.pingRow}>
-              <TouchableOpacity
-                style={[styles.pingBtn, serverPinging && { opacity: 0.6 }]}
-                onPress={handlePingServer}
-                disabled={serverPinging}
-              >
+              <TouchableOpacity style={styles.pingBtn} onPress={handlePingServer} activeOpacity={0.8}>
                 <Text style={styles.pingBtnText}>
-                  {serverPinging ? t("pinging_server") : t("test_connection")}
+                  {serverPinging ? "Checking..." : "Ping Server"}
                 </Text>
               </TouchableOpacity>
-
               {serverPingResult === "ok" && (
                 <View style={styles.pingResultOk}>
-                  <Feather name="check-circle" size={16} color="#16A34A" />
-                  <Text style={styles.pingResultOkText}>{t("server_connected")}</Text>
+                  <Feather name="check-circle" size={15} color="#16A34A" />
+                  <Text style={styles.pingResultOkText}>Connected</Text>
                 </View>
               )}
               {serverPingResult === "fail" && (
                 <View style={styles.pingResultFail}>
-                  <Feather name="x-circle" size={16} color="#DC2626" />
-                  <Text style={styles.pingResultFailText}>{t("server_unreachable")}</Text>
+                  <Feather name="alert-circle" size={15} color="#DC2626" />
+                  <Text style={styles.pingResultFailText}>Unreachable</Text>
                 </View>
               )}
             </View>
 
-            <TouchableOpacity style={styles.saveBtn} onPress={handleSaveServer}>
-              <Text style={styles.saveBtnText}>{t("save_config_btn")}</Text>
+            <TouchableOpacity style={styles.saveBtn} onPress={handleSaveServer} activeOpacity={0.85}>
+              <Text style={styles.saveBtnText}>Save Configuration</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -471,85 +491,145 @@ export default function SettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F8FAFC",
+    backgroundColor: "#FAF8FC",
   },
   scrollContent: {
     padding: Spacing.md,
+    paddingBottom: 130, // Clearance above floating bottom bar
   },
   header: {
     marginBottom: Spacing.md,
     marginTop: Spacing.xs,
   },
   headerTitle: {
-    fontSize: 24,
+    fontSize: 22,
     fontWeight: "800",
-    color: "#0F172A",
-    letterSpacing: -0.5,
+    color: "#1E1B4B",
+    letterSpacing: -0.4,
   },
   headerSubtitle: {
-    fontSize: 14,
+    fontSize: 13,
     color: "#64748B",
     marginTop: 2,
   },
+
+  /* User Profile Card */
   profileCard: {
     flexDirection: "row",
     alignItems: "center",
     backgroundColor: "#FFFFFF",
     borderRadius: BorderRadius.xl,
-    padding: Spacing.lg,
-    marginBottom: Spacing.lg,
+    padding: Spacing.md,
+    marginBottom: Spacing.sm,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
-    ...Shadows.sm,
+    borderColor: "#EDE9FE",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
   },
   avatarBg: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    backgroundColor: "#EFF6FF",
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: PastelPalette.peachSoft,
     justifyContent: "center",
     alignItems: "center",
     marginRight: Spacing.md,
+    borderWidth: 1,
+    borderColor: PastelPalette.peachBorder,
   },
   avatarEmoji: {
-    fontSize: 28,
+    fontSize: 26,
   },
   profileInfo: {
     flex: 1,
   },
   profileName: {
-    fontSize: 18,
+    fontSize: 16.5,
     fontWeight: "800",
-    color: "#0F172A",
+    color: "#1E1B4B",
   },
   profileRole: {
-    fontSize: 13,
-    color: "#2563EB",
-    fontWeight: "600",
+    fontSize: 12,
+    color: PastelPalette.rosePrimary,
+    fontWeight: "700",
     marginTop: 2,
   },
   profileRegion: {
-    fontSize: 12,
+    fontSize: 11,
+    color: "#64748B",
+    marginTop: 2,
+  },
+
+  /* Caregiver Connect Card */
+  caregiverConnectCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: PastelPalette.pinkLight,
+    borderRadius: BorderRadius.xl,
+    padding: 12,
+    marginBottom: Spacing.md,
+    borderWidth: 1,
+    borderColor: PastelPalette.pinkBorder,
+    gap: 10,
+  },
+  caregiverIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 14,
+    backgroundColor: PastelPalette.pinkSoft,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  caregiverConnectTitle: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#1E1B4B",
+  },
+  caregiverConnectSub: {
+    fontSize: 11,
     color: "#64748B",
     marginTop: 1,
   },
+  callCaregiverBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: PastelPalette.rosePrimary,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  callCaregiverBtnText: {
+    fontSize: 11.5,
+    fontWeight: "800",
+    color: "#FFFFFF",
+  },
+
+  /* Section Header */
   sectionHeader: {
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: "800",
     color: "#475569",
     textTransform: "uppercase",
-    letterSpacing: 0.5,
-    marginTop: Spacing.md,
+    letterSpacing: 0.6,
+    marginTop: Spacing.sm,
     marginBottom: Spacing.sm,
   },
+
+  /* Setting Card */
   settingCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: BorderRadius.xl,
     padding: Spacing.md,
     marginBottom: Spacing.sm,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
-    ...Shadows.sm,
+    borderColor: "#EDE9FE",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
   },
   settingRowHeader: {
     flexDirection: "row",
@@ -571,14 +651,14 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 8,
     borderRadius: 10,
-    backgroundColor: "#F1F5F9",
+    backgroundColor: "#FAF8FC",
     alignItems: "center",
     borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderColor: "#E9D5FF",
   },
   textSizePillActive: {
-    backgroundColor: "#EFF6FF",
-    borderColor: "#2563EB",
+    backgroundColor: PastelPalette.lavenderSoft,
+    borderColor: PastelPalette.lavenderPrimary,
   },
   textSizePillText: {
     fontSize: 12,
@@ -586,8 +666,11 @@ const styles = StyleSheet.create({
     color: "#475569",
   },
   textSizePillTextActive: {
-    color: "#1E40AF",
+    color: PastelPalette.lavenderPrimary,
+    fontWeight: "800",
   },
+
+  /* Setting Item */
   settingItem: {
     flexDirection: "row",
     alignItems: "center",
@@ -596,12 +679,15 @@ const styles = StyleSheet.create({
     padding: Spacing.md,
     marginBottom: Spacing.sm,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
-    ...Shadows.sm,
+    borderColor: "#EDE9FE",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.03,
+    shadowRadius: 4,
   },
   settingIconBg: {
-    width: 44,
-    height: 44,
+    width: 42,
+    height: 42,
     borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
@@ -611,40 +697,45 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   settingTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#0F172A",
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#1E1B4B",
   },
   settingSub: {
-    fontSize: 12,
+    fontSize: 11.5,
     color: "#64748B",
     marginTop: 2,
   },
   settingValue: {
-    fontSize: 13,
+    fontSize: 12,
     color: "#64748B",
     marginTop: 2,
+    fontWeight: "600",
   },
+
+  /* Logout */
   logoutButton: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
     backgroundColor: "#FEE2E2",
     borderRadius: BorderRadius.xl,
-    paddingVertical: 15,
-    marginTop: Spacing.lg,
+    paddingVertical: 14,
+    marginTop: Spacing.md,
     gap: 8,
     borderWidth: 1,
-    borderColor: "#FCA5A5",
+    borderColor: "#FECDD3",
   },
   logoutButtonText: {
-    fontSize: 16,
-    fontWeight: "700",
+    fontSize: 14.5,
+    fontWeight: "800",
     color: "#DC2626",
   },
+
+  /* Modal Styles */
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(15, 23, 42, 0.65)",
+    backgroundColor: "rgba(15, 23, 42, 0.55)",
     justifyContent: "center",
     alignItems: "center",
     padding: Spacing.lg,
@@ -652,21 +743,22 @@ const styles = StyleSheet.create({
   modalCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: BorderRadius.xxl,
-    padding: Spacing.xl,
+    padding: Spacing.lg,
     width: "100%",
     maxWidth: 400,
-    ...Shadows.lg,
+    borderWidth: 1,
+    borderColor: "#EDE9FE",
   },
   modalHeader: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
   },
   modalTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: "800",
-    color: "#0F172A",
+    color: "#1E1B4B",
   },
   langList: {
     gap: 8,
@@ -676,55 +768,55 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: Spacing.md,
     borderRadius: BorderRadius.lg,
-    backgroundColor: "#F8FAFC",
+    backgroundColor: "#FAF8FC",
     borderWidth: 1.5,
-    borderColor: "#E2E8F0",
+    borderColor: "#EDE9FE",
     gap: 12,
   },
   langCardActive: {
-    backgroundColor: "#EFF6FF",
-    borderColor: "#2563EB",
+    backgroundColor: PastelPalette.lavenderLight,
+    borderColor: PastelPalette.lavenderPrimary,
   },
   langEmoji: {
     fontSize: 24,
   },
   langNative: {
-    fontSize: 15,
+    fontSize: 14.5,
     fontWeight: "700",
-    color: "#0F172A",
+    color: "#1E1B4B",
   },
   langRegion: {
-    fontSize: 12,
+    fontSize: 11.5,
     color: "#64748B",
   },
   inputLabel: {
-    fontSize: 13,
+    fontSize: 12,
     fontWeight: "700",
-    color: "#334155",
+    color: "#475569",
     marginBottom: 4,
     marginTop: 8,
   },
   input: {
-    backgroundColor: "#F8FAFC",
+    backgroundColor: "#FAF8FC",
     borderWidth: 1.5,
-    borderColor: "#E2E8F0",
+    borderColor: "#EDE9FE",
     borderRadius: BorderRadius.lg,
     paddingHorizontal: 14,
     paddingVertical: 10,
-    fontSize: 14,
-    color: "#0F172A",
+    fontSize: 13.5,
+    color: "#1E1B4B",
   },
   pingRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 10,
     marginTop: Spacing.md,
-    marginBottom: Spacing.lg,
+    marginBottom: Spacing.md,
   },
   pingBtn: {
-    backgroundColor: "#F1F5F9",
+    backgroundColor: "#FAF8FC",
     borderWidth: 1,
-    borderColor: "#CBD5E1",
+    borderColor: "#EDE9FE",
     paddingHorizontal: 12,
     paddingVertical: 8,
     borderRadius: 10,
@@ -755,7 +847,7 @@ const styles = StyleSheet.create({
     color: "#DC2626",
   },
   saveBtn: {
-    backgroundColor: "#2563EB",
+    backgroundColor: PastelPalette.lavenderPrimary,
     borderRadius: BorderRadius.lg,
     paddingVertical: 12,
     alignItems: "center",

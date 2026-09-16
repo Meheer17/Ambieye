@@ -576,7 +576,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: 16,
     paddingTop: 8,
-    paddingBottom: 96,
+    paddingBottom: 110,
   },
   heroSendCard: {
     backgroundColor: WarmPalette.cream,

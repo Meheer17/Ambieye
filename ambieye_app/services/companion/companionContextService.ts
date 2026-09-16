@@ -13,6 +13,8 @@ import {
   GameEventFilter,
 } from "@/types/companionContext";
 import { gameEventRepository } from "./gameEventRepository";
+import { musicService } from "@/services/music/musicService";
+import { CURATED_MUSIC_TRACKS } from "@/types/music";
 
 /**
  * Resolves the active patient identity from the project's real auth/storage.
@@ -168,8 +170,14 @@ export const companionContextService = {
       },
       preferences: {
         music: {
-          favoriteArtists: ["Dr. Bhupen Hazarika", "Jayanta Hazarika"],
-          favoriteSongs: ["Manuhe Manuhor Babe", "Bistirno Parore"],
+          favoriteArtists: ["Dr. Bhupen Hazarika", "Jayanta Hazarika", "Assam Classical Ensemble"],
+          favoriteSongs: [
+            ...musicService.getFavoritesList().map(
+              (id) => CURATED_MUSIC_TRACKS.find((t) => t.id === id)?.title || id
+            ),
+            "Manuhe Manuhor Babe",
+            "Brahmaputra Dawn Flute",
+          ].slice(0, 8),
           musicNotes: profile.dailyLife?.musicPreference,
         },
         hobbies: profile.dailyLife?.hobbies || ["Courtyard gardening", "Listening to folk radio"],

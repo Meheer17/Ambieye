@@ -74,6 +74,59 @@ export const WarmPalette = {
   borderSubtle: '#F0EBE3',  // Ultra-subtle border
 };
 
+// Aesthetic Pastel Palette for Human, Pleasant, Lavender & Baby Pink UI
+export const PastelPalette = {
+  lavenderLight: '#FAF5FF',   // Softest Lavender background
+  lavenderBase: '#F3E8FF',    // Lavender tint
+  lavenderBorder: '#E9D5FF',  // Lavender border
+  lavenderAccent: '#9333EA',  // Lavender text / icon
+  lavenderDeep: '#6B21A8',    // Deep Lavender
+  
+  pinkLight: '#FDF2F8',       // Softest Baby Pink background
+  pinkBase: '#FCE7F3',        // Baby Pink tint
+  pinkBorder: '#FBCFE8',      // Baby Pink border
+  pinkAccent: '#EC4899',      // Baby Pink accent
+  pinkDeep: '#BE185D',        // Deep Rose / Raspberry
+
+  roseLight: '#FFF1F2',       // Soft Rose background
+  roseBase: '#FFE4E6',        // Rose blush
+  roseBorder: '#FECDD3',      // Rose border
+  roseAccent: '#F43F5E',      // Rose accent
+
+  peachLight: '#FFF7ED',      // Peach cream
+  peachBase: '#FFEDD5',       // Peach soft
+  peachBorder: '#FED7AA',     // Peach border
+  peachAccent: '#EA580C',     // Peach accent
+
+  skyLight: '#F0F9FF',        // Sky mist
+  skyBase: '#E0F2FE',         // Sky tint
+  skyBorder: '#BAE6FD',       // Sky border
+  skyAccent: '#0284C7',       // Sky accent
+
+  mintLight: '#F0FDF4',       // Mint cream
+  mintBase: '#DCFCE7',        // Mint tint
+  mintBorder: '#BBF7D0',      // Mint border
+  mintAccent: '#16A34A',      // Mint accent
+
+  // Semantic aliases for high clarity & convenience
+  lavenderPrimary: '#9333EA', // Primary Lavender
+  lavenderSoft: '#F3E8FF',    // Soft Lavender
+  pinkPrimary: '#EC4899',     // Primary Baby Pink
+  pinkSoft: '#FCE7F3',        // Soft Baby Pink
+  rosePrimary: '#BE185D',     // Primary Rose / Raspberry
+  roseDusty: '#C2747C',       // Dusty Warm Rose
+  mintPrimary: '#059669',     // Primary Mint / Sage
+  mintSoft: '#DCFCE7',        // Soft Mint
+  peachPrimary: '#EA580C',    // Primary Warm Peach
+  peachSoft: '#FFEDD5',       // Soft Peach
+
+  ivoryGlow: '#FFFDF9',       // Glowing ivory
+  creamSurface: '#FCF9F5',    // Cream card surface
+  darkNavy: '#1E1B4B',        // Midnight indigo for titles
+  slateText: '#475569',       // Subtle slate body text
+  mutedText: '#94A3B8',       // Muted caption text
+};
+
 export const Spacing = {
   xs: 4,
   sm: 8,

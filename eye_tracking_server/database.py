@@ -242,6 +242,36 @@ def init_db():
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_call_records_patient ON call_records(patient_id, created_at);")
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_call_records_family ON call_records(family_member_id);")
 
+        # 12. Music Interactions Table (Raw Factual Patient Music Interactions)
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS music_interactions (
+            id TEXT PRIMARY KEY,
+            patient_id TEXT NOT NULL DEFAULT 'mahi',
+            session_id TEXT NOT NULL,
+            track_id TEXT NOT NULL,
+            event_type TEXT NOT NULL,
+            timestamp TEXT NOT NULL,
+            playback_position_seconds REAL DEFAULT 0.0,
+            metadata TEXT DEFAULT '{}',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_music_interactions_patient ON music_interactions(patient_id, timestamp);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_music_interactions_track ON music_interactions(track_id);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_music_interactions_session ON music_interactions(session_id);")
+
+        # 13. Music Favorites Table
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS music_favorites (
+            id TEXT PRIMARY KEY,
+            patient_id TEXT NOT NULL DEFAULT 'mahi',
+            track_id TEXT NOT NULL,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            UNIQUE(patient_id, track_id)
+        );
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_music_favorites_patient ON music_favorites(patient_id);")
+
         conn.commit()
         logger.info("Real-time database initialized with clean tables at %s", DB_PATH)
 
@@ -1303,5 +1333,263 @@ def delete_call_record(call_id: str) -> bool:
         res = conn.execute("DELETE FROM call_records WHERE id = ?", (call_id,))
         conn.commit()
         return res.rowcount > 0
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# MUSIC INTERACTIONS & CAREGIVER FACTUAL SUMMARY OPERATIONS
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _format_music_row(row: sqlite3.Row) -> Dict[str, Any]:
+    """Helper to convert a music_interactions row into a camelCase dict."""
+    metadata = {}
+    if row["metadata"]:
+        try:
+            metadata = json.loads(row["metadata"])
+        except Exception:
+            metadata = {}
+
+    return {
+        "id": row["id"],
+        "patientId": row["patient_id"],
+        "sessionId": row["session_id"],
+        "trackId": row["track_id"],
+        "eventType": row["event_type"],
+        "timestamp": row["timestamp"],
+        "playbackPositionSeconds": float(row["playback_position_seconds"] or 0.0),
+        "metadata": metadata,
+        "createdAt": row["created_at"],
+    }
+
+
+def record_music_interaction(event_data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Persists a single raw music interaction event into SQLite.
+    Uses INSERT OR IGNORE to prevent duplicate event ingestion during network retries.
+    """
+    event_id = str(event_data.get("id") or f"music_evt_{uuid.uuid4().hex[:12]}")
+    patient_id = str(event_data.get("patientId") or event_data.get("patient_id") or "mahi")
+    session_id = str(event_data.get("sessionId") or event_data.get("session_id") or f"session_{uuid.uuid4().hex[:8]}")
+    track_id = str(event_data.get("trackId") or event_data.get("track_id") or "unknown")
+    event_type = str(event_data.get("eventType") or event_data.get("event_type") or "music_play_started")
+    timestamp = str(event_data.get("timestamp") or time.strftime("%Y-%m-%dT%H:%M:%SZ"))
+    playback_position = float(event_data.get("playbackPositionSeconds") or event_data.get("playback_position_seconds") or 0.0)
+
+    meta = event_data.get("metadata") or {}
+    meta_json = json.dumps(meta) if isinstance(meta, dict) else str(meta)
+
+    with get_db_connection() as conn:
+        conn.execute("""
+        INSERT OR IGNORE INTO music_interactions (
+            id, patient_id, session_id, track_id, event_type,
+            timestamp, playback_position_seconds, metadata
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            event_id, patient_id, session_id, track_id, event_type,
+            timestamp, playback_position, meta_json
+        ))
+        conn.commit()
+
+        row = conn.execute("SELECT * FROM music_interactions WHERE id = ?", (event_id,)).fetchone()
+        if row:
+            return _format_music_row(row)
+
+    return {
+        "id": event_id,
+        "patientId": patient_id,
+        "sessionId": session_id,
+        "trackId": track_id,
+        "eventType": event_type,
+        "timestamp": timestamp,
+        "playbackPositionSeconds": playback_position,
+        "metadata": meta,
+    }
+
+
+def record_music_interactions_batch(events: List[Dict[str, Any]]) -> int:
+    """Persists a list of raw music events and returns the count of newly inserted events."""
+    count = 0
+    with get_db_connection() as conn:
+        for ev in events:
+            event_id = str(ev.get("id") or f"music_evt_{uuid.uuid4().hex[:12]}")
+            patient_id = str(ev.get("patientId") or ev.get("patient_id") or "mahi")
+            session_id = str(ev.get("sessionId") or ev.get("session_id") or f"session_{uuid.uuid4().hex[:8]}")
+            track_id = str(ev.get("trackId") or ev.get("track_id") or "unknown")
+            event_type = str(ev.get("eventType") or ev.get("event_type") or "music_play_started")
+            timestamp = str(ev.get("timestamp") or time.strftime("%Y-%m-%dT%H:%M:%SZ"))
+            playback_position = float(ev.get("playbackPositionSeconds") or ev.get("playback_position_seconds") or 0.0)
+
+            meta = ev.get("metadata") or {}
+            meta_json = json.dumps(meta) if isinstance(meta, dict) else str(meta)
+
+            res = conn.execute("""
+            INSERT OR IGNORE INTO music_interactions (
+                id, patient_id, session_id, track_id, event_type,
+                timestamp, playback_position_seconds, metadata
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                event_id, patient_id, session_id, track_id, event_type,
+                timestamp, playback_position, meta_json
+            ))
+            if res.rowcount > 0:
+                count += 1
+        conn.commit()
+    return count
+
+
+def get_patient_music_interactions(patient_id: str = "mahi", limit: int = 100) -> List[Dict[str, Any]]:
+    """Retrieves raw music interactions for a patient chronologically descending."""
+    with get_db_connection() as conn:
+        rows = conn.execute(
+            "SELECT * FROM music_interactions WHERE patient_id = ? ORDER BY timestamp DESC LIMIT ?",
+            (patient_id, limit)
+        ).fetchall()
+        return [_format_music_row(r) for r in rows]
+
+
+def toggle_music_favorite(patient_id: str, track_id: str, is_favorite: bool) -> bool:
+    """Toggles or sets the favorite state of a music track for a patient."""
+    with get_db_connection() as conn:
+        if is_favorite:
+            fav_id = f"fav_{patient_id}_{track_id}"
+            conn.execute(
+                "INSERT OR IGNORE INTO music_favorites (id, patient_id, track_id) VALUES (?, ?, ?)",
+                (fav_id, patient_id, track_id)
+            )
+        else:
+            conn.execute(
+                "DELETE FROM music_favorites WHERE patient_id = ? AND track_id = ?",
+                (patient_id, track_id)
+            )
+        conn.commit()
+        return True
+
+
+def get_patient_music_favorites(patient_id: str = "mahi") -> List[str]:
+    """Returns the list of favorite track IDs for a patient."""
+    with get_db_connection() as conn:
+        rows = conn.execute(
+            "SELECT track_id FROM music_favorites WHERE patient_id = ? ORDER BY created_at DESC",
+            (patient_id,)
+        ).fetchall()
+        return [r["track_id"] for r in rows]
+
+
+def get_patient_music_summary(patient_id: str = "mahi") -> Dict[str, Any]:
+    """
+    Computes 100% factual Caregiver-facing music engagement analytics
+    derived STRICTLY from stored SQLite raw interaction events.
+    NO fabricated or diagnostic predictions.
+    """
+    with get_db_connection() as conn:
+        # 1. Counts of events
+        started_row = conn.execute(
+            "SELECT COUNT(*) as cnt FROM music_interactions WHERE patient_id = ? AND event_type = 'music_play_started'",
+            (patient_id,)
+        ).fetchone()
+        songs_started = started_row["cnt"] if started_row else 0
+
+        completed_row = conn.execute(
+            "SELECT COUNT(*) as cnt FROM music_interactions WHERE patient_id = ? AND event_type = 'music_play_completed'",
+            (patient_id,)
+        ).fetchone()
+        songs_completed = completed_row["cnt"] if completed_row else 0
+
+        skipped_row = conn.execute(
+            "SELECT COUNT(*) as cnt FROM music_interactions WHERE patient_id = ? AND event_type = 'music_skipped'",
+            (patient_id,)
+        ).fetchone()
+        songs_skipped = skipped_row["cnt"] if skipped_row else 0
+
+        # 2. Total listening duration: compute max playback position reached per session
+        duration_row = conn.execute("""
+            SELECT SUM(max_pos) as total_duration FROM (
+                SELECT session_id, MAX(playback_position_seconds) as max_pos
+                FROM music_interactions
+                WHERE patient_id = ?
+                GROUP BY session_id
+            )
+        """, (patient_id,)).fetchone()
+        total_duration = round(float(duration_row["total_duration"] or 0.0), 1) if duration_row else 0.0
+
+        # 3. Favorites
+        fav_rows = conn.execute(
+            "SELECT track_id FROM music_favorites WHERE patient_id = ?",
+            (patient_id,)
+        ).fetchall()
+        favorite_track_ids = [r["track_id"] for r in fav_rows]
+        favorites_count = len(favorite_track_ids)
+
+        # 4. Recent Subjective Reminiscence Reactions
+        reaction_rows = conn.execute("""
+            SELECT track_id, metadata, timestamp
+            FROM music_interactions
+            WHERE patient_id = ? AND event_type = 'music_reaction'
+            ORDER BY timestamp DESC
+            LIMIT 5
+        """, (patient_id,)).fetchall()
+
+        recent_reactions = []
+        for r in reaction_rows:
+            meta = {}
+            try:
+                meta = json.loads(r["metadata"]) if r["metadata"] else {}
+            except Exception:
+                pass
+            recent_reactions.append({
+                "trackId": r["track_id"],
+                "trackTitle": meta.get("trackTitle", r["track_id"]),
+                "reaction": meta.get("reaction", "unknown"),
+                "timestamp": r["timestamp"],
+            })
+
+        # 5. Preferred Categories and Languages Breakdown
+        all_events = conn.execute(
+            "SELECT metadata FROM music_interactions WHERE patient_id = ?",
+            (patient_id,)
+        ).fetchall()
+
+        category_counts: Dict[str, int] = {}
+        language_counts: Dict[str, int] = {}
+
+        for ev in all_events:
+            if ev["metadata"]:
+                try:
+                    meta = json.loads(ev["metadata"])
+                    cat = meta.get("category")
+                    if cat:
+                        category_counts[cat] = category_counts.get(cat, 0) + 1
+                    lang = meta.get("language")
+                    if lang:
+                        language_counts[lang] = language_counts.get(lang, 0) + 1
+                except Exception:
+                    pass
+
+        preferred_categories = [{"category": k, "count": v} for k, v in sorted(category_counts.items(), key=lambda x: x[1], reverse=True)]
+        preferred_languages = [{"language": k, "count": v} for k, v in sorted(language_counts.items(), key=lambda x: x[1], reverse=True)]
+
+        # 6. Active Days in Last 7 Days (Factual Calendar Days Active)
+        active_days_row = conn.execute("""
+            SELECT COUNT(DISTINCT substr(timestamp, 1, 10)) as active_days
+            FROM music_interactions
+            WHERE patient_id = ?
+              AND date(substr(timestamp, 1, 10)) >= date('now', '-7 days')
+        """, (patient_id,)).fetchone()
+        active_days_last_7 = active_days_row["active_days"] if active_days_row else 0
+
+        return {
+            "patientId": patient_id,
+            "totalListeningDurationSeconds": total_duration,
+            "totalListeningMinutes": round(total_duration / 60.0, 1),
+            "songsStartedCount": songs_started,
+            "songsCompletedCount": songs_completed,
+            "songsSkippedCount": songs_skipped,
+            "favoritesCount": favorites_count,
+            "favoriteTrackIds": favorite_track_ids,
+            "recentReactions": recent_reactions,
+            "preferredCategories": preferred_categories,
+            "preferredLanguages": preferred_languages,
+            "activeDaysLast7": active_days_last_7,
+        }
+
 
 

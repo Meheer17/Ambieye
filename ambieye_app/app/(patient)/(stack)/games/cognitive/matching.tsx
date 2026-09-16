@@ -369,63 +369,65 @@ export default function CulturalMatchingGame() {
       </View>
 
       {/* Dual Matching Columns */}
-      <View style={styles.columnsWrapper}>
-        {/* Left Column */}
-        <View style={styles.column}>
-          {leftItems.map((item) => {
-            const isMatched = matchedPairs.includes(item.id);
-            const isSelected = selectedLeft === item.id;
-            return (
-              <TouchableOpacity
-                key={`left-${item.id}`}
-                style={[
-                  styles.matchCard,
-                  { backgroundColor: item.bg, borderColor: isSelected ? "#2563EB" : item.color },
-                  isMatched && styles.matchCardDone,
-                  isSelected && styles.matchCardSelected,
-                ]}
-                onPress={() => handleLeftSelect(item.id, item)}
-                disabled={isMatched}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.cardEmoji}>{item.emoji}</Text>
-                <Text style={[styles.cardText, isMatched && styles.cardTextDone]} numberOfLines={2}>
-                  {getItemLabel(item)}
-                </Text>
-                {isMatched && <Feather name="check" size={20} color="#16A34A" style={styles.cardCheck} />}
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+      <ScrollView contentContainerStyle={{ paddingBottom: Spacing.xl, flexGrow: 1 }} showsVerticalScrollIndicator={false}>
+        <View style={styles.columnsWrapper}>
+          {/* Left Column */}
+          <View style={styles.column}>
+            {leftItems.map((item) => {
+              const isMatched = matchedPairs.includes(item.id);
+              const isSelected = selectedLeft === item.id;
+              return (
+                <TouchableOpacity
+                  key={`left-${item.id}`}
+                  style={[
+                    styles.matchCard,
+                    { backgroundColor: item.bg, borderColor: isSelected ? "#2563EB" : item.color },
+                    isMatched && styles.matchCardDone,
+                    isSelected && styles.matchCardSelected,
+                  ]}
+                  onPress={() => handleLeftSelect(item.id, item)}
+                  disabled={isMatched}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.cardEmoji}>{item.emoji}</Text>
+                  <Text style={[styles.cardText, isMatched && styles.cardTextDone]} numberOfLines={2}>
+                    {getItemLabel(item)}
+                  </Text>
+                  {isMatched && <Feather name="check" size={20} color="#16A34A" style={styles.cardCheck} />}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
 
-        {/* Right Column */}
-        <View style={styles.column}>
-          {rightItems.map((item) => {
-            const isMatched = matchedPairs.includes(item.id);
-            const isSelected = selectedRight === item.id;
-            return (
-              <TouchableOpacity
-                key={`right-${item.id}`}
-                style={[
-                  styles.matchCard,
-                  { backgroundColor: item.bg, borderColor: isSelected ? "#2563EB" : item.color },
-                  isMatched && styles.matchCardDone,
-                  isSelected && styles.matchCardSelected,
-                ]}
-                onPress={() => handleRightSelect(item.id, item)}
-                disabled={isMatched}
-                activeOpacity={0.7}
-              >
-                <Text style={styles.cardEmoji}>{item.emoji}</Text>
-                <Text style={[styles.cardText, isMatched && styles.cardTextDone]} numberOfLines={2}>
-                  {getItemLabel(item)}
-                </Text>
-                {isMatched && <Feather name="check" size={20} color="#16A34A" style={styles.cardCheck} />}
-              </TouchableOpacity>
-            );
-          })}
+          {/* Right Column */}
+          <View style={styles.column}>
+            {rightItems.map((item) => {
+              const isMatched = matchedPairs.includes(item.id);
+              const isSelected = selectedRight === item.id;
+              return (
+                <TouchableOpacity
+                  key={`right-${item.id}`}
+                  style={[
+                    styles.matchCard,
+                    { backgroundColor: item.bg, borderColor: isSelected ? "#2563EB" : item.color },
+                    isMatched && styles.matchCardDone,
+                    isSelected && styles.matchCardSelected,
+                  ]}
+                  onPress={() => handleRightSelect(item.id, item)}
+                  disabled={isMatched}
+                  activeOpacity={0.7}
+                >
+                  <Text style={styles.cardEmoji}>{item.emoji}</Text>
+                  <Text style={[styles.cardText, isMatched && styles.cardTextDone]} numberOfLines={2}>
+                    {getItemLabel(item)}
+                  </Text>
+                  {isMatched && <Feather name="check" size={20} color="#16A34A" style={styles.cardCheck} />}
+                </TouchableOpacity>
+              );
+            })}
+          </View>
         </View>
-      </View>
+      </ScrollView>
     </SafeAreaView>
   );
 }

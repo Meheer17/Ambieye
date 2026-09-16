@@ -14,6 +14,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { WarmPalette } from "../../constants/theme";
 import { caregiverStorage, FamilySentItem } from "../../utils/caregiverStorage";
+import { musicService } from "../../services/music/musicService";
 
 interface Props {
   visible: boolean;
@@ -127,6 +128,24 @@ export const CaregiverSendToElderModal: React.FC<Props> = ({
         title,
         content: customText.trim(),
       });
+
+      if (selectedType === "song") {
+        try {
+          await musicService.addCustomTrack({
+            title: title !== "Music from Family" ? title : customText.trim(),
+            artist: "Dedicated by Anita (Daughter)",
+            category: "hindi_classics",
+            region: "Family Dedication",
+            language: "Personal",
+            description: customText.trim(),
+            durationSeconds: 180,
+            isFamilyRecommended: true,
+            recommendedBy: "Anita (Daughter)",
+          });
+        } catch (musicErr) {
+          console.warn("Could not add custom track to music service:", musicErr);
+        }
+      }
 
       setSuccessNotice(true);
       if (onItemSent) onItemSent();

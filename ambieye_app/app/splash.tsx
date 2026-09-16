@@ -1,5 +1,5 @@
 import React, { useEffect } from "react";
-import { StyleSheet, View, Image, Text, Animated } from "react-native";
+import { StyleSheet, View, Image, Text, Animated, Platform } from "react-native";
 import { router } from "expo-router";
 import { useAuth } from "@/hooks/useAuth";
 import { Colors } from "@/constants/theme";
@@ -11,22 +11,23 @@ export default function SplashScreen() {
   const slideAnim = React.useRef(new Animated.Value(30)).current;
 
   useEffect(() => {
+    const useNative = Platform.OS !== "web";
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 800,
-        useNativeDriver: true,
+        useNativeDriver: useNative,
       }),
       Animated.spring(scaleAnim, {
         toValue: 1,
         tension: 60,
         friction: 8,
-        useNativeDriver: true,
+        useNativeDriver: useNative,
       }),
       Animated.timing(slideAnim, {
         toValue: 0,
         duration: 700,
-        useNativeDriver: true,
+        useNativeDriver: useNative,
       }),
     ]).start();
 

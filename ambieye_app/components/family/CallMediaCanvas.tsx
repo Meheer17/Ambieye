@@ -110,8 +110,12 @@ export const CallMediaCanvas: React.FC<CallMediaCanvasProps> = ({
                 <View style={styles.remoteAvatarCircle}>
                   <Text style={styles.remoteAvatarEmoji}>{contactAvatar}</Text>
                 </View>
-                <Text style={styles.remoteName}>{contactName}</Text>
-                <Text style={styles.remoteRelation}>{contactRelationship}</Text>
+                <Text style={styles.remoteName} numberOfLines={1} ellipsizeMode="tail">
+                  {contactName}
+                </Text>
+                <Text style={styles.remoteRelation} numberOfLines={2} ellipsizeMode="tail">
+                  {contactRelationship}
+                </Text>
 
                 {callStatus === "initiating" && (
                   <View style={styles.statusTag}>
@@ -277,31 +281,37 @@ const styles = StyleSheet.create({
   placeholderContainer: {
     alignItems: "center",
     justifyContent: "center",
+    paddingHorizontal: 20,
+    width: "100%",
   },
   remoteAvatarCircle: {
-    width: 110,
-    height: 110,
-    borderRadius: 55,
+    width: 90,
+    height: 90,
+    borderRadius: 45,
     backgroundColor: "rgba(255, 255, 255, 0.12)",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 16,
+    marginBottom: 12,
     borderWidth: 3,
     borderColor: "rgba(255, 255, 255, 0.2)",
   },
   remoteAvatarEmoji: {
-    fontSize: 52,
+    fontSize: 44,
   },
   remoteName: {
-    fontSize: 26,
-    fontWeight: "700",
+    fontSize: 22,
+    fontWeight: "800",
     color: "#FFFFFF",
     marginBottom: 4,
+    textAlign: "center",
+    maxWidth: "88%",
   },
   remoteRelation: {
-    fontSize: 16,
+    fontSize: 14,
     color: "#C7D2FE",
-    marginBottom: 16,
+    marginBottom: 12,
+    textAlign: "center",
+    maxWidth: "88%",
   },
   statusTag: {
     paddingHorizontal: 16,
@@ -310,17 +320,17 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(99, 102, 241, 0.25)",
   },
   statusTagText: {
-    fontSize: 14,
-    fontWeight: "600",
+    fontSize: 13,
+    fontWeight: "700",
     color: "#A5B4FC",
   },
   localPip: {
     position: "absolute",
-    bottom: 16,
-    right: 16,
-    width: 105,
-    height: 145,
-    borderRadius: 16,
+    top: 14,
+    right: 14,
+    width: 90,
+    height: 124,
+    borderRadius: 14,
     overflow: "hidden",
     borderWidth: 2,
     borderColor: "#FFFFFF",
@@ -333,11 +343,11 @@ const styles = StyleSheet.create({
   },
   localPipOff: {
     position: "absolute",
-    bottom: 16,
-    right: 16,
-    width: 105,
-    height: 145,
-    borderRadius: 16,
+    top: 14,
+    right: 14,
+    width: 90,
+    height: 124,
+    borderRadius: 14,
     borderWidth: 2,
     borderColor: "rgba(255, 255, 255, 0.2)",
     backgroundColor: "#1E293B",

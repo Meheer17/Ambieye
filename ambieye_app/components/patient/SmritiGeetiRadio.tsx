@@ -44,7 +44,7 @@ export const SmritiGeetiRadio: React.FC = () => {
   useEffect(() => {
     Animated.spring(needleAnim, {
       toValue: activeStationIndex * 58,
-      useNativeDriver: true,
+      useNativeDriver: Platform.OS !== "web",
       friction: 6,
       tension: 40,
     }).start();
@@ -59,7 +59,7 @@ export const SmritiGeetiRadio: React.FC = () => {
           toValue: 1,
           duration: 3800,
           easing: Easing.linear,
-          useNativeDriver: true,
+          useNativeDriver: Platform.OS !== "web",
         })
       );
       spinLoop.start();

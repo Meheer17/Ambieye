@@ -9,6 +9,7 @@ import {
   Animated,
   Easing,
   Dimensions,
+  Platform,
 } from "react-native";
 import Feather from "@expo/vector-icons/Feather";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
@@ -76,7 +77,7 @@ export default function CalmCornerModal({ visible, onClose }: CalmCornerModalPro
           toValue: 1.4,
           duration: 4000,
           easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
+          useNativeDriver: Platform.OS !== "web",
         }).start(() => {
           if (!isBreathingActive.current) return;
           setBreathPhase("Exhale");
@@ -84,7 +85,7 @@ export default function CalmCornerModal({ visible, onClose }: CalmCornerModalPro
             toValue: 1.0,
             duration: 4000,
             easing: Easing.inOut(Easing.ease),
-            useNativeDriver: true,
+            useNativeDriver: Platform.OS !== "web",
           }).start(() => {
             if (isBreathingActive.current) runBreathingCycle();
           });
@@ -96,7 +97,7 @@ export default function CalmCornerModal({ visible, onClose }: CalmCornerModalPro
           toValue: 1.4,
           duration: 4000,
           easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
+          useNativeDriver: Platform.OS !== "web",
         }).start(() => {
           if (!isBreathingActive.current) return;
           setBreathPhase("Hold");
@@ -107,7 +108,7 @@ export default function CalmCornerModal({ visible, onClose }: CalmCornerModalPro
               toValue: 1.0,
               duration: 4000,
               easing: Easing.inOut(Easing.ease),
-              useNativeDriver: true,
+              useNativeDriver: Platform.OS !== "web",
             }).start(() => {
               if (isBreathingActive.current) runBreathingCycle();
             });
@@ -120,7 +121,7 @@ export default function CalmCornerModal({ visible, onClose }: CalmCornerModalPro
           toValue: 1.5,
           duration: 4000,
           easing: Easing.inOut(Easing.ease),
-          useNativeDriver: true,
+          useNativeDriver: Platform.OS !== "web",
         }).start(() => {
           if (!isBreathingActive.current) return;
           setBreathPhase("Hold");
@@ -131,7 +132,7 @@ export default function CalmCornerModal({ visible, onClose }: CalmCornerModalPro
               toValue: 1.0,
               duration: 8000,
               easing: Easing.inOut(Easing.ease),
-              useNativeDriver: true,
+              useNativeDriver: Platform.OS !== "web",
             }).start(() => {
               if (isBreathingActive.current) runBreathingCycle();
             });
