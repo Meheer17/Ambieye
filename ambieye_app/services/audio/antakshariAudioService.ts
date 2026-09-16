@@ -1,4 +1,4 @@
-import { Audio } from "expo-av";
+import { SafeAudio as Audio } from "@/utils/safeAudio";
 import { Platform } from "react-native";
 
 export interface AudioRecordingResult {

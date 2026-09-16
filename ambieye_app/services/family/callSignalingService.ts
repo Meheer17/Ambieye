@@ -61,8 +61,8 @@ class CallSignalingService {
         }
       };
 
-      this.ws.onerror = (err) => {
-        console.warn("[CallSignaling] WebSocket error:", err);
+      this.ws.onerror = () => {
+        // Silent offline handler - reconnection is handled in onclose
       };
 
       this.ws.onclose = () => {

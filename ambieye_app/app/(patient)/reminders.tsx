@@ -260,11 +260,25 @@ export default function RemindersScreen() {
               ]}
             >
               <View style={[styles.routineIcon, taskStatus === "done" && styles.routineIconDone]}>
-                <Feather
-                  name={(rt.iconName as any) || "check-circle"}
-                  size={22}
-                  color={taskStatus === "done" ? "#10B981" : taskStatus === "skipped" ? "#94A3B8" : "#64748B"}
-                />
+                {(() => {
+                  const color = taskStatus === "done" ? "#10B981" : taskStatus === "skipped" ? "#94A3B8" : "#64748B";
+                  switch (rt.iconName) {
+                    case "pill":
+                      return <MaterialCommunityIcons name="pill" size={22} color={color} />;
+                    case "shower":
+                      return <MaterialCommunityIcons name="shower" size={22} color={color} />;
+                    case "sparkles":
+                      return <MaterialCommunityIcons name="face-woman-shimmer" size={22} color={color} />;
+                    case "music":
+                      return <Feather name="music" size={22} color={color} />;
+                    case "coffee":
+                      return <Feather name="coffee" size={22} color={color} />;
+                    case "sun":
+                      return <Feather name="sun" size={22} color={color} />;
+                    default:
+                      return <Feather name="check-circle" size={22} color={color} />;
+                  }
+                })()}
               </View>
               <View style={styles.routineInfo}>
                 <Text style={[styles.routineTitle, taskStatus === "done" && styles.routineTitleDone, taskStatus === "skipped" && styles.routineTitleSkipped]}>

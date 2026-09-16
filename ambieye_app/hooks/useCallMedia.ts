@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from "react";
 import { Platform } from "react-native";
 import { useCameraPermissions } from "expo-camera";
-import { Audio } from "expo-av";
+import { SafeAudio as Audio } from "@/utils/safeAudio";
 
 export interface CallMediaState {
   hasCameraPermission: boolean;
