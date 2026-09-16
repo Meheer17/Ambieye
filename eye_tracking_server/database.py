@@ -16,7 +16,9 @@ transmissions and user actions.
 
 import sqlite3
 import json
+import time
 import logging
+import uuid
 from pathlib import Path
 from datetime import datetime
 from typing import List, Dict, Any, Optional
@@ -152,6 +154,94 @@ def init_db():
         );
         """)
 
+        # 8. Common Game Sessions Table (Reusable across all patient games)
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS game_sessions (
+            session_id TEXT PRIMARY KEY,
+            patient_id TEXT NOT NULL DEFAULT 'mahi',
+            game_id TEXT NOT NULL,
+            started_at TEXT NOT NULL,
+            completed_at TEXT DEFAULT NULL,
+            duration_seconds INTEGER DEFAULT 0,
+            status TEXT NOT NULL DEFAULT 'in_progress',
+            score REAL DEFAULT NULL,
+            metadata_json TEXT DEFAULT '{}',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_game_sessions_patient ON game_sessions(patient_id, game_id);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_game_sessions_status ON game_sessions(status);")
+
+        # 9. Common Game Events Table (Granular events during gameplay)
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS game_events (
+            event_id TEXT PRIMARY KEY,
+            session_id TEXT NOT NULL,
+            patient_id TEXT NOT NULL DEFAULT 'mahi',
+            game_id TEXT NOT NULL,
+            event_type TEXT NOT NULL,
+            timestamp TEXT NOT NULL,
+            metadata_json TEXT DEFAULT '{}',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(session_id) REFERENCES game_sessions(session_id) ON DELETE CASCADE
+        );
+        """)
+        # 10. Family Members Table (Real-time persistent family contacts per patient)
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS family_members (
+            id TEXT PRIMARY KEY,
+            patient_id TEXT NOT NULL DEFAULT 'mahi',
+            name TEXT NOT NULL,
+            relationship TEXT NOT NULL,
+            relationship_as TEXT DEFAULT '',
+            relationship_hi TEXT DEFAULT '',
+            role_badge TEXT DEFAULT '',
+            role_badge_as TEXT DEFAULT '',
+            role_badge_hi TEXT DEFAULT '',
+            phone TEXT DEFAULT '',
+            email TEXT DEFAULT '',
+            profile_image_url TEXT DEFAULT '',
+            avatar_emoji TEXT DEFAULT '👤',
+            avatar_bg TEXT DEFAULT '#EFF6FF',
+            border_color TEXT DEFAULT '#93C5FD',
+            theme_color TEXT DEFAULT '#2563EB',
+            is_favorite INTEGER NOT NULL DEFAULT 0,
+            is_online INTEGER NOT NULL DEFAULT 1,
+            status_text TEXT DEFAULT 'Available',
+            status_text_as TEXT DEFAULT '',
+            status_text_hi TEXT DEFAULT '',
+            location TEXT DEFAULT '',
+            location_as TEXT DEFAULT '',
+            location_hi TEXT DEFAULT '',
+            last_seen TEXT DEFAULT 'Recently',
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_family_members_patient ON family_members(patient_id);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_family_members_fav ON family_members(patient_id, is_favorite);")
+
+        # 11. Call Records Table (Persistent One-to-One Audio & Video Call Metadata)
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS call_records (
+            id TEXT PRIMARY KEY,
+            patient_id TEXT NOT NULL DEFAULT 'mahi',
+            family_member_id TEXT NOT NULL,
+            call_type TEXT NOT NULL DEFAULT 'video',
+            direction TEXT NOT NULL DEFAULT 'outgoing',
+            status TEXT NOT NULL DEFAULT 'ringing',
+            started_at TEXT NOT NULL,
+            answered_at TEXT DEFAULT NULL,
+            ended_at TEXT DEFAULT NULL,
+            duration_seconds INTEGER DEFAULT 0,
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_call_records_patient ON call_records(patient_id, created_at);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_call_records_family ON call_records(family_member_id);")
+
         conn.commit()
         logger.info("Real-time database initialized with clean tables at %s", DB_PATH)
 
@@ -167,6 +257,8 @@ def reset_to_clean_slate():
             "medication_reminders",
             "caregiver_alerts",
             "family_postcards",
+            "game_events",
+            "game_sessions",
         ]
         for t in tables:
             cursor.execute(f"DELETE FROM {t};")
@@ -426,3 +518,790 @@ def get_active_alerts(user_id: str = "mahi") -> List[Dict[str, Any]]:
         SELECT * FROM caregiver_alerts WHERE user_id = ? AND is_resolved = 0 ORDER BY id DESC;
         """, (user_id,)).fetchall()
         return [dict(r) for r in rows]
+
+
+# ── Common Game Sessions & Events Operations (All Patient Games) ──────────────
+
+def create_game_session(data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Creates a new game session in SQLite.
+    Supports: sessionId, patientId, gameId, startedAt, status, score, metadata
+    """
+    session_id = str(data.get("session_id") or data.get("sessionId") or f"sess_{uuid.uuid4().hex[:12]}")
+    patient_id = str(data.get("patient_id") or data.get("patientId") or "mahi")
+    game_id = str(data.get("game_id") or data.get("gameId") or "generic_game")
+    started_at = str(data.get("started_at") or data.get("startedAt") or datetime.utcnow().isoformat() + "Z")
+    status = str(data.get("status") or "in_progress")
+    score = data.get("score")
+    
+    metadata = data.get("metadata", {})
+    if isinstance(metadata, str):
+        try:
+            metadata = json.loads(metadata)
+        except Exception:
+            metadata = {}
+
+    with get_db_connection() as conn:
+        conn.execute("""
+        INSERT INTO game_sessions (session_id, patient_id, game_id, started_at, status, score, metadata_json)
+        VALUES (?, ?, ?, ?, ?, ?, ?);
+        """, (session_id, patient_id, game_id, started_at, status, score, json.dumps(metadata)))
+        conn.commit()
+
+    result = get_game_session(session_id)
+    if result:
+        return result
+    return {
+        "sessionId": session_id,
+        "patientId": patient_id,
+        "gameId": game_id,
+        "startedAt": started_at,
+        "completedAt": None,
+        "duration": 0,
+        "status": status,
+        "score": score,
+        "metadata": metadata,
+    }
+
+
+def update_game_session(session_id: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """
+    Updates an existing game session (e.g., status, score, completedAt, duration, metadata).
+    """
+    with get_db_connection() as conn:
+        row = conn.execute("SELECT * FROM game_sessions WHERE session_id = ?", (session_id,)).fetchone()
+        if not row:
+            return None
+
+        current = dict(row)
+        completed_at = data.get("completed_at") or data.get("completedAt") or current.get("completed_at")
+        status = data.get("status") or current.get("status")
+        score = data["score"] if "score" in data else current.get("score")
+
+        # Duration calculation
+        duration_seconds = data.get("duration_seconds")
+        if duration_seconds is None:
+            duration_seconds = data.get("duration")
+        if duration_seconds is None:
+            duration_seconds = current.get("duration_seconds", 0)
+
+        if completed_at and not duration_seconds and current.get("started_at"):
+            try:
+                t_start = datetime.fromisoformat(current["started_at"].replace("Z", "+00:00"))
+                t_end = datetime.fromisoformat(completed_at.replace("Z", "+00:00"))
+                duration_seconds = max(0, int((t_end - t_start).total_seconds()))
+            except Exception:
+                pass
+
+        # Merge metadata
+        current_meta = json.loads(current.get("metadata_json") or "{}")
+        new_meta = data.get("metadata")
+        if isinstance(new_meta, str):
+            try:
+                new_meta = json.loads(new_meta)
+            except Exception:
+                new_meta = {}
+        if isinstance(new_meta, dict):
+            current_meta.update(new_meta)
+
+        conn.execute("""
+        UPDATE game_sessions
+        SET completed_at = ?, duration_seconds = ?, status = ?, score = ?, metadata_json = ?, updated_at = CURRENT_TIMESTAMP
+        WHERE session_id = ?;
+        """, (completed_at, duration_seconds, status, score, json.dumps(current_meta), session_id))
+        conn.commit()
+
+    return get_game_session(session_id)
+
+
+def get_game_session(session_id: str) -> Optional[Dict[str, Any]]:
+    """Retrieves a single game session by sessionId."""
+    with get_db_connection() as conn:
+        row = conn.execute("SELECT * FROM game_sessions WHERE session_id = ?", (session_id,)).fetchone()
+        if not row:
+            return None
+        d = dict(row)
+        return {
+            "sessionId": d["session_id"],
+            "patientId": d["patient_id"],
+            "gameId": d["game_id"],
+            "startedAt": d["started_at"],
+            "completedAt": d["completed_at"],
+            "duration": d["duration_seconds"],
+            "status": d["status"],
+            "score": d["score"],
+            "metadata": json.loads(d["metadata_json"] or "{}"),
+            "createdAt": d["created_at"],
+            "updatedAt": d["updated_at"],
+        }
+
+
+def get_patient_game_sessions(patient_id: str = "mahi", game_id: Optional[str] = None, limit: int = 50) -> List[Dict[str, Any]]:
+    """Retrieves game sessions for a patient, optionally filtered by gameId."""
+    with get_db_connection() as conn:
+        if game_id:
+            rows = conn.execute("""
+            SELECT * FROM game_sessions WHERE patient_id = ? AND game_id = ? ORDER BY started_at DESC LIMIT ?;
+            """, (patient_id, game_id, limit)).fetchall()
+        else:
+            rows = conn.execute("""
+            SELECT * FROM game_sessions WHERE patient_id = ? ORDER BY started_at DESC LIMIT ?;
+            """, (patient_id, limit)).fetchall()
+
+        results = []
+        for r in rows:
+            d = dict(r)
+            results.append({
+                "sessionId": d["session_id"],
+                "patientId": d["patient_id"],
+                "gameId": d["game_id"],
+                "startedAt": d["started_at"],
+                "completedAt": d["completed_at"],
+                "duration": d["duration_seconds"],
+                "status": d["status"],
+                "score": d["score"],
+                "metadata": json.loads(d["metadata_json"] or "{}"),
+                "createdAt": d["created_at"],
+                "updatedAt": d["updated_at"],
+            })
+        return results
+
+
+def create_game_event(data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Creates a discrete game event associated with a session.
+    Supports: eventId, sessionId, patientId, gameId, eventType, timestamp, metadata
+    """
+    event_id = str(data.get("event_id") or data.get("eventId") or f"evt_{uuid.uuid4().hex[:12]}")
+    session_id = str(data.get("session_id") or data.get("sessionId") or "")
+    patient_id = str(data.get("patient_id") or data.get("patientId") or "mahi")
+    game_id = str(data.get("game_id") or data.get("gameId") or "generic_game")
+    event_type = str(data.get("event_type") or data.get("eventType") or "unknown_event")
+    timestamp = str(data.get("timestamp") or datetime.utcnow().isoformat() + "Z")
+
+    metadata = data.get("metadata", {})
+    if isinstance(metadata, str):
+        try:
+            metadata = json.loads(metadata)
+        except Exception:
+            metadata = {}
+
+    with get_db_connection() as conn:
+        conn.execute("""
+        INSERT INTO game_events (event_id, session_id, patient_id, game_id, event_type, timestamp, metadata_json)
+        VALUES (?, ?, ?, ?, ?, ?, ?);
+        """, (event_id, session_id, patient_id, game_id, event_type, timestamp, json.dumps(metadata)))
+        conn.commit()
+
+    return {
+        "eventId": event_id,
+        "sessionId": session_id,
+        "patientId": patient_id,
+        "gameId": game_id,
+        "eventType": event_type,
+        "timestamp": timestamp,
+        "metadata": metadata,
+    }
+
+
+def get_game_events(session_id: Optional[str] = None, patient_id: Optional[str] = None, limit: int = 100) -> List[Dict[str, Any]]:
+    """Retrieves game events by sessionId or patientId."""
+    with get_db_connection() as conn:
+        if session_id:
+            rows = conn.execute("""
+            SELECT * FROM game_events WHERE session_id = ? ORDER BY timestamp ASC LIMIT ?;
+            """, (session_id, limit)).fetchall()
+        elif patient_id:
+            rows = conn.execute("""
+            SELECT * FROM game_events WHERE patient_id = ? ORDER BY timestamp DESC LIMIT ?;
+            """, (patient_id, limit)).fetchall()
+        else:
+            rows = conn.execute("SELECT * FROM game_events ORDER BY timestamp DESC LIMIT ?;", (limit,)).fetchall()
+
+        results = []
+        for r in rows:
+            d = dict(r)
+            results.append({
+                "eventId": d["event_id"],
+                "sessionId": d["session_id"],
+                "patientId": d["patient_id"],
+                "gameId": d["game_id"],
+                "eventType": d["event_type"],
+                "timestamp": d["timestamp"],
+                "metadata": json.loads(d["metadata_json"] or "{}"),
+            })
+        return results
+
+
+def get_patient_game_stats(patient_id: str = "mahi", game_id: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Computes aggregated game statistics for personalization,
+    companion context, and doctor/caregiver insights.
+    """
+    with get_db_connection() as conn:
+        if game_id:
+            rows = conn.execute("""
+            SELECT * FROM game_sessions WHERE patient_id = ? AND game_id = ? ORDER BY started_at DESC;
+            """, (patient_id, game_id)).fetchall()
+        else:
+            rows = conn.execute("""
+            SELECT * FROM game_sessions WHERE patient_id = ? ORDER BY started_at DESC;
+            """, (patient_id,)).fetchall()
+
+        total = len(rows)
+        completed = sum(1 for r in rows if r["status"] == "completed")
+        abandoned = sum(1 for r in rows if r["status"] == "abandoned")
+        total_duration = sum(r["duration_seconds"] or 0 for r in rows)
+        avg_duration = round(total_duration / total, 1) if total > 0 else 0
+
+        scores = [r["score"] for r in rows if r["score"] is not None]
+        avg_score = round(sum(scores) / len(scores), 1) if scores else None
+        high_score = max(scores) if scores else None
+
+        last_played = rows[0]["started_at"] if rows else None
+
+        # Game breakdown
+        game_breakdown: Dict[str, Any] = {}
+        for r in rows:
+            gid = r["game_id"]
+            if gid not in game_breakdown:
+                game_breakdown[gid] = {"sessions": 0, "scores": []}
+            game_breakdown[gid]["sessions"] += 1
+            if r["score"] is not None:
+                game_breakdown[gid]["scores"].append(r["score"])
+
+        summary_breakdown: Dict[str, Any] = {}
+        for gid, info in game_breakdown.items():
+            sc_list = info["scores"]
+            summary_breakdown[gid] = {
+                "sessions": info["sessions"],
+                "averageScore": round(sum(sc_list) / len(sc_list), 1) if sc_list else None,
+            }
+
+        return {
+            "patientId": patient_id,
+            "gameId": game_id,
+            "totalSessions": total,
+            "completedSessions": completed,
+            "abandonedSessions": abandoned,
+            "totalDurationSeconds": total_duration,
+            "averageDurationSeconds": avg_duration,
+            "averageScore": avg_score,
+            "highestScore": high_score,
+            "lastPlayedAt": last_played,
+            "gameBreakdown": summary_breakdown,
+        }
+
+
+# ── Family Members Operations ──────────────────────────────────────────────────
+
+DEFAULT_INITIAL_FAMILY = [
+    {
+        "id": "fam-anita",
+        "name": "Anita Barman",
+        "relationship": "Daughter & Primary Caregiver",
+        "relationship_as": "কন্যা আৰু মুখ্য যত্নকৰ্তা",
+        "relationship_hi": "बेटी एवं मुख्य देखभालकर्ता",
+        "role_badge": "At Home · Guwahati",
+        "role_badge_as": "ঘৰত উপস্থিত · গুৱাহাটী",
+        "role_badge_hi": "घर पर · गुवाहाटी",
+        "phone": "+91 98765 43210",
+        "email": "anita.barman@caregiver.ner.in",
+        "avatar_emoji": "👩",
+        "avatar_bg": "#FDF2F8",
+        "border_color": "#F472B6",
+        "theme_color": "#EC4899",
+        "is_favorite": 1,
+        "is_online": 1,
+        "status_text": "Ready to talk · At home",
+        "status_text_as": "কথা পাতিবলৈ সাজু · ঘৰত আছে",
+        "status_text_hi": "बात करने के लिए उपलब्ध · घर पर",
+        "location": "Guwahati Residence",
+        "location_as": "গুৱাহাটীৰ বাসভৱন",
+        "location_hi": "गुवाहाटी निवास",
+        "last_seen": "Just now",
+    },
+    {
+        "id": "fam-rahul",
+        "name": "Rahul Barman",
+        "relationship": "Son (Guwahati Office)",
+        "relationship_as": "পুত্ৰ (গুৱাহাটী কাৰ্যালয়)",
+        "relationship_hi": "बेटा (गुवाहाटी कार्यालय)",
+        "role_badge": "Office Break",
+        "role_badge_as": "কাৰ্যালয়ৰ বিৰতি",
+        "role_badge_hi": "कार्यालय ब्रेक",
+        "phone": "+91 98640 11223",
+        "email": "rahul.barman@office.ner.in",
+        "avatar_emoji": "👨‍💼",
+        "avatar_bg": "#EFF6FF",
+        "border_color": "#60A5FA",
+        "theme_color": "#2563EB",
+        "is_favorite": 1,
+        "is_online": 1,
+        "status_text": "Available for 1-Tap call",
+        "status_text_as": "১-টেপ কলৰ বাবে উপলব্ধ",
+        "status_text_hi": "1-टैप कॉल के लिए उपलब्ध",
+        "location": "GS Road, Guwahati",
+        "location_as": "জি এছ ৰোড, গুৱাহাটী",
+        "location_hi": "जी एस रोड, गुवाहाटी",
+        "last_seen": "5 mins ago",
+    },
+    {
+        "id": "fam-arjun",
+        "name": "Arjun Barman",
+        "relationship": "Grandson (Cotton Collegiate)",
+        "relationship_as": "নাতি (কটন কলেজিয়েট)",
+        "relationship_hi": "पोता (कॉटन कॉलेजिएट)",
+        "role_badge": "School · Returns 3 PM",
+        "role_badge_as": "বিদ্যালয়ত · ৩ বজাত ঘৰ পাব",
+        "role_badge_hi": "स्कूल में · 3 बजे घर वापसी",
+        "phone": "+91 98540 55667",
+        "email": "arjun.barman@student.ner.in",
+        "avatar_emoji": "👦",
+        "avatar_bg": "#FEF3C7",
+        "border_color": "#FBBF24",
+        "theme_color": "#D97706",
+        "is_favorite": 1,
+        "is_online": 0,
+        "status_text": "In class · Call after 3 PM",
+        "status_text_as": "শ্ৰেণীত আছে · ৩ বজাৰ পিছত ফোন কৰক",
+        "status_text_hi": "कक्षा में · 3 बजे के बाद कॉल करें",
+        "location": "Panbazar, Guwahati",
+        "location_as": "পানবজাৰ, গুৱাহাটী",
+        "location_hi": "पानबाजार, गुवाहाटी",
+        "last_seen": "1 hour ago",
+    },
+    {
+        "id": "fam-priya",
+        "name": "Priya Barman",
+        "relationship": "Daughter-in-law",
+        "relationship_as": "বোৱাৰী",
+        "relationship_hi": "बहू",
+        "role_badge": "Home Kitchen",
+        "role_badge_as": "পাকঘৰত",
+        "role_badge_hi": "रसोई में",
+        "phone": "+91 98642 33445",
+        "email": "priya.barman@home.ner.in",
+        "avatar_emoji": "👩‍🦰",
+        "avatar_bg": "#FAF5FF",
+        "border_color": "#C084FC",
+        "theme_color": "#9333EA",
+        "is_favorite": 0,
+        "is_online": 1,
+        "status_text": "Preparing evening tea",
+        "status_text_as": "সন্ধিয়াৰ চাহ তৈয়াৰ কৰি আছে",
+        "status_text_hi": "शाम की चाय बना रही हैं",
+        "location": "Courtyard Kitchen",
+        "location_as": "চোতালৰ পাকঘৰ",
+        "location_hi": "आंगन की रसोई",
+        "last_seen": "10 mins ago",
+    },
+    {
+        "id": "fam-doctor",
+        "name": "Dr. Sanjeev Sharma",
+        "relationship": "Family Physician & ASHA Line",
+        "relationship_as": "পৰিয়ালৰ চিকিৎসক আৰু আশা লাইন",
+        "relationship_hi": "पारिवारिक डॉक्टर एवं आशा लाइन",
+        "role_badge": "Dispur Clinic Live",
+        "role_badge_as": "দিস্পুৰ ক্লিনিকত উপস্থিত",
+        "role_badge_hi": "दिसपुर क्लिनिक में उपस्थित",
+        "phone": "+91 94350 99887",
+        "email": "dr.sanjeev@dispurhospital.in",
+        "avatar_emoji": "🩺",
+        "avatar_bg": "#ECFDF5",
+        "border_color": "#4ADE80",
+        "theme_color": "#059669",
+        "is_favorite": 0,
+        "is_online": 1,
+        "status_text": "Direct medical line active",
+        "status_text_as": "চিকিৎসা সেৱা লাইন সক্ৰিয়",
+        "status_text_hi": "चिकित्सा सेवा लाइन सक्रिय",
+        "location": "Dispur Hospital",
+        "location_as": "দিস্পুৰ চিকিৎসালয়",
+        "location_hi": "दिसपुर अस्पताल",
+        "last_seen": "Active now",
+    },
+    {
+        "id": "fam-asha",
+        "name": "Mamoni Baideo",
+        "relationship": "Local ASHA Community Worker",
+        "relationship_as": "স্থানীয় আশা বাইদেউ",
+        "relationship_hi": "स्थानीय आशा कार्यकर्ता",
+        "role_badge": "Village Health Center",
+        "role_badge_as": "স্বাস্থ্য কেন্দ্ৰ",
+        "role_badge_hi": "स्वास्थ्य केंद्र",
+        "phone": "+91 94351 22334",
+        "email": "mamoni.asha@nhm.gov.in",
+        "avatar_emoji": "👩‍⚕️",
+        "avatar_bg": "#FFF1F2",
+        "border_color": "#FB7185",
+        "theme_color": "#E11D48",
+        "is_favorite": 0,
+        "is_online": 1,
+        "status_text": "Available for home check-ins",
+        "status_text_as": "ঘৰুৱা স্বাস্থ্য নিৰীক্ষণৰ বাবে উপলব্ধ",
+        "status_text_hi": "स्वास्थ्य जांच के लिए उपलब्ध",
+        "location": "Community Center",
+        "location_as": "স্বাস্থ্য কেন্দ্ৰ",
+        "location_hi": "सामुदायिक केंद्र",
+        "last_seen": "20 mins ago",
+    },
+]
+
+
+def _format_family_row(row: sqlite3.Row) -> Dict[str, Any]:
+    d = dict(row)
+    return {
+        "id": d["id"],
+        "patientId": d["patient_id"],
+        "name": d["name"],
+        "relationship": d["relationship"],
+        "relationshipAs": d.get("relationship_as", ""),
+        "relationshipHi": d.get("relationship_hi", ""),
+        "roleBadge": d.get("role_badge", ""),
+        "roleBadgeAs": d.get("role_badge_as", ""),
+        "roleBadgeHi": d.get("role_badge_hi", ""),
+        "phone": d.get("phone", ""),
+        "email": d.get("email", ""),
+        "profileImageUrl": d.get("profile_image_url", ""),
+        "avatarEmoji": d.get("avatar_emoji", "👤"),
+        "avatarBg": d.get("avatar_bg", "#EFF6FF"),
+        "borderColor": d.get("border_color", "#93C5FD"),
+        "themeColor": d.get("theme_color", "#2563EB"),
+        "isFavorite": bool(d.get("is_favorite", 0)),
+        "isOnline": bool(d.get("is_online", 1)),
+        "statusText": d.get("status_text", "Available"),
+        "statusTextAs": d.get("status_text_as", ""),
+        "statusTextHi": d.get("status_text_hi", ""),
+        "location": d.get("location", ""),
+        "locationAs": d.get("location_as", ""),
+        "locationHi": d.get("location_hi", ""),
+        "lastSeen": d.get("last_seen", "Recently"),
+        "createdAt": d.get("created_at"),
+        "updatedAt": d.get("updated_at"),
+    }
+
+
+def seed_default_family_if_empty(patient_id: str = "mahi"):
+    """Ensures patient has baseline family member contacts persisted in database."""
+    with get_db_connection() as conn:
+        count = conn.execute("SELECT COUNT(*) FROM family_members WHERE patient_id = ?", (patient_id,)).fetchone()[0]
+        if count == 0:
+            for item in DEFAULT_INITIAL_FAMILY:
+                conn.execute("""
+                INSERT OR IGNORE INTO family_members (
+                    id, patient_id, name, relationship, relationship_as, relationship_hi,
+                    role_badge, role_badge_as, role_badge_hi, phone, email,
+                    avatar_emoji, avatar_bg, border_color, theme_color,
+                    is_favorite, is_online, status_text, status_text_as, status_text_hi,
+                    location, location_as, location_hi, last_seen
+                ) VALUES (
+                    :id, :patient_id, :name, :relationship, :relationship_as, :relationship_hi,
+                    :role_badge, :role_badge_as, :role_badge_hi, :phone, :email,
+                    :avatar_emoji, :avatar_bg, :border_color, :theme_color,
+                    :is_favorite, :is_online, :status_text, :status_text_as, :status_text_hi,
+                    :location, :location_as, :location_hi, :last_seen
+                )
+                """, {**item, "patient_id": patient_id})
+            conn.commit()
+
+
+def get_patient_family_members(patient_id: str = "mahi") -> List[Dict[str, Any]]:
+    """Retrieves all family members for a patient."""
+    seed_default_family_if_empty(patient_id)
+    with get_db_connection() as conn:
+        rows = conn.execute(
+            "SELECT * FROM family_members WHERE patient_id = ? ORDER BY is_favorite DESC, created_at ASC",
+            (patient_id,)
+        ).fetchall()
+        return [_format_family_row(r) for r in rows]
+
+
+def get_family_member(member_id: str, patient_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    """Retrieves a single family member by ID (optionally scoped to patient)."""
+    with get_db_connection() as conn:
+        if patient_id:
+            row = conn.execute(
+                "SELECT * FROM family_members WHERE id = ? AND patient_id = ?",
+                (member_id, patient_id)
+            ).fetchone()
+        else:
+            row = conn.execute(
+                "SELECT * FROM family_members WHERE id = ?",
+                (member_id,)
+            ).fetchone()
+        if row:
+            return _format_family_row(row)
+        return None
+
+
+def create_family_member(patient_id: str, data: Dict[str, Any]) -> Dict[str, Any]:
+    """Creates a new persistent family member for a patient."""
+    member_id = str(data.get("id") or f"fam-{uuid.uuid4().hex[:8]}")
+    name = str(data.get("name", "Family Member"))
+    relationship = str(data.get("relationship", "Family"))
+    relationship_as = str(data.get("relationshipAs", data.get("relationship_as", "")))
+    relationship_hi = str(data.get("relationshipHi", data.get("relationship_hi", "")))
+    role_badge = str(data.get("roleBadge", data.get("role_badge", "")))
+    role_badge_as = str(data.get("roleBadgeAs", data.get("role_badge_as", "")))
+    role_badge_hi = str(data.get("roleBadgeHi", data.get("role_badge_hi", "")))
+    phone = str(data.get("phone", ""))
+    email = str(data.get("email", ""))
+    profile_image_url = str(data.get("profileImageUrl", data.get("profile_image_url", "")))
+    avatar_emoji = str(data.get("avatarEmoji", data.get("avatar_emoji", "👤")))
+    avatar_bg = str(data.get("avatarBg", data.get("avatar_bg", "#EFF6FF")))
+    border_color = str(data.get("borderColor", data.get("border_color", "#93C5FD")))
+    theme_color = str(data.get("themeColor", data.get("theme_color", "#2563EB")))
+    is_favorite = 1 if data.get("isFavorite", data.get("is_favorite", False)) else 0
+    is_online = 1 if data.get("isOnline", data.get("is_online", True)) else 0
+    status_text = str(data.get("statusText", data.get("status_text", "Available")))
+    status_text_as = str(data.get("statusTextAs", data.get("status_text_as", "")))
+    status_text_hi = str(data.get("statusTextHi", data.get("status_text_hi", "")))
+    location = str(data.get("location", ""))
+    location_as = str(data.get("locationAs", data.get("location_as", "")))
+    location_hi = str(data.get("locationHi", data.get("location_hi", "")))
+    last_seen = str(data.get("lastSeen", data.get("last_seen", "Just now")))
+
+    with get_db_connection() as conn:
+        conn.execute("""
+        INSERT INTO family_members (
+            id, patient_id, name, relationship, relationship_as, relationship_hi,
+            role_badge, role_badge_as, role_badge_hi, phone, email, profile_image_url,
+            avatar_emoji, avatar_bg, border_color, theme_color,
+            is_favorite, is_online, status_text, status_text_as, status_text_hi,
+            location, location_as, location_hi, last_seen
+        ) VALUES (
+            ?, ?, ?, ?, ?, ?,
+            ?, ?, ?, ?, ?, ?,
+            ?, ?, ?, ?,
+            ?, ?, ?, ?, ?,
+            ?, ?, ?, ?
+        )
+        """, (
+            member_id, patient_id, name, relationship, relationship_as, relationship_hi,
+            role_badge, role_badge_as, role_badge_hi, phone, email, profile_image_url,
+            avatar_emoji, avatar_bg, border_color, theme_color,
+            is_favorite, is_online, status_text, status_text_as, status_text_hi,
+            location, location_as, location_hi, last_seen
+        ))
+        conn.commit()
+
+    return get_family_member(member_id, patient_id) or {}
+
+
+def update_family_member(member_id: str, data: Dict[str, Any], patient_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    """Updates fields of an existing family member."""
+    current = get_family_member(member_id, patient_id)
+    if not current:
+        return None
+
+    name = data.get("name", current["name"])
+    relationship = data.get("relationship", current["relationship"])
+    relationship_as = data.get("relationshipAs", data.get("relationship_as", current["relationshipAs"]))
+    relationship_hi = data.get("relationshipHi", data.get("relationship_hi", current["relationshipHi"]))
+    role_badge = data.get("roleBadge", data.get("role_badge", current["roleBadge"]))
+    role_badge_as = data.get("roleBadgeAs", data.get("role_badge_as", current["roleBadgeAs"]))
+    role_badge_hi = data.get("roleBadgeHi", data.get("role_badge_hi", current["roleBadgeHi"]))
+    phone = data.get("phone", current["phone"])
+    email = data.get("email", current["email"])
+    profile_image_url = data.get("profileImageUrl", data.get("profile_image_url", current["profileImageUrl"]))
+    avatar_emoji = data.get("avatarEmoji", data.get("avatar_emoji", current["avatarEmoji"]))
+    avatar_bg = data.get("avatarBg", data.get("avatar_bg", current["avatarBg"]))
+    border_color = data.get("borderColor", data.get("border_color", current["borderColor"]))
+    theme_color = data.get("themeColor", data.get("theme_color", current["themeColor"]))
+    
+    if "isFavorite" in data or "is_favorite" in data:
+        is_favorite = 1 if data.get("isFavorite", data.get("is_favorite")) else 0
+    else:
+        is_favorite = 1 if current["isFavorite"] else 0
+
+    if "isOnline" in data or "is_online" in data:
+        is_online = 1 if data.get("isOnline", data.get("is_online")) else 0
+    else:
+        is_online = 1 if current["isOnline"] else 0
+
+    status_text = data.get("statusText", data.get("status_text", current["statusText"]))
+    status_text_as = data.get("statusTextAs", data.get("status_text_as", current["statusTextAs"]))
+    status_text_hi = data.get("statusTextHi", data.get("status_text_hi", current["statusTextHi"]))
+    location = data.get("location", current["location"])
+    location_as = data.get("locationAs", data.get("location_as", current["locationAs"]))
+    location_hi = data.get("locationHi", data.get("location_hi", current["locationHi"]))
+    last_seen = data.get("lastSeen", data.get("last_seen", current["lastSeen"]))
+
+    with get_db_connection() as conn:
+        if patient_id:
+            conn.execute("""
+            UPDATE family_members SET
+                name = ?, relationship = ?, relationship_as = ?, relationship_hi = ?,
+                role_badge = ?, role_badge_as = ?, role_badge_hi = ?, phone = ?, email = ?,
+                profile_image_url = ?, avatar_emoji = ?, avatar_bg = ?, border_color = ?, theme_color = ?,
+                is_favorite = ?, is_online = ?, status_text = ?, status_text_as = ?, status_text_hi = ?,
+                location = ?, location_as = ?, location_hi = ?, last_seen = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ? AND patient_id = ?
+            """, (
+                name, relationship, relationship_as, relationship_hi,
+                role_badge, role_badge_as, role_badge_hi, phone, email,
+                profile_image_url, avatar_emoji, avatar_bg, border_color, theme_color,
+                is_favorite, is_online, status_text, status_text_as, status_text_hi,
+                location, location_as, location_hi, last_seen, member_id, patient_id
+            ))
+        else:
+            conn.execute("""
+            UPDATE family_members SET
+                name = ?, relationship = ?, relationship_as = ?, relationship_hi = ?,
+                role_badge = ?, role_badge_as = ?, role_badge_hi = ?, phone = ?, email = ?,
+                profile_image_url = ?, avatar_emoji = ?, avatar_bg = ?, border_color = ?, theme_color = ?,
+                is_favorite = ?, is_online = ?, status_text = ?, status_text_as = ?, status_text_hi = ?,
+                location = ?, location_as = ?, location_hi = ?, last_seen = ?, updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+            """, (
+                name, relationship, relationship_as, relationship_hi,
+                role_badge, role_badge_as, role_badge_hi, phone, email,
+                profile_image_url, avatar_emoji, avatar_bg, border_color, theme_color,
+                is_favorite, is_online, status_text, status_text_as, status_text_hi,
+                location, location_as, location_hi, last_seen, member_id
+            ))
+        conn.commit()
+
+    return get_family_member(member_id, patient_id)
+
+
+def toggle_family_member_favorite(member_id: str, patient_id: Optional[str] = None) -> Optional[Dict[str, Any]]:
+    """Toggles the is_favorite boolean for a family member."""
+    current = get_family_member(member_id, patient_id)
+    if not current:
+        return None
+    new_fav = not current["isFavorite"]
+    return update_family_member(member_id, {"isFavorite": new_fav}, patient_id)
+
+
+def delete_family_member(member_id: str, patient_id: Optional[str] = None) -> bool:
+    """Deletes a family member record."""
+    with get_db_connection() as conn:
+        if patient_id:
+            res = conn.execute(
+                "DELETE FROM family_members WHERE id = ? AND patient_id = ?",
+                (member_id, patient_id)
+            )
+        else:
+            res = conn.execute(
+                "DELETE FROM family_members WHERE id = ?",
+                (member_id,)
+            )
+        conn.commit()
+        return res.rowcount > 0
+
+
+# ── Call Records Operations (Persistent Audio/Video Calling) ─────────────────
+
+def _format_call_row(row: sqlite3.Row) -> Dict[str, Any]:
+    """Helper to convert a call_records row into clean camelCase JSON format."""
+    return {
+        "id": row["id"],
+        "patientId": row["patient_id"],
+        "familyMemberId": row["family_member_id"],
+        "callType": row["call_type"],
+        "direction": row["direction"],
+        "status": row["status"],
+        "startedAt": row["started_at"],
+        "answeredAt": row["answered_at"],
+        "endedAt": row["ended_at"],
+        "durationSeconds": row["duration_seconds"],
+        "createdAt": row["created_at"],
+        "updatedAt": row["updated_at"],
+    }
+
+
+def create_call_record(data: Dict[str, Any]) -> Dict[str, Any]:
+    """
+    Creates and persists a new one-to-one call session record in SQLite.
+    Stores metadata only: participants, timestamps, callType, direction, status.
+    """
+    call_id = str(data.get("id") or f"call_{uuid.uuid4().hex[:12]}")
+    patient_id = str(data.get("patientId") or data.get("patient_id") or "mahi")
+    family_member_id = str(data.get("familyMemberId") or data.get("family_member_id") or "")
+    call_type = str(data.get("callType") or data.get("call_type") or "video")
+    direction = str(data.get("direction") or "outgoing")
+    status = str(data.get("status") or "ringing")
+    started_at = str(data.get("startedAt") or data.get("started_at") or time.strftime("%Y-%m-%dT%H:%M:%SZ"))
+    answered_at = data.get("answeredAt") or data.get("answered_at")
+    ended_at = data.get("endedAt") or data.get("ended_at")
+    duration_seconds = int(data.get("durationSeconds") or data.get("duration_seconds") or 0)
+
+    now_iso = time.strftime("%Y-%m-%d %H:%M:%S")
+
+    with get_db_connection() as conn:
+        conn.execute("""
+        INSERT OR REPLACE INTO call_records (
+            id, patient_id, family_member_id, call_type, direction,
+            status, started_at, answered_at, ended_at, duration_seconds,
+            created_at, updated_at
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            call_id, patient_id, family_member_id, call_type, direction,
+            status, started_at, answered_at, ended_at, duration_seconds,
+            now_iso, now_iso
+        ))
+        conn.commit()
+
+    return get_call_record(call_id) or {}
+
+
+def get_call_record(call_id: str) -> Optional[Dict[str, Any]]:
+    """Retrieves a single call session record by call_id."""
+    with get_db_connection() as conn:
+        row = conn.execute("SELECT * FROM call_records WHERE id = ?", (call_id,)).fetchone()
+        if row:
+            return _format_call_row(row)
+    return None
+
+
+def update_call_record(call_id: str, data: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+    """
+    Updates status, answered/ended timestamps, and duration of an existing call record.
+    """
+    current = get_call_record(call_id)
+    if not current:
+        return None
+
+    status = str(data.get("status") or current["status"])
+    answered_at = data.get("answeredAt") or data.get("answered_at") or current["answeredAt"]
+    ended_at = data.get("endedAt") or data.get("ended_at") or current["endedAt"]
+    duration_seconds = int(data.get("durationSeconds") or data.get("duration_seconds") or current["durationSeconds"])
+    now_iso = time.strftime("%Y-%m-%d %H:%M:%S")
+
+    with get_db_connection() as conn:
+        conn.execute("""
+        UPDATE call_records SET
+            status = ?,
+            answered_at = ?,
+            ended_at = ?,
+            duration_seconds = ?,
+            updated_at = ?
+        WHERE id = ?
+        """, (status, answered_at, ended_at, duration_seconds, now_iso, call_id))
+        conn.commit()
+
+    return get_call_record(call_id)
+
+
+def get_patient_call_history(patient_id: str = "mahi", limit: int = 50) -> List[Dict[str, Any]]:
+    """
+    Retrieves call history records for a patient ordered chronologically descending.
+    """
+    with get_db_connection() as conn:
+        rows = conn.execute(
+            "SELECT * FROM call_records WHERE patient_id = ? ORDER BY created_at DESC LIMIT ?",
+            (patient_id, limit)
+        ).fetchall()
+        return [_format_call_row(r) for r in rows]
+
+
+def delete_call_record(call_id: str) -> bool:
+    """Deletes a call record (e.g. for testing / data purging)."""
+    with get_db_connection() as conn:
+        res = conn.execute("DELETE FROM call_records WHERE id = ?", (call_id,))
+        conn.commit()
+        return res.rowcount > 0
+
+

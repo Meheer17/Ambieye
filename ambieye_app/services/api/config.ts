@@ -1,7 +1,7 @@
 import { Platform } from "react-native";
 
 // Local Machine IP from ipconfig (Wi-Fi LAN)
-const LOCAL_WIFI_IP = "172.26.251.66";
+const LOCAL_WIFI_IP = "172.25.62.153";
 
 // Python FastAPI backend running on port 8000
 const PYTHON_BACKEND_URL =
@@ -9,10 +9,17 @@ const PYTHON_BACKEND_URL =
     ? `http://${LOCAL_WIFI_IP}:8000/api`
     : "http://localhost:8000/api";
 
+// WebSocket Call Signaling URL
+const WS_CALLS_URL =
+  Platform.OS === "android" || Platform.OS === "ios"
+    ? `ws://${LOCAL_WIFI_IP}:8000/ws/calls`
+    : "ws://localhost:8000/ws/calls";
+
 export const API_CONFIG = {
   LOCAL_IP: LOCAL_WIFI_IP,
   // Primary: Local Python FastAPI backend
   BASE_URL: PYTHON_BACKEND_URL,
+  WS_CALLS_URL: WS_CALLS_URL,
   FALLBACK_URL: "https://p01--ambieye--6s9l5yxyj7q6.code.run/api",
 
   ENDPOINTS: {
@@ -32,6 +39,9 @@ export const API_CONFIG = {
       RESULTS: "/games/results",
       TODAY: "/games/today",
       HISTORY: "/games/history",
+      SESSIONS: "/games/sessions",
+      EVENTS: "/games/events",
+      STATS: "/games/stats",
     },
     PATIENT: {
       DASHBOARD: "/patient/dashboard",
@@ -41,5 +51,17 @@ export const API_CONFIG = {
       DELETE: "/patient/delete",
     },
     QUERIES: "/queries",
+    FAMILY: {
+      BASE: "/family",
+      PATIENT: (patientId: string) => `/patients/${patientId}/family`,
+      MEMBER: (id: string) => `/family/${id}`,
+      TOGGLE_FAVORITE: (id: string) => `/family/${id}/toggle-favorite`,
+    },
+    CALLS: {
+      BASE: "/calls",
+      DETAIL: (id: string) => `/calls/${id}`,
+      HISTORY: (patientId?: string) =>
+        patientId ? `/patients/${patientId}/calls` : "/calls/history",
+    },
   },
 };

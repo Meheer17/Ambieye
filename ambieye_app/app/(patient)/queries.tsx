@@ -17,7 +17,7 @@ import { useRouter } from "expo-router";
 import Feather from "@expo/vector-icons/Feather";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect } from "expo-router";
 import { patientService, Query } from "@/services/api/patientService";
 import { useTranslation } from "@/constants/i18n";
 import { VoiceAssistant } from "@/utils/voiceAssistant";

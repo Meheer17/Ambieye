@@ -21,7 +21,7 @@ const char* ssid     = "AmbiEye_AP";      // Or Home/Hotspot SSID
 const char* password = "ambieye_secure";
 
 // ── AmbiEye Backend Server IP (Port 8000) ───────────────────────────────────
-const char* serverUrl = "http://172.26.251.66:8000/api/iot/telemetry";
+const char* serverUrl = "http://172.25.62.153:8000/api/iot/telemetry";
 
 // ── MAX30102 I2C Pins (ESP32 Standard) ───────────────────────────────────────
 #define I2C_SDA 21

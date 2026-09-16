@@ -10,12 +10,9 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Feather from "@expo/vector-icons/Feather";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useTranslation } from "@/constants/i18n";
 import { VoiceAssistant } from "@/utils/voiceAssistant";
 import { useAuth } from "@/hooks/useAuth";
-import { dementiaCareStorage } from "@/utils/dementiaCareStorage";
-import { CaregiverActivitiesScreen } from "@/components/caregiver/CaregiverActivitiesScreen";
 import { Colors, BorderRadius, Shadows } from "@/constants/theme";
 
 export default function GamesScreen() {
@@ -24,36 +21,17 @@ export default function GamesScreen() {
   const { t, currentLang } = useTranslation();
   const { category } = useLocalSearchParams<{ category?: string }>();
   const [activeCategory, setActiveCategory] = useState<"memory" | "attention" | "gaze">("memory");
-  const [viewMode, setViewMode] = useState<"elderly" | "caregiver">("elderly");
 
   useFocusEffect(
     React.useCallback(() => {
-      (async () => {
-        const activeMode = await AsyncStorage.getItem("ambieye_active_mode");
-        const savedMode = await dementiaCareStorage.getActiveViewMode();
-        if (activeMode === "caregiver" || username?.toLowerCase() === "caregiver") {
-          setViewMode("caregiver");
-        } else {
-          setViewMode(savedMode);
-        }
-      })();
-
       const categoryValue = Array.isArray(category) ? category[0] : category;
       if (!categoryValue) return;
       const normalized = categoryValue.toLowerCase();
       if (normalized === "memory" || normalized === "attention" || normalized === "gaze") {
         setActiveCategory(normalized as any);
       }
-    }, [category, username])
+    }, [category])
   );
-
-  if (viewMode === "caregiver") {
-    return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: "#FDFBF7" }} edges={["top"]}>
-        <CaregiverActivitiesScreen />
-      </SafeAreaView>
-    );
-  }
 
   const categories = [
     {
@@ -146,6 +124,76 @@ export default function GamesScreen() {
         bg: "#FFFBEB",
         badge: "REMINISCENCE",
       },
+      {
+        id: 12,
+        title: "Sequence Recall",
+        titleAs: "ক্ৰমিক স্মৃতি খেল",
+        titleHi: "क्रम स्मरण खेल",
+        desc: "Watch familiar items appear in sequence, remember the order, and tap them",
+        descAs: "ক্ৰমত ওলোৱা চিনাকি বস্তুবোৰ মনত ৰাখি সঠিক ক্ৰমত বাছনি কৰক",
+        descHi: "चित्रों का क्रम ध्यान से देखें और उसी क्रम में चुनकर याददाश्त परखें",
+        link: "games/cognitive/sequence-recall",
+        emoji: "🔢",
+        color: "#059669",
+        bg: "#F0FDF4",
+        badge: "SEQUENCE RECALL",
+      },
+      {
+        id: 15,
+        title: "Word Recall",
+        titleAs: "শব্দ মনত ৰখাৰ খেল",
+        titleHi: "शब्द स्मरण खेल",
+        desc: "Memorize words shown one by one, then identify which word appeared",
+        descAs: "ক্ৰমত ওলোৱা শব্দবোৰ মনত ৰাখি সঠিক শব্দটো বাছক",
+        descHi: "एक-एक करके दिखाए गए शब्दों को याद रखें और सही शब्द पहचानें",
+        link: "games/cognitive/word-recall",
+        emoji: "📖",
+        color: "#6366F1",
+        bg: "#FAF5FF",
+        badge: "WORD RECALL",
+      },
+      {
+        id: 16,
+        title: "Picture Association",
+        titleAs: "ছবিৰ যোৰ মিলোৱা",
+        titleHi: "चित्र संबंध",
+        desc: "Match familiar everyday objects with their most natural functional pairs",
+        descAs: "চিনাকি বস্তুবোৰৰ সৈতে আটাইতকৈ উপযুক্ত সম্পৰ্কিত বস্তুটো বাছক",
+        descHi: "दैनिक जीवन की वस्तुओं को उनके सही जोड़ीदार से मिलाएं",
+        link: "games/cognitive/picture-association",
+        emoji: "🧩",
+        color: "#D97706",
+        bg: "#FFFBEB",
+        badge: "ASSOCIATION",
+      },
+      {
+        id: 17,
+        title: "Daily Orientation",
+        titleAs: "দৈনিক সময় আৰু দিহ নিৰ্ণয়",
+        titleHi: "दैनिक समय एवं अभिमुखीकरण",
+        desc: "Gentle awareness questions for today's weekday, month, time of day & location",
+        descAs: "আজিৰ বাৰ, মাহ, দিনৰ সময় আৰু পৰিৱেশৰ চিনাকি প্ৰশ্ন",
+        descHi: "आज का दिन, महीना, समय और स्थान से संबंधित सरल प्रश्न",
+        link: "games/cognitive/orientation",
+        emoji: "🧭",
+        color: "#059669",
+        bg: "#F0FDF4",
+        badge: "ORIENTATION",
+      },
+      {
+        id: 18,
+        title: "Who Am I? (Mystery Roles)",
+        titleAs: "মই কোন? (চিনাকি ব্যক্তি)",
+        titleHi: "मैं कौन हूँ? (भूमिका पहचान)",
+        desc: "Solve 5 mystery community roles through visual icons and descriptive clues",
+        descAs: "সুন্দৰ লক্ষণ আৰু সংকেতৰ সহায়ত সমাজৰ চিনাকি ভূমিকাসমূহ চিনাক্ত কৰক",
+        descHi: "संकेतों और लक्षणों के माध्यम से 5 परिचित सामाजिक भूमिकाएं पहचानें",
+        link: "games/cognitive/who-am-i",
+        emoji: "🎭",
+        color: "#0284C7",
+        bg: "#F0F9FF",
+        badge: "ROLE RECOGNITION",
+      },
     ],
     attention: [
       {
@@ -203,6 +251,76 @@ export default function GamesScreen() {
         color: "#B45309",
         bg: "#FFFBEB",
         badge: "NUMERACY",
+      },
+      {
+        id: 13,
+        title: "Odd One Out",
+        titleAs: "অমিলটো বিচাৰক",
+        titleHi: "अलग चित्र पहचानें",
+        desc: "Spot the single unique item among familiar cards across 5 rounds",
+        descAs: "একেধৰণৰ ছবিবোৰৰ মাজৰ পৰা অমিল বস্তুটো বাছনি কৰক",
+        descHi: "समान चित्रों के समूह में से एक अलग चित्र को पहचानें",
+        link: "games/cognitive/odd-one-out",
+        emoji: "🔎",
+        color: "#0284C7",
+        bg: "#F0F9FF",
+        badge: "ODD ONE OUT",
+      },
+      {
+        id: 14,
+        title: "Number Order",
+        titleAs: "সংখ্যাৰ ক্ৰম",
+        titleHi: "संख्या क्रम",
+        desc: "Tap the numbers in order from smallest to largest across 5 rounds",
+        descAs: "সৰুৰ পৰা ডাঙৰলৈ ক্ৰমত সংখ্যাবোৰ বাছনি কৰক",
+        descHi: "छोटी से बड़ी संख्याओं को सही क्रम में लगाएं",
+        link: "games/cognitive/number-order",
+        emoji: "🔢",
+        color: "#059669",
+        bg: "#F0FDF4",
+        badge: "NUMBER ORDER",
+      },
+      {
+        id: 19,
+        title: "Treasure Hunt (Visual Search)",
+        titleAs: "ৰত্ন সন্ধান (মনোযোগ খেল)",
+        titleHi: "खजाना खोज (दृश्य ध्यान)",
+        desc: "Spot and tap all matching target items in a colorful grid across 5 rounds",
+        descAs: "ৰঙীন তালিকাৰ মাজৰ পৰা সকলো লক্ষ্য বস্তু বিচাৰি টেপ কৰক",
+        descHi: "रंग-बिरंगी ग्रिड में से सभी लक्षित वस्तुओं को खोजें और चुनें",
+        link: "games/cognitive/treasure-hunt",
+        emoji: "🗺️",
+        color: "#EC4899",
+        bg: "#FDF2F8",
+        badge: "VISUAL ATTENTION",
+      },
+      {
+        id: 20,
+        title: "Change Your Mind (Rule Switch)",
+        titleAs: "নিয়ম সলনি খেল",
+        titleHi: "नियम बदलो खेल",
+        desc: "Adapt to changing selection rules across colors, shapes, and categories",
+        descAs: "প্ৰতি পৰ্যায়ত সলনি হোৱা নিয়ম অনুসৰি সঠিক বস্তুবোৰ বাছক",
+        descHi: "रंग, आकार और श्रेणी के बदलते नियमों के अनुसार वस्तुएं चुनें",
+        link: "games/cognitive/rule-switch",
+        emoji: "🔄",
+        color: "#7C3AED",
+        bg: "#FAF5FF",
+        badge: "COGNITIVE FLEXIBILITY",
+      },
+      {
+        id: 21,
+        title: "Plan & Do",
+        titleAs: "পৰিকল্পনা আৰু ক্ৰম",
+        titleHi: "योजना एवं क्रम",
+        desc: "Sequence everyday actions to accomplish familiar goals like tea, park, or bedtime",
+        descAs: "দৈনন্দিন পৰিকল্পনাবোৰ সঠিক ক্ৰমত সজাই কামটো সম্পূৰ্ণ কৰক",
+        descHi: "दैनिक कार्यों को लक्ष्य प्राप्ति के सही क्रम में लगाएं",
+        link: "games/cognitive/plan-and-do",
+        emoji: "🎯",
+        color: "#2563EB",
+        bg: "#EFF6FF",
+        badge: "EXECUTIVE FUNCTION",
       },
     ],
     gaze: [

@@ -14,79 +14,67 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter, useFocusEffect } from "expo-router";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import Feather from "@expo/vector-icons/Feather";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useAuth } from "@/hooks/useAuth";
 import { useTranslation, SUPPORTED_LANGUAGES, SupportedLanguage } from "@/constants/i18n";
-import { reminderStorage, DailyHydration, MedicationItem } from "@/utils/reminderStorage";
+import {
+  reminderStorage,
+  DailyHydration,
+  MedicationItem,
+  RoutineTask,
+} from "@/utils/reminderStorage";
 import {
   caregiverStorage,
   FamilySentItem,
-  CognitiveGameSession,
-  CaregiverSleepRecord,
   PatientProfile,
 } from "@/utils/caregiverStorage";
-import { dementiaCareStorage } from "@/utils/dementiaCareStorage";
-import { federatedService, CognitiveStabilityResult } from "@/services/api/federatedService";
-import {
-  companionService,
-  REMINISCENCE_TOPICS,
-  ReminiscenceTopic,
-} from "@/services/companion/companionService";
+import { companionService } from "@/services/companion/companionService";
 import { VoiceAssistant } from "@/utils/voiceAssistant";
-import TimeOrientationCard from "@/components/TimeOrientationCard";
 import CalmCornerModal from "@/components/CalmCornerModal";
 import { VirtualAvatar, AvatarState } from "@/components/companion/VirtualAvatar";
 import { CompanionScreen } from "@/components/companion/CompanionScreen";
 import { SmritiGeetiRadio } from "@/components/patient/SmritiGeetiRadio";
 import { SmritiPhotobook } from "@/components/patient/SmritiPhotobook";
 import { AponManuhSpeedDial } from "@/components/patient/AponManuhSpeedDial";
-import { BaganorKothaWeather } from "@/components/patient/BaganorKothaWeather";
-import { ManorSthitiMood } from "@/components/patient/ManorSthitiMood";
 import { GharorBartaPostcards } from "@/components/patient/GharorBartaPostcards";
-import { Colors, Spacing, WarmPalette } from "@/constants/theme";
-
-const { width } = Dimensions.get("window");
-
-export type SeniorFeatureTab = "radio" | "photos" | "family" | "mood";
 
 export default function PatientHomeScreen() {
   const router = useRouter();
   const { username, logout } = useAuth();
   const { t, currentLang, changeLanguage } = useTranslation();
 
-  const [activeFeatureTab, setActiveFeatureTab] = useState<SeniorFeatureTab>("radio");
-  const [languageModalVisible, setLanguageModalVisible] = useState(false);
+  // Modals for feature discovery on-demand
+  const [familyModalVisible, setFamilyModalVisible] = useState(false);
+  const [musicModalVisible, setMusicModalVisible] = useState(false);
+  const [photosModalVisible, setPhotosModalVisible] = useState(false);
   const [calmCornerVisible, setCalmCornerVisible] = useState(false);
   const [companionModalVisible, setCompanionModalVisible] = useState(false);
+  const [languageModalVisible, setLanguageModalVisible] = useState(false);
 
-  // Daily Care & Reminder Data
-  const [hydration, setHydration] = useState<DailyHydration>({ date: "", glassesDrunk: 3, dailyGoal: 8 });
-  const [medications, setMedications] = useState<MedicationItem[]>([]);
-  const [familyItems, setFamilyItems] = useState<FamilySentItem[]>([]);
+  // Patient Profile, Routines & Family Postcards
   const [profile, setProfile] = useState<PatientProfile | null>(null);
+  const [routines, setRoutines] = useState<RoutineTask[]>([]);
+  const [familyItems, setFamilyItems] = useState<FamilySentItem[]>([]);
   const [sosBanner, setSosBanner] = useState<string | null>(null);
 
   // Avatar Companion In-Hero State
   const [avatarState, setAvatarState] = useState<AvatarState>("idle");
   const [avatarSpeechText, setAvatarSpeechText] = useState<string>(
-    "Good day, Bhaben! I am your companion Smriti Mitr. Tap any question below or speak with me!"
+    "Good day, Bhaben! I am your companion Smriti Mitr. Tap 'Talk to Me' whenever you want to chat."
   );
 
-  // Feedback animation
-  const [celebrateAnim] = useState(new Animated.Value(1));
-
   const loadData = useCallback(async () => {
-    const hyd = await reminderStorage.getTodayHydration();
-    const meds = await reminderStorage.getTodayMedications();
-    const fam = await caregiverStorage.getFamilySentItems();
-    const prof = await caregiverStorage.getPatientProfile();
-
-    setHydration(hyd);
-    setMedications(meds);
-    setFamilyItems(fam);
-    setProfile(prof);
+    try {
+      const prof = await caregiverStorage.getPatientProfile();
+      const rts = await reminderStorage.getTodayRoutines();
+      const fam = await caregiverStorage.getFamilySentItems();
+      setProfile(prof);
+      setRoutines(rts);
+      setFamilyItems(fam);
+    } catch (err) {
+      console.error("[PatientHome] Error loading data:", err);
+    }
   }, []);
 
   useFocusEffect(
@@ -95,22 +83,20 @@ export default function PatientHomeScreen() {
     }, [loadData])
   );
 
-  const handleLogout = () => {
-    Alert.alert(
-      currentLang === "as" ? "লগআউট কৰিব নেকি?" : currentLang === "hi" ? "लॉग आउट करें?" : "Log Out",
-      currentLang === "as" ? "আপুনি নিজৰ একাউণ্টৰ পৰা ওলাই যাব বিচাৰে নেকি?" : "Are you sure you want to log out of AmbiEye?",
-      [
-        { text: currentLang === "as" ? "বাতিল" : "Cancel", style: "cancel" },
-        {
-          text: currentLang === "as" ? "লগআউট" : "Log Out",
-          style: "destructive",
-          onPress: async () => {
-            await logout();
-            router.replace("/auth/login");
-          },
-        },
-      ]
-    );
+  // Formatted Date
+  const getFormattedDate = () => {
+    const today = new Date();
+    const options: Intl.DateTimeFormatOptions = {
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+    };
+    try {
+      const locale = currentLang === "as" ? "as-IN" : currentLang === "hi" ? "hi-IN" : "en-US";
+      return today.toLocaleDateString(locale, options);
+    } catch {
+      return today.toLocaleDateString("en-US", options);
+    }
   };
 
   const getGreeting = () => {
@@ -125,38 +111,17 @@ export default function PatientHomeScreen() {
       if (hour < 17) return "शुभ दोपहर";
       return "शुभ संध्या";
     }
-    if (hour < 12) return t("greeting_morning");
-    if (hour < 17) return t("greeting_afternoon");
-    return t("greeting_evening");
+    if (hour < 12) return "Good morning";
+    if (hour < 17) return "Good afternoon";
+    return "Good evening";
   };
 
   const handleVoiceGreeting = () => {
-    const greetingText = `${getGreeting()} ${profile?.name || "Bhaben"}. I am your Smriti Mitr companion. Everything is safe and peaceful at home in Kamrup.`;
+    const greetingText = `${getGreeting()}, ${profile?.name || "Bhaben"}. Today is ${getFormattedDate()}. I am your companion Smriti Mitr. Everything is calm and safe at home.`;
     VoiceAssistant.speak(greetingText, currentLang);
   };
 
-  // Avatar Companion Voice Interaction
-  const handleAskCompanion = async (topic: ReminiscenceTopic) => {
-    setAvatarState("thinking");
-    let response = topic.avatarStarter;
-    if (currentLang === "as" && topic.avatarStarterAs) {
-      response = topic.avatarStarterAs;
-    } else if (currentLang === "hi" && topic.avatarStarterHi) {
-      response = topic.avatarStarterHi;
-    }
-
-    setTimeout(() => {
-      setAvatarSpeechText(response);
-      setAvatarState("speaking");
-      companionService.speakResponse(response, currentLang as any);
-
-      const durationMs = Math.max(3000, response.length * 68);
-      setTimeout(() => {
-        setAvatarState("idle");
-      }, durationMs);
-    }, 700);
-  };
-
+  // Avatar Voice Interaction: "Talk to Me"
   const handleAvatarMicTap = async () => {
     if (avatarState === "speaking") {
       companionService.stopSpeech();
@@ -165,524 +130,520 @@ export default function PatientHomeScreen() {
     }
 
     setAvatarState("listening");
+    const listenPrompt =
+      currentLang === "as"
+        ? "মই শুনি আছোঁ, কওকচোন..."
+        : currentLang === "hi"
+        ? "मैं सुन रहा हूँ, कहिए..."
+        : "I am listening, please speak...";
+    setAvatarSpeechText(listenPrompt);
+
     setTimeout(async () => {
-      const result = await companionService.processElderInput("How did I do in Antakshari today?", currentLang as any);
-      setAvatarSpeechText(result.responseText);
-      setAvatarState("speaking");
-      companionService.speakResponse(result.responseText, currentLang as any);
+      try {
+        const result = await companionService.processElderInput(
+          "Hello Smriti Mitr, how is my day looking?",
+          currentLang as any
+        );
+        setAvatarSpeechText(result.responseText);
+        setAvatarState("speaking");
+        companionService.speakResponse(result.responseText, currentLang as any);
 
-      const durationMs = Math.max(3000, result.responseText.length * 68);
-      setTimeout(() => {
+        const durationMs = Math.max(3000, result.responseText.length * 70);
+        setTimeout(() => {
+          setAvatarState("idle");
+        }, durationMs);
+      } catch {
         setAvatarState("idle");
-      }, durationMs);
-    }, 2200);
+      }
+    }, 1800);
   };
 
-  // Doinik Niyam (Hydration & Meds)
-  const triggerCelebrationAnim = () => {
-    Animated.sequence([
-      Animated.timing(celebrateAnim, {
-        toValue: 1.05,
-        duration: 150,
-        easing: Easing.out(Easing.quad),
-        useNativeDriver: true,
-      }),
-      Animated.timing(celebrateAnim, {
-        toValue: 1,
-        duration: 180,
-        easing: Easing.in(Easing.quad),
-        useNativeDriver: true,
-      }),
-    ]).start();
+  // Toggle routine completion
+  const handleToggleRoutine = async (id: string) => {
+    const updated = await reminderStorage.toggleRoutine(id);
+    setRoutines(updated);
+    const item = updated.find((r) => r.id === id);
+    if (item && item.completed) {
+      const msg =
+        currentLang === "as"
+          ? `${item.title} সম্পন্ন হ'ল!`
+          : currentLang === "hi"
+          ? `${item.title} पूरा हुआ!`
+          : `${item.title} completed!`;
+      VoiceAssistant.speak(msg, currentLang);
+    }
   };
 
-  const handleAddWater = async () => {
-    const updated = await reminderStorage.addWaterGlass();
-    setHydration(updated);
-    triggerCelebrationAnim();
-
-    const voiceMsg =
-      currentLang === "as"
-        ? `বহুত ভাল! আপুনি ${updated.glassesDrunk} গিলাচ পানী খালে।`
-        : currentLang === "hi"
-        ? `बहुत बढ़िया! आपने ${updated.glassesDrunk} गिलास पानी पिया।`
-        : `Wonderful job! You drank ${updated.glassesDrunk} of ${updated.dailyGoal} glasses.`;
-
-    VoiceAssistant.speak(voiceMsg, currentLang);
-  };
-
-  const handleMarkMedTaken = async (id: string) => {
-    const updated = await reminderStorage.toggleMedication(id);
-    setMedications(updated);
-    triggerCelebrationAnim();
-
-    const voiceMsg =
-      currentLang === "as"
-        ? "ঔষধ খোৱা সম্পন্ন হ'ল।"
-        : currentLang === "hi"
-        ? "दवाई ले ली गई है।"
-        : "Prescribed medication marked as taken.";
-
-    VoiceAssistant.speak(voiceMsg, currentLang);
-  };
-
+  // SOS Emergency Trigger
   const handleSOS = async () => {
     await reminderStorage.triggerSOS();
     const alertMsg =
       currentLang === "as"
-        ? "জৰুৰী সহায় বাৰ্তা কন্যা অনিতা আৰু পৰিয়াললৈ প্ৰেৰণ কৰা হৈছে।"
+        ? "জৰুৰীকালীন সহায় সংকেত পৰিয়াল আৰু ডাক্টৰলৈ প্ৰেৰণ কৰা হৈছে।"
         : currentLang === "hi"
-        ? "आपातकालीन सहायता संदेश अनिता और परिवार को भेज दिया गया है।"
-        : t("sos_alert_sent");
+        ? "आपातकालीन सहायता संदेश परिवार और डॉक्टर को भेज दिया गया है।"
+        : "Emergency alert sent to family & assigned doctor.";
 
     setSosBanner(alertMsg);
     VoiceAssistant.speak(alertMsg, currentLang);
     if (Platform.OS !== "web") {
-      Alert.alert(t("sos_button"), alertMsg);
+      Alert.alert(t("sos_button") || "Emergency Alert", alertMsg);
     }
   };
 
-  const currentLangObj = SUPPORTED_LANGUAGES.find((l) => l.code === currentLang) || SUPPORTED_LANGUAGES[0];
-  const nextPendingMed = medications.find((m) => !m.taken);
+  const getRoutineIcon = (iconName: string) => {
+    switch (iconName) {
+      case "pill":
+        return <MaterialCommunityIcons name="pill" size={24} color="#2563EB" />;
+      case "shower":
+        return <MaterialCommunityIcons name="shower" size={24} color="#0284C7" />;
+      case "sparkles":
+        return <MaterialCommunityIcons name="face-woman-shimmer" size={24} color="#D97706" />;
+      case "music":
+        return <Feather name="music" size={22} color="#7C3AED" />;
+      case "coffee":
+        return <Feather name="coffee" size={22} color="#B45309" />;
+      case "sun":
+        return <Feather name="sun" size={22} color="#EA580C" />;
+      default:
+        return <Feather name="check-circle" size={22} color="#16A34A" />;
+    }
+  };
+
+  const currentLangObj =
+    SUPPORTED_LANGUAGES.find((l) => l.code === currentLang) || SUPPORTED_LANGUAGES[0];
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* ── 1. TIGHT NATIVE TOP APP BAR ─────────────────────────────────── */}
-        <View style={styles.topAppBar}>
-          <View style={styles.userTitleGroup}>
-            <View style={styles.userAvatarCircle}>
-              <Text style={{ fontSize: 20 }}>🧓</Text>
-              <View style={styles.greenOnlineDot} />
-            </View>
-            <View>
-              <Text style={styles.greetingMiniText}>{getGreeting()},</Text>
-              <Text style={styles.userNameMiniText} numberOfLines={1}>
-                {profile?.name || "Bhaben Barman"}
-              </Text>
-            </View>
+    <SafeAreaView style={styles.safeArea} edges={["top"]}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+        bounces={true}
+      >
+        {/* ── 1. TOP GREETING & DATE ─────────────────────────────────────── */}
+        <View style={styles.topGreetingSection}>
+          <View style={styles.greetingTextContainer}>
+            <Text style={styles.greetingHeader}>
+              {getGreeting()}, {profile?.name ? profile.name.split(" ")[0] : "Bhaben"} 👋
+            </Text>
+            <Text style={styles.dateSubheader}>{getFormattedDate()}</Text>
           </View>
 
-          <View style={styles.appBarActions}>
-            {/* Language Pill */}
+          <View style={styles.topActionsRow}>
+            {/* Language Picker Pill */}
             <TouchableOpacity
               style={styles.langPill}
               onPress={() => setLanguageModalVisible(true)}
               activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel="Change Language"
             >
               <Text style={styles.langEmoji}>{currentLangObj.flagEmoji}</Text>
               <Text style={styles.langPillText}>{currentLangObj.nativeName}</Text>
-              <Feather name="chevron-down" size={12} color="#6366F1" />
+              <Feather name="chevron-down" size={14} color="#4F46E5" />
             </TouchableOpacity>
 
-            {/* Voice Assistant Button */}
+            {/* Read Aloud Voice Button */}
             <TouchableOpacity
-              style={styles.actionIconBtn}
+              style={styles.voiceIconBtn}
               onPress={handleVoiceGreeting}
               activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel="Listen to Greeting"
             >
-              <Feather name="volume-2" size={17} color="#6366F1" />
-            </TouchableOpacity>
-
-            {/* Logout Exit Button */}
-            <TouchableOpacity
-              style={[styles.actionIconBtn, { backgroundColor: "#FFF1F2", borderColor: "#FECDD3" }]}
-              onPress={handleLogout}
-              activeOpacity={0.8}
-            >
-              <Feather name="log-out" size={16} color="#E11D48" />
+              <Feather name="volume-2" size={20} color="#4F46E5" />
             </TouchableOpacity>
           </View>
         </View>
 
-        {/* ── 2. SLEEK COMPACT HERO: AI AVATAR & REALITY ORIENTATION ──────── */}
-        <View style={styles.heroCompanionBox}>
-          <View style={styles.avatarSpeechRow}>
-            {/* Left: Interactive Avatar */}
+        {/* ── 2. VIRTUAL COMPANION HERO ─────────────────────────────────── */}
+        <View style={styles.companionCard}>
+          <View style={styles.companionMainRow}>
+            {/* Interactive Avatar with touch target */}
             <TouchableOpacity
               onPress={handleAvatarMicTap}
               activeOpacity={0.85}
-              style={styles.avatarTapWrapper}
+              style={styles.avatarTouchTarget}
+              accessibilityRole="button"
+              accessibilityLabel="Companion Avatar"
             >
               <VirtualAvatar
-                size={68}
+                size={74}
                 state={avatarState}
                 onPress={handleAvatarMicTap}
                 showStatusBadge={false}
               />
-              <View style={styles.tapMicBadge}>
+              <View
+                style={[
+                  styles.avatarStateBadge,
+                  avatarState === "speaking" ? styles.badgeSpeaking : styles.badgeListening,
+                ]}
+              >
                 <Feather
-                  name={avatarState === "speaking" ? "volume-x" : "mic"}
-                  size={11}
+                  name={avatarState === "speaking" ? "volume-2" : "mic"}
+                  size={12}
                   color="#FFFFFF"
                 />
               </View>
             </TouchableOpacity>
 
-            {/* Right: Conversational Bubble */}
-            <View style={styles.speechBubbleRight}>
-              <View style={styles.bubbleTopHeader}>
-                <Text style={styles.avatarNameText}>Smriti Mitr 🌸</Text>
+            {/* Conversational Text Bubble */}
+            <View style={styles.companionSpeechBox}>
+              <View style={styles.companionNameRow}>
+                <Text style={styles.companionNameTitle}>Smriti Mitr 🌸</Text>
                 <TouchableOpacity
                   onPress={() => setCompanionModalVisible(true)}
-                  style={styles.expandMiniBtn}
+                  style={styles.expandChatBtn}
+                  activeOpacity={0.7}
+                  accessibilityLabel="Open Full Conversation"
                 >
-                  <Feather name="maximize-2" size={12} color="#6366F1" />
+                  <Feather name="maximize-2" size={14} color="#6366F1" />
                 </TouchableOpacity>
               </View>
-              <Text style={styles.avatarSpeechBody} numberOfLines={3}>
+              <Text style={styles.companionSpeechText} numberOfLines={3}>
                 {avatarSpeechText}
               </Text>
             </View>
           </View>
 
-          {/* Quick Voice Prompt Chips */}
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            contentContainerStyle={styles.promptChipsRow}
-          >
-            {REMINISCENCE_TOPICS.map((topic) => (
-              <TouchableOpacity
-                key={topic.id}
-                style={styles.miniPromptChip}
-                onPress={() => handleAskCompanion(topic)}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.miniPromptEmoji}>{topic.emoji}</Text>
-                <Text style={styles.miniPromptText} numberOfLines={1}>
-                  {topic.title}
-                </Text>
-              </TouchableOpacity>
-            ))}
-          </ScrollView>
-        </View>
-
-        {/* ── 3. FOUR-WAY MOBILE FEATURE SEGMENT TABS ───────────────────────── */}
-        <View style={styles.segmentNavContainer}>
+          {/* Large Prominent "Talk to Me" Button */}
           <TouchableOpacity
-            style={[styles.segmentTabItem, activeFeatureTab === "radio" && styles.segmentTabActive]}
-            onPress={() => setActiveFeatureTab("radio")}
-            activeOpacity={0.8}
+            style={[
+              styles.talkToMeButton,
+              avatarState === "listening" && styles.talkToMeButtonActive,
+            ]}
+            onPress={handleAvatarMicTap}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+            accessibilityLabel="Talk to Companion"
           >
-            <Text style={styles.segmentTabEmoji}>📻</Text>
-            <Text
-              style={[
-                styles.segmentTabText,
-                activeFeatureTab === "radio" && styles.segmentTabTextActive,
-              ]}
-              numberOfLines={1}
-            >
-              {currentLang === "as" ? "ৰেডিঅ’" : currentLang === "hi" ? "रेडियो" : "Radio"}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.segmentTabItem, activeFeatureTab === "photos" && styles.segmentTabActive]}
-            onPress={() => setActiveFeatureTab("photos")}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.segmentTabEmoji}>📖</Text>
-            <Text
-              style={[
-                styles.segmentTabText,
-                activeFeatureTab === "photos" && styles.segmentTabTextActive,
-              ]}
-              numberOfLines={1}
-            >
-              {currentLang === "as" ? "স্মৃতি ফটো" : currentLang === "hi" ? "तस्वीरें" : "Photos"}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.segmentTabItem, activeFeatureTab === "family" && styles.segmentTabActive]}
-            onPress={() => setActiveFeatureTab("family")}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.segmentTabEmoji}>📞</Text>
-            <Text
-              style={[
-                styles.segmentTabText,
-                activeFeatureTab === "family" && styles.segmentTabTextActive,
-              ]}
-              numberOfLines={1}
-            >
-              {currentLang === "as" ? "পৰিয়াল" : currentLang === "hi" ? "परिवार" : "Family"}
-            </Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity
-            style={[styles.segmentTabItem, activeFeatureTab === "mood" && styles.segmentTabActive]}
-            onPress={() => setActiveFeatureTab("mood")}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.segmentTabEmoji}>🌸</Text>
-            <Text
-              style={[
-                styles.segmentTabText,
-                activeFeatureTab === "mood" && styles.segmentTabTextActive,
-              ]}
-              numberOfLines={1}
-            >
-              {currentLang === "as" ? "শান্তি" : currentLang === "hi" ? "शांति" : "Peace"}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* ── ACTIVE FEATURE CARD CONTENT ─────────────────────────────────── */}
-        <View style={styles.activeFeatureWrapper}>
-          {activeFeatureTab === "radio" && <SmritiGeetiRadio />}
-
-          {activeFeatureTab === "photos" && (
-            <SmritiPhotobook
-              onAskCompanion={(topicTitle) =>
-                handleAskCompanion({
-                  id: "mem-custom",
-                  title: topicTitle,
-                  prompt: `Tell me about ${topicTitle}`,
-                  avatarStarter: `Ah, ${topicTitle}! Looking at our family memories brings so much joy. What part of that day do you remember most?`,
-                  avatarStarterAs: `আহা, ${topicTitle}! পৰিয়ালৰ এনে মধুৰ স্মৃতি সুঁৱৰিলে মনটো আনন্দেৰে ভৰি পৰে। আপোনাৰ কি কি মনত পৰিছে কওকচোন?`,
-                  avatarStarterHi: `अहा, ${topicTitle}! अपने परिवार की इन प्यारी यादों को देखकर मन कितना खुश हो जाता है। आप उस दिन के बारे में क्या सोच रहे हैं?`,
-                  emoji: "📖",
-                  category: "places",
-                })
-              }
+            <Feather
+              name={avatarState === "speaking" ? "volume-x" : "mic"}
+              size={22}
+              color="#FFFFFF"
             />
-          )}
-
-          {activeFeatureTab === "family" && (
-            <View style={{ gap: 12 }}>
-              <AponManuhSpeedDial />
-              <GharorBartaPostcards items={familyItems} />
-            </View>
-          )}
-
-          {activeFeatureTab === "mood" && (
-            <View style={{ gap: 12 }}>
-              <ManorSthitiMood
-                onOpenCalmCorner={() => setCalmCornerVisible(true)}
-                onOpenFamilyCall={() => {
-                  const dialMsg =
-                    currentLang === "as"
-                      ? "অনিতালৈ ফোন সংযোগ কৰা হৈছে..."
-                      : currentLang === "hi"
-                      ? "अनिता को फोन मिलाया जा रहा है..."
-                      : "Connecting call to Anita...";
-                  VoiceAssistant.speak(dialMsg, currentLang);
-                }}
-              />
-              <BaganorKothaWeather />
-              {/* Calm Corner Shortcut */}
-              <TouchableOpacity
-                style={styles.calmCornerBanner}
-                onPress={() => setCalmCornerVisible(true)}
-                activeOpacity={0.85}
-              >
-                <View style={styles.calmBannerLeft}>
-                  <Text style={{ fontSize: 22 }}>🌙</Text>
-                  <View style={{ flex: 1 }}>
-                    <Text style={styles.calmBannerTitle}>Sandhya Shanti · Calm Corner</Text>
-                    <Text style={styles.calmBannerSub} numberOfLines={1}>
-                      Guided breathing & Bhupen Hazarika melodies
-                    </Text>
-                  </View>
-                </View>
-                <Feather name="chevron-right" size={18} color="#6366F1" />
-              </TouchableOpacity>
-            </View>
-          )}
+            <Text style={styles.talkToMeButtonText}>
+              {avatarState === "speaking"
+                ? currentLang === "as"
+                  ? "কথা বন্ধ কৰক"
+                  : "Stop Speaking"
+                : avatarState === "listening"
+                ? currentLang === "as"
+                  ? "শুনি আছোঁ... কওক"
+                  : "Listening... Speak Now"
+                : currentLang === "as"
+                ? "মোৰ লগত কথা পাতক (Talk to Me)"
+                : currentLang === "hi"
+                ? "मुझसे बात करें (Talk to Me)"
+                : "Talk to Me"}
+            </Text>
+          </TouchableOpacity>
         </View>
 
-        {/* ── 4. DOINIK NIYAM (SINGLE-ACTION FOCUS CARE) ──────────────────── */}
-        <Animated.View style={[styles.dailyFocusCard, { transform: [{ scale: celebrateAnim }] }]}>
-          <View style={styles.focusHeaderRow}>
-            <View style={styles.focusTitleGroup}>
-              <MaterialCommunityIcons name="water-check" size={20} color="#6366F1" />
-              <Text style={styles.focusCardTitle}>
-                {currentLang === "as" ? "দৈনিক নিয়ম · পানী আৰু ঔষধ" : "Daily Routine Care"}
+        {/* ── 3. FEATURE DISCOVERY (4 CLEAR ELDERLY TILES) ───────────────── */}
+        <View style={styles.discoverySection}>
+          <Text style={styles.sectionHeaderTitle}>
+            {currentLang === "as" ? "প্ৰধান সুবিধাসমূহ" : "Explore Features"}
+          </Text>
+
+          <View style={styles.tilesGrid}>
+            {/* Tile 1: Games */}
+            <TouchableOpacity
+              style={styles.featureTile}
+              onPress={() => router.push("/(patient)/games" as any)}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel="Mind and Memory Games"
+            >
+              <View style={[styles.tileIconContainer, { backgroundColor: "#EEF2FF" }]}>
+                <Text style={styles.tileEmoji}>🎮</Text>
+              </View>
+              <View style={styles.tileTextContainer}>
+                <Text style={styles.tileTitle}>
+                  {currentLang === "as" ? "খেলসমূহ" : "Games"}
+                </Text>
+                <Text style={styles.tileSubtitle} numberOfLines={1}>
+                  {currentLang === "as" ? "স্মৃতি আৰু অন্তাক্ষৰী" : "Mind & Antakshari"}
+                </Text>
+              </View>
+              <Feather name="chevron-right" size={18} color="#94A3B8" />
+            </TouchableOpacity>
+
+            {/* Tile 2: Family & Speed Dial */}
+            <TouchableOpacity
+              style={styles.featureTile}
+              onPress={() => router.push("/(patient)/(stack)/family" as any)}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel="Family and Speed Dial"
+            >
+              <View style={[styles.tileIconContainer, { backgroundColor: "#ECFDF5" }]}>
+                <Text style={styles.tileEmoji}>📞</Text>
+              </View>
+              <View style={styles.tileTextContainer}>
+                <Text style={styles.tileTitle}>
+                  {currentLang === "as" ? "পৰিয়াল" : "Family"}
+                </Text>
+                <Text style={styles.tileSubtitle} numberOfLines={1}>
+                  {currentLang === "as" ? "১-টেপ ফোন আৰু ভিডিঅ'" : "1-Tap Calls & Family"}
+                </Text>
+              </View>
+              <Feather name="chevron-right" size={18} color="#94A3B8" />
+            </TouchableOpacity>
+
+            {/* Tile 3: Music & Radio */}
+            <TouchableOpacity
+              style={styles.featureTile}
+              onPress={() => setMusicModalVisible(true)}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel="Radio and Melodies"
+            >
+              <View style={[styles.tileIconContainer, { backgroundColor: "#FAF5FF" }]}>
+                <Text style={styles.tileEmoji}>📻</Text>
+              </View>
+              <View style={styles.tileTextContainer}>
+                <Text style={styles.tileTitle}>
+                  {currentLang === "as" ? "সংগীত" : "Music"}
+                </Text>
+                <Text style={styles.tileSubtitle} numberOfLines={1}>
+                  {currentLang === "as" ? "চোতালৰ পুৰণি গীত" : "Courtyard Radio"}
+                </Text>
+              </View>
+              <Feather name="chevron-right" size={18} color="#94A3B8" />
+            </TouchableOpacity>
+
+            {/* Tile 4: Care & Hydration */}
+            <TouchableOpacity
+              style={styles.featureTile}
+              onPress={() => router.push("/(patient)/reminders" as any)}
+              activeOpacity={0.85}
+              accessibilityRole="button"
+              accessibilityLabel="Daily Care and Medicine"
+            >
+              <View style={[styles.tileIconContainer, { backgroundColor: "#FFF7ED" }]}>
+                <Text style={styles.tileEmoji}>💊</Text>
+              </View>
+              <View style={styles.tileTextContainer}>
+                <Text style={styles.tileTitle}>
+                  {currentLang === "as" ? "স্বাস্থ্য যতন" : "Care"}
+                </Text>
+                <Text style={styles.tileSubtitle} numberOfLines={1}>
+                  {currentLang === "as" ? "পানী আৰু ঔষধ" : "Hydration & Meds"}
+                </Text>
+              </View>
+              <Feather name="chevron-right" size={18} color="#94A3B8" />
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {/* ── 4. TODAY'S ROUTINE ─────────────────────────────────────────── */}
+        <View style={styles.routineSection}>
+          <View style={styles.sectionHeaderRow}>
+            <Text style={styles.sectionHeaderTitle}>
+              {currentLang === "as" ? "আজিৰ কাৰ্যসূচী" : "Today's Routine"}
+            </Text>
+            <TouchableOpacity
+              onPress={() => router.push("/(patient)/reminders" as any)}
+              activeOpacity={0.7}
+            >
+              <Text style={styles.seeAllText}>
+                {currentLang === "as" ? "সকলো চাওক" : "View All"}
               </Text>
-            </View>
-            <View style={styles.focusCountPill}>
-              <Text style={styles.focusCountText}>
-                {hydration.glassesDrunk}/{hydration.dailyGoal} 🥛
-              </Text>
-            </View>
+            </TouchableOpacity>
           </View>
 
-          {/* 8 Compact Water Glasses */}
-          <View style={styles.waterGlassesTrack}>
-            {Array.from({ length: hydration.dailyGoal }).map((_, idx) => {
-              const isFilled = idx < hydration.glassesDrunk;
+          <View style={styles.routineList}>
+            {routines.slice(0, 4).map((task) => {
               return (
-                <View
-                  key={idx}
+                <TouchableOpacity
+                  key={task.id}
                   style={[
-                    styles.waterCupBubble,
-                    isFilled ? styles.waterCupFilled : styles.waterCupEmpty,
+                    styles.routineCard,
+                    task.completed && styles.routineCardCompleted,
                   ]}
+                  onPress={() => handleToggleRoutine(task.id)}
+                  activeOpacity={0.85}
+                  accessibilityRole="button"
+                  accessibilityLabel={`${task.timeLabel} ${task.title}`}
                 >
-                  <MaterialCommunityIcons
-                    name={isFilled ? "cup-water" : "cup-outline"}
-                    size={16}
-                    color={isFilled ? "#6366F1" : "#CBD5E1"}
-                  />
-                </View>
+                  {/* Left: Time Badge */}
+                  <View style={styles.timeBadge}>
+                    <Text style={styles.timeBadgeText}>{task.timeLabel}</Text>
+                  </View>
+
+                  {/* Middle: Icon + Title + Description */}
+                  <View style={styles.routineMiddle}>
+                    <View style={styles.routineIconWrap}>
+                      {getRoutineIcon(task.iconName)}
+                    </View>
+                    <View style={styles.routineDetails}>
+                      <Text
+                        style={[
+                          styles.routineTitle,
+                          task.completed && styles.routineTitleCompleted,
+                        ]}
+                        numberOfLines={1}
+                      >
+                        {task.title}
+                      </Text>
+                      {task.description ? (
+                        <Text style={styles.routineDescription} numberOfLines={1}>
+                          {task.description}
+                        </Text>
+                      ) : null}
+                    </View>
+                  </View>
+
+                  {/* Right: Check Circle */}
+                  <View
+                    style={[
+                      styles.checkCircle,
+                      task.completed && styles.checkCircleCompleted,
+                    ]}
+                  >
+                    {task.completed && (
+                      <Feather name="check" size={16} color="#FFFFFF" />
+                    )}
+                  </View>
+                </TouchableOpacity>
               );
             })}
           </View>
+        </View>
 
-          {/* 1-Tap Drink Water Action */}
-          <TouchableOpacity
-            style={styles.oneTapWaterBtn}
-            onPress={handleAddWater}
-            activeOpacity={0.85}
-          >
-            <MaterialCommunityIcons name="plus-circle" size={18} color="#FFFFFF" />
-            <Text style={styles.oneTapWaterBtnText} numberOfLines={1}>
-              {currentLang === "as"
-                ? "✓ ১ গিলাচ পানী খালোঁ"
-                : currentLang === "hi"
-                ? "✓ १ गिलास पानी पिया"
-                : "✓ Drank 1 Glass of Water"}
-            </Text>
-          </TouchableOpacity>
-
-          {/* Next Medication Reminder if pending */}
-          {nextPendingMed && (
-            <View style={styles.compactMedRow}>
-              <MaterialCommunityIcons name="pill" size={18} color="#10B981" />
-              <View style={{ flex: 1 }}>
-                <Text style={styles.compactMedTitle} numberOfLines={1}>
-                  {nextPendingMed.name} ({nextPendingMed.timeLabel})
-                </Text>
-              </View>
-              <TouchableOpacity
-                style={styles.compactMedTakenBtn}
-                onPress={() => handleMarkMedTaken(nextPendingMed.id)}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.compactMedTakenText}>✓ Taken</Text>
-              </TouchableOpacity>
-            </View>
-          )}
-        </Animated.View>
-
-        {/* ── 5. CULTURAL COGNITIVE GAMES DEDICATED BANNER ─────────────────── */}
+        {/* ── 5. CLEAN EMERGENCY SOS BUTTON ──────────────────────────────── */}
         <TouchableOpacity
-          style={styles.aestheticGamesBanner}
-          onPress={() => router.push("/(patient)/games" as any)}
-          activeOpacity={0.85}
-        >
-          <View style={styles.gamesBannerIconCircle}>
-            <Text style={{ fontSize: 24 }}>🎮</Text>
-          </View>
-          <View style={{ flex: 1 }}>
-            <View style={styles.gamesBannerBadgeRow}>
-              <Text style={styles.gamesBannerBadgeText}>COGNITIVE EXERCISES</Text>
-            </View>
-            <Text style={styles.gamesBannerTitle}>
-              {t("games_title") || "Mind & Eye Games"}
-            </Text>
-            <Text style={styles.gamesBannerSub} numberOfLines={1}>
-              {currentLang === "as"
-                ? "অন্তাক্ষৰী, গামোচা মিলোৱা আৰু চকুৰ পৰীক্ষা"
-                : currentLang === "hi"
-                ? "अंताक्षरी, स्मृति खेल और नेत्र ट्रैकिंग"
-                : "Antakshari recall, motif match & OpenCV gaze games"}
-            </Text>
-          </View>
-          <View style={styles.gamesBannerArrowCircle}>
-            <Feather name="arrow-right" size={16} color="#6366F1" />
-          </View>
-        </TouchableOpacity>
-
-        {/* ── 6. BOTTOM NATIVE EMERGENCY SOS BUTTON ────────────────────────── */}
-        <TouchableOpacity
-          style={styles.mobileSosButton}
+          style={styles.sosButton}
           onPress={handleSOS}
-          activeOpacity={0.85}
+          activeOpacity={0.88}
+          accessibilityRole="button"
+          accessibilityLabel="Emergency SOS Alert"
         >
-          <Feather name="alert-triangle" size={20} color="#E11D48" />
-          <View style={{ flexShrink: 1 }}>
-            <Text style={styles.mobileSosText} numberOfLines={1}>
+          <View style={styles.sosIconCircle}>
+            <Feather name="alert-triangle" size={24} color="#DC2626" />
+          </View>
+          <View style={styles.sosTextContainer}>
+            <Text style={styles.sosTitle}>
               {currentLang === "as"
                 ? "জৰুৰীকালীন সহায় (SOS Alert)"
-                : currentLang === "hi"
-                ? "आपातकालीन सहायता (SOS Alert)"
-                : t("sos_button")}
+                : "Emergency Help (SOS)"}
             </Text>
-            <Text style={styles.mobileSosSubText} numberOfLines={1}>
+            <Text style={styles.sosSubtitle}>
               {currentLang === "as"
-                ? "অনিতা আৰু ডাক্টৰলৈ ১-টেপ সংকেত"
-                : "1-Tap Emergency Alert to Family & Doctor"}
+                ? "অনিতা আৰু ডাক্টৰলৈ ১-টেপ সংকেত প্ৰেৰণ"
+                : "1-Tap emergency alert to family & doctor"}
             </Text>
           </View>
         </TouchableOpacity>
 
-        {/* SOS Sent Banner */}
+        {/* SOS Confirmation Banner */}
         {sosBanner && (
-          <View style={styles.sosSentNotification}>
-            <Feather name="check-circle" size={16} color="#16A34A" />
-            <Text style={styles.sosSentText}>{sosBanner}</Text>
+          <View style={styles.sosNotificationBanner}>
+            <Feather name="check-circle" size={18} color="#16A34A" />
+            <Text style={styles.sosNotificationText}>{sosBanner}</Text>
           </View>
         )}
 
-        <View style={{ height: 90 }} />
+        {/* Bottom padding for tabs */}
+        <View style={{ height: 100 }} />
       </ScrollView>
 
-      {/* ── Modals ──────────────────────────────────────────────────────── */}
+      {/* ── MODALS: REUSE EXISTING COMPONENTS ON-DEMAND ─────────────────── */}
+
+      {/* 1. Family Modal */}
+      <Modal
+        visible={familyModalVisible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setFamilyModalVisible(false)}
+      >
+        <SafeAreaView style={styles.modalSafeArea}>
+          <View style={styles.modalTopBar}>
+            <Text style={styles.modalTopBarTitle}>
+              {currentLang === "as" ? "পৰিয়াল আৰু আপোন মানুহ" : "Family & Speed Dial"}
+            </Text>
+            <TouchableOpacity
+              onPress={() => setFamilyModalVisible(false)}
+              style={styles.modalCloseBtn}
+            >
+              <Feather name="x" size={22} color="#0F172A" />
+            </TouchableOpacity>
+          </View>
+          <ScrollView
+            contentContainerStyle={styles.modalInnerScroll}
+            showsVerticalScrollIndicator={false}
+          >
+            <AponManuhSpeedDial />
+            <View style={{ height: 16 }} />
+            <GharorBartaPostcards items={familyItems} />
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
+
+      {/* 2. Music Modal */}
+      <Modal
+        visible={musicModalVisible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setMusicModalVisible(false)}
+      >
+        <SafeAreaView style={styles.modalSafeArea}>
+          <View style={styles.modalTopBar}>
+            <Text style={styles.modalTopBarTitle}>
+              {currentLang === "as" ? "স্মৃতি গীতি ৰেডিঅ’" : "Courtyard Radio"}
+            </Text>
+            <TouchableOpacity
+              onPress={() => setMusicModalVisible(false)}
+              style={styles.modalCloseBtn}
+            >
+              <Feather name="x" size={22} color="#0F172A" />
+            </TouchableOpacity>
+          </View>
+          <ScrollView
+            contentContainerStyle={styles.modalInnerScroll}
+            showsVerticalScrollIndicator={false}
+          >
+            <SmritiGeetiRadio />
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
+
+      {/* 3. Photos Modal */}
+      <Modal
+        visible={photosModalVisible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setPhotosModalVisible(false)}
+      >
+        <SafeAreaView style={styles.modalSafeArea}>
+          <View style={styles.modalTopBar}>
+            <Text style={styles.modalTopBarTitle}>
+              {currentLang === "as" ? "স্মৃতি ফটো এলবাম" : "Memory Photobook"}
+            </Text>
+            <TouchableOpacity
+              onPress={() => setPhotosModalVisible(false)}
+              style={styles.modalCloseBtn}
+            >
+              <Feather name="x" size={22} color="#0F172A" />
+            </TouchableOpacity>
+          </View>
+          <ScrollView
+            contentContainerStyle={styles.modalInnerScroll}
+            showsVerticalScrollIndicator={false}
+          >
+            <SmritiPhotobook />
+          </ScrollView>
+        </SafeAreaView>
+      </Modal>
+
+      {/* 4. Calm Corner Modal */}
       <CalmCornerModal
         visible={calmCornerVisible}
         onClose={() => setCalmCornerVisible(false)}
       />
 
-      <Modal
-        visible={languageModalVisible}
-        transparent={true}
-        animationType="fade"
-        onRequestClose={() => setLanguageModalVisible(false)}
-      >
-        <TouchableOpacity
-          style={styles.modalOverlay}
-          activeOpacity={1}
-          onPress={() => setLanguageModalVisible(false)}
-        >
-          <View style={styles.langModalBox} onStartShouldSetResponder={() => true}>
-            <View style={styles.langModalHeader}>
-              <Text style={styles.langModalTitle}>{t("select_language")}</Text>
-              <TouchableOpacity onPress={() => setLanguageModalVisible(false)}>
-                <Feather name="x" size={20} color="#0F172A" />
-              </TouchableOpacity>
-            </View>
-
-            <View style={{ gap: 8 }}>
-              {SUPPORTED_LANGUAGES.map((lang) => {
-                const isSelected = currentLang === lang.code;
-                return (
-                  <TouchableOpacity
-                    key={lang.code}
-                    style={[styles.langChoiceCard, isSelected && styles.langChoiceSelected]}
-                    onPress={async () => {
-                      await changeLanguage(lang.code);
-                      setLanguageModalVisible(false);
-                      VoiceAssistant.speak(`Language set to ${lang.name}`, lang.code);
-                    }}
-                    activeOpacity={0.7}
-                  >
-                    <Text style={{ fontSize: 20 }}>{lang.flagEmoji}</Text>
-                    <View style={{ flex: 1 }}>
-                      <Text style={styles.langChoiceNative}>{lang.nativeName}</Text>
-                      <Text style={styles.langChoiceSub}>{lang.name} • {lang.region}</Text>
-                    </View>
-                    {isSelected && <Feather name="check" size={20} color="#2563EB" />}
-                  </TouchableOpacity>
-                );
-              })}
-            </View>
-          </View>
-        </TouchableOpacity>
-      </Modal>
-
+      {/* 5. Companion Full Screen Modal */}
       <Modal
         visible={companionModalVisible}
         animationType="slide"
@@ -691,504 +652,514 @@ export default function PatientHomeScreen() {
       >
         <CompanionScreen onClose={() => setCompanionModalVisible(false)} isModal />
       </Modal>
+
+      {/* 6. Language Selection Modal */}
+      <Modal
+        visible={languageModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setLanguageModalVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.dialogOverlay}
+          activeOpacity={1}
+          onPress={() => setLanguageModalVisible(false)}
+        >
+          <View style={styles.languageDialogCard} onStartShouldSetResponder={() => true}>
+            <View style={styles.dialogHeader}>
+              <Text style={styles.dialogTitle}>{t("select_language") || "Language"}</Text>
+              <TouchableOpacity onPress={() => setLanguageModalVisible(false)}>
+                <Feather name="x" size={22} color="#0F172A" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={{ gap: 10 }}>
+              {SUPPORTED_LANGUAGES.map((lang) => {
+                const isSelected = currentLang === lang.code;
+                return (
+                  <TouchableOpacity
+                    key={lang.code}
+                    style={[styles.langChoiceRow, isSelected && styles.langChoiceSelected]}
+                    onPress={async () => {
+                      await changeLanguage(lang.code);
+                      setLanguageModalVisible(false);
+                      VoiceAssistant.speak(`Language set to ${lang.name}`, lang.code);
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={{ fontSize: 24 }}>{lang.flagEmoji}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.langNativeText}>{lang.nativeName}</Text>
+                      <Text style={styles.langRegionText}>
+                        {lang.name} • {lang.region}
+                      </Text>
+                    </View>
+                    {isSelected && <Feather name="check" size={20} color="#4F46E5" />}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
-    backgroundColor: "#FAFAFC",
+    backgroundColor: "#FBF9F5",
   },
   scrollContent: {
-    paddingHorizontal: 14,
-    paddingTop: 8,
+    paddingHorizontal: 16,
+    paddingTop: 10,
     paddingBottom: 24,
+    maxWidth: 600,
+    width: "100%",
+    alignSelf: "center",
   },
 
-  // 1. App Bar
-  topAppBar: {
+  // 1. Top Greeting Area
+  topGreetingSection: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 10,
+    marginBottom: 16,
+    flexWrap: "wrap",
+    gap: 12,
   },
-  userTitleGroup: {
+  greetingTextContainer: {
+    flex: 1,
+    minWidth: 160,
+  },
+  greetingHeader: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#1E293B",
+    letterSpacing: -0.3,
+  },
+  dateSubheader: {
+    fontSize: 14,
+    color: "#64748B",
+    fontWeight: "500",
+    marginTop: 2,
+  },
+  topActionsRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
-    flex: 1,
-  },
-  userAvatarCircle: {
-    width: 38,
-    height: 38,
-    borderRadius: 19,
-    backgroundColor: "#F5F3FF",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1.5,
-    borderColor: "#E0E7FF",
-    position: "relative",
-  },
-  greenOnlineDot: {
-    position: "absolute",
-    bottom: 0,
-    right: 0,
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: "#10B981",
-    borderWidth: 1.5,
-    borderColor: "#FFFFFF",
-  },
-  greetingMiniText: {
-    fontSize: 11,
-    fontWeight: "600",
-    color: "#78716C",
-  },
-  userNameMiniText: {
-    fontSize: 15,
-    fontWeight: "800",
-    color: "#1E2024",
-  },
-  appBarActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
   },
   langPill: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
-    backgroundColor: "#F5F3FF",
-    paddingHorizontal: 8,
-    paddingVertical: 6,
-    borderRadius: 14,
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 12,
+    paddingVertical: 7,
+    borderRadius: 20,
+    gap: 6,
     borderWidth: 1,
-    borderColor: "#E0E7FF",
+    borderColor: "#E2E8F0",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
   },
   langEmoji: {
-    fontSize: 13,
+    fontSize: 15,
   },
   langPillText: {
-    fontSize: 11,
+    fontSize: 13,
     fontWeight: "700",
-    color: "#4F46E5",
+    color: "#1E293B",
   },
-  actionIconBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: "#F5F3FF",
-    alignItems: "center",
-    justifyContent: "center",
+  voiceIconBtn: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "#EEF2FF",
     borderWidth: 1,
-    borderColor: "#E0E7FF",
+    borderColor: "#C7D2FE",
+    justifyContent: "center",
+    alignItems: "center",
   },
 
-  // 2. Hero AI Companion Box
-  heroCompanionBox: {
-    backgroundColor: "#FAF7FD",
-    borderRadius: 20,
-    padding: 12,
-    marginBottom: 10,
-    borderWidth: 1.5,
-    borderColor: "#EDE8F5",
+  // 2. Virtual Companion Hero
+  companionCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 24,
+    padding: 18,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: "#EAE3D6",
+    elevation: 3,
+    shadowColor: "#78716C",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.08,
+    shadowRadius: 10,
   },
-  avatarSpeechRow: {
+  companionMainRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 10,
+    gap: 14,
+    marginBottom: 16,
   },
-  avatarTapWrapper: {
+  avatarTouchTarget: {
     position: "relative",
-    alignItems: "center",
-    justifyContent: "center",
   },
-  tapMicBadge: {
+  avatarStateBadge: {
     position: "absolute",
     bottom: -2,
     right: -2,
-    backgroundColor: "#6366F1",
-    width: 20,
-    height: 20,
-    borderRadius: 10,
-    alignItems: "center",
+    width: 22,
+    height: 22,
+    borderRadius: 11,
     justifyContent: "center",
-    borderWidth: 1.5,
+    alignItems: "center",
+    borderWidth: 2,
     borderColor: "#FFFFFF",
   },
-  speechBubbleRight: {
-    flex: 1,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 14,
-    padding: 10,
-    borderWidth: 1,
-    borderColor: "#EDE8F5",
-  },
-  bubbleTopHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 2,
-  },
-  avatarNameText: {
-    fontSize: 12,
-    fontWeight: "800",
-    color: "#4F46E5",
-  },
-  expandMiniBtn: {
-    padding: 2,
-  },
-  avatarSpeechBody: {
-    fontSize: 12.5,
-    color: "#334155",
-    lineHeight: 17,
-  },
-  promptChipsRow: {
-    flexDirection: "row",
-    gap: 6,
-    marginTop: 8,
-  },
-  miniPromptChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: "#FFFFFF",
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#EDE8F5",
-  },
-  miniPromptEmoji: {
-    fontSize: 12,
-  },
-  miniPromptText: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "#4F46E5",
-  },
-
-  // 3. Segment Navigation Container
-  segmentNavContainer: {
-    flexDirection: "row",
-    backgroundColor: "#F4F2EE",
-    borderRadius: 16,
-    padding: 3,
-    marginBottom: 10,
-    gap: 4,
-  },
-  segmentTabItem: {
-    flex: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 4,
-    paddingVertical: 8,
-    borderRadius: 13,
-  },
-  segmentTabActive: {
-    backgroundColor: "#6366F1",
-    shadowColor: "#6366F1",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-    elevation: 2,
-  },
-  segmentTabEmoji: {
-    fontSize: 14,
-  },
-  segmentTabText: {
-    fontSize: 11.5,
-    fontWeight: "700",
-    color: "#64748B",
-  },
-  segmentTabTextActive: {
-    color: "#FFFFFF",
-    fontWeight: "800",
-  },
-  activeFeatureWrapper: {
-    marginBottom: 10,
-  },
-
-  // Calm Corner Banner in Peace Tab
-  calmCornerBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    backgroundColor: "#FAF5FF",
-    borderRadius: 16,
-    padding: 12,
-    borderWidth: 1.5,
-    borderColor: "#E9D5FF",
-  },
-  calmBannerLeft: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    flex: 1,
-  },
-  calmBannerTitle: {
-    fontSize: 13.5,
-    fontWeight: "800",
-    color: "#4F46E5",
-  },
-  calmBannerSub: {
-    fontSize: 11,
-    color: "#6366F1",
-    marginTop: 1,
-  },
-
-  // 4. Daily Focus Routine Card
-  dailyFocusCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 18,
-    padding: 12,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: "#EAE7E1",
-    shadowColor: "#A8A29E",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 4,
-    elevation: 1,
-  },
-  focusHeaderRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  focusTitleGroup: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-  },
-  focusCardTitle: {
-    fontSize: 13,
-    fontWeight: "800",
-    color: "#1E2024",
-  },
-  focusCountPill: {
-    backgroundColor: "#F5F3FF",
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 10,
-  },
-  focusCountText: {
-    fontSize: 11,
-    fontWeight: "800",
-    color: "#4F46E5",
-  },
-  waterGlassesTrack: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 10,
-  },
-  waterCupBubble: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  waterCupFilled: {
-    backgroundColor: "#EEF2FF",
-  },
-  waterCupEmpty: {
-    backgroundColor: "#F8FAFC",
-  },
-  oneTapWaterBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 6,
-    backgroundColor: "#6366F1",
-    paddingVertical: 10,
-    borderRadius: 12,
-  },
-  oneTapWaterBtnText: {
-    fontSize: 13,
-    fontWeight: "800",
-    color: "#FFFFFF",
-  },
-  compactMedRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    backgroundColor: "#F0FDF4",
-    padding: 8,
-    borderRadius: 12,
-    marginTop: 8,
-    borderWidth: 1,
-    borderColor: "#BBF7D0",
-  },
-  compactMedTitle: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#15803D",
-  },
-  compactMedTakenBtn: {
+  badgeSpeaking: {
     backgroundColor: "#10B981",
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 8,
   },
-  compactMedTakenText: {
-    fontSize: 11,
+  badgeListening: {
+    backgroundColor: "#6366F1",
+  },
+  companionSpeechBox: {
+    flex: 1,
+  },
+  companionNameRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 4,
+  },
+  companionNameTitle: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#4338CA",
+  },
+  expandChatBtn: {
+    padding: 4,
+  },
+  companionSpeechText: {
+    fontSize: 14,
+    lineHeight: 20,
+    color: "#334155",
+    fontWeight: "500",
+  },
+  talkToMeButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#4F46E5",
+    paddingVertical: 14,
+    paddingHorizontal: 20,
+    borderRadius: 16,
+    gap: 10,
+    elevation: 2,
+    shadowColor: "#4F46E5",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+  },
+  talkToMeButtonActive: {
+    backgroundColor: "#10B981",
+  },
+  talkToMeButtonText: {
+    fontSize: 16,
     fontWeight: "800",
     color: "#FFFFFF",
+    letterSpacing: 0.2,
   },
 
-  // 5. Aesthetic Games Banner
-  aestheticGamesBanner: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#FAF7FD",
-    borderRadius: 18,
-    padding: 12,
-    marginBottom: 10,
-    borderWidth: 1.5,
-    borderColor: "#EDE8F5",
-    gap: 10,
-    shadowColor: "#6366F1",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 6,
-    elevation: 2,
+  // 3. Feature Discovery (4 Tiles)
+  discoverySection: {
+    marginBottom: 22,
   },
-  gamesBannerIconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "#FFFFFF",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "#E0E7FF",
-  },
-  gamesBannerBadgeRow: {
-    marginBottom: 1,
-  },
-  gamesBannerBadgeText: {
-    fontSize: 9.5,
-    fontWeight: "800",
-    color: "#6366F1",
-    letterSpacing: 0.5,
-  },
-  gamesBannerTitle: {
-    fontSize: 13.5,
-    fontWeight: "800",
-    color: "#1E2024",
-  },
-  gamesBannerSub: {
-    fontSize: 11,
-    color: "#64748B",
-    marginTop: 1,
-  },
-  gamesBannerArrowCircle: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    backgroundColor: "#FFFFFF",
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "#E0E7FF",
-  },
-
-  // 6. Mobile SOS Button
-  mobileSosButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
-    backgroundColor: "#FFF1F2",
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: "#FECDD3",
-  },
-  mobileSosText: {
-    fontSize: 13.5,
-    fontWeight: "800",
-    color: "#BE123C",
-  },
-  mobileSosSubText: {
-    fontSize: 10.5,
-    fontWeight: "600",
-    color: "#9F1239",
-    marginTop: 1,
-  },
-  sosSentNotification: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: "#F0FDF4",
-    padding: 10,
-    borderRadius: 12,
-    marginTop: 8,
-    borderWidth: 1,
-    borderColor: "#BBF7D0",
-  },
-  sosSentText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#15803D",
-    flex: 1,
-  },
-
-  // Language Modal
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(15, 23, 42, 0.4)",
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 16,
-  },
-  langModalBox: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    padding: 16,
-    width: "100%",
-    maxWidth: 360,
-    borderWidth: 1,
-    borderColor: "#EAE7E1",
-  },
-  langModalHeader: {
+  sectionHeaderRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 12,
   },
-  langModalTitle: {
-    fontSize: 16,
+  sectionHeaderTitle: {
+    fontSize: 18,
     fontWeight: "800",
-    color: "#1E2024",
+    color: "#0F172A",
+    marginBottom: 12,
+    letterSpacing: -0.2,
   },
-  langChoiceCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 10,
-    backgroundColor: "#FAFAFC",
-    padding: 10,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#EAE7E1",
-  },
-  langChoiceSelected: {
-    backgroundColor: "#F5F3FF",
-    borderColor: "#6366F1",
-  },
-  langChoiceNative: {
+  seeAllText: {
     fontSize: 14,
     fontWeight: "700",
-    color: "#1E2024",
+    color: "#4F46E5",
   },
-  langChoiceSub: {
-    fontSize: 11,
+  tilesGrid: {
+    gap: 10,
+  },
+  featureTile: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#EAE3D6",
+    elevation: 1,
+    shadowColor: "#78716C",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 6,
+    gap: 12,
+  },
+  tileIconContainer: {
+    width: 48,
+    height: 48,
+    borderRadius: 14,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  tileEmoji: {
+    fontSize: 22,
+  },
+  tileTextContainer: {
+    flex: 1,
+  },
+  tileTitle: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#0F172A",
+  },
+  tileSubtitle: {
+    fontSize: 13,
     color: "#64748B",
+    marginTop: 1,
+    fontWeight: "500",
+  },
+
+  // 4. Today's Routine
+  routineSection: {
+    marginBottom: 22,
+  },
+  routineList: {
+    gap: 10,
+  },
+  routineCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: "#EAE3D6",
+    elevation: 1,
+    shadowColor: "#78716C",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.04,
+    shadowRadius: 5,
+    gap: 12,
+  },
+  routineCardCompleted: {
+    backgroundColor: "#F8FAFC",
+    borderColor: "#CBD5E1",
+    opacity: 0.8,
+  },
+  timeBadge: {
+    backgroundColor: "#F1F5F9",
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+    borderRadius: 10,
+    minWidth: 70,
+    alignItems: "center",
+  },
+  timeBadgeText: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#334155",
+  },
+  routineMiddle: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+    gap: 10,
+  },
+  routineIconWrap: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    backgroundColor: "#F8FAFC",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  routineDetails: {
+    flex: 1,
+  },
+  routineTitle: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#0F172A",
+  },
+  routineTitleCompleted: {
+    textDecorationLine: "line-through",
+    color: "#94A3B8",
+  },
+  routineDescription: {
+    fontSize: 12,
+    color: "#64748B",
+    marginTop: 2,
+  },
+  checkCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 2,
+    borderColor: "#CBD5E1",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  checkCircleCompleted: {
+    backgroundColor: "#10B981",
+    borderColor: "#10B981",
+  },
+
+  // 5. Emergency SOS Button
+  sosButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FEF2F2",
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1.5,
+    borderColor: "#FECDD3",
+    gap: 14,
+    elevation: 2,
+    shadowColor: "#DC2626",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+  },
+  sosIconCircle: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: "#FEE2E2",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  sosTextContainer: {
+    flex: 1,
+  },
+  sosTitle: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#991B1B",
+  },
+  sosSubtitle: {
+    fontSize: 12,
+    color: "#B91C1C",
+    marginTop: 2,
+  },
+  sosNotificationBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F0FDF4",
+    borderWidth: 1,
+    borderColor: "#BBF7D0",
+    borderRadius: 14,
+    padding: 12,
+    marginTop: 10,
+    gap: 8,
+  },
+  sosNotificationText: {
+    fontSize: 13,
+    fontWeight: "600",
+    color: "#166534",
+    flex: 1,
+  },
+
+  // Modals Styling
+  modalSafeArea: {
+    flex: 1,
+    backgroundColor: "#FBF9F5",
+  },
+  modalTopBar: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 18,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E2E8F0",
+    backgroundColor: "#FFFFFF",
+  },
+  modalTopBarTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#0F172A",
+  },
+  modalCloseBtn: {
+    padding: 6,
+  },
+  modalInnerScroll: {
+    padding: 16,
+    paddingBottom: 40,
+  },
+
+  // Language Dialog
+  dialogOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  languageDialogCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 24,
+    padding: 20,
+    width: "100%",
+    maxWidth: 400,
+    elevation: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+  },
+  dialogHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
+  dialogTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#0F172A",
+  },
+  langChoiceRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    padding: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    backgroundColor: "#F8FAFC",
+    gap: 12,
+  },
+  langChoiceSelected: {
+    backgroundColor: "#EEF2FF",
+    borderColor: "#4F46E5",
+  },
+  langNativeText: {
+    fontSize: 15,
+    fontWeight: "700",
+    color: "#0F172A",
+  },
+  langRegionText: {
+    fontSize: 12,
+    color: "#64748B",
+    marginTop: 1,
   },
 });

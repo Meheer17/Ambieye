@@ -14,13 +14,15 @@ Endpoints:
   POST /debug-video             — per-frame debug info
 """
 
+import json
+import time
 import uuid
 import logging
 import tempfile
 import asyncio
 from pathlib import Path
 from concurrent.futures import ThreadPoolExecutor
-from typing import List
+from typing import List, Optional, Dict, Any
 
 import cv2
 import numpy as np
@@ -72,6 +74,193 @@ class RealtimeConnectionManager:
                 self.disconnect(connection)
 
 realtime_manager = RealtimeConnectionManager()
+
+
+# ── WebRTC Call Signaling Manager (Phase 3 Audio & Video Calling) ─────────────
+class CallSignalingManager:
+    def __init__(self):
+        # Maps user_id -> WebSocket connection
+        self.user_connections: Dict[str, WebSocket] = {}
+        # Maps call_id -> active session dict
+        self.active_sessions: Dict[str, Dict[str, Any]] = {}
+
+    async def register_user(self, user_id: str, websocket: WebSocket):
+        self.user_connections[user_id] = websocket
+        logger.info("[CallWS] User registered: %s (Total active: %d)", user_id, len(self.user_connections))
+
+    def unregister_user(self, user_id: str, websocket: WebSocket):
+        if user_id in self.user_connections and self.user_connections[user_id] == websocket:
+            del self.user_connections[user_id]
+            logger.info("[CallWS] User unregistered: %s (Remaining: %d)", user_id, len(self.user_connections))
+
+    async def send_to_user(self, user_id: str, message: dict) -> bool:
+        ws = self.user_connections.get(user_id)
+        if ws:
+            try:
+                await ws.send_json(message)
+                return True
+            except Exception as e:
+                logger.warning("[CallWS] Send failed to %s: %s", user_id, e)
+        return False
+
+    async def handle_signaling_message(self, sender_id: str, msg: dict, websocket: WebSocket):
+        msg_type = msg.get("type")
+        call_id = msg.get("callId")
+        target_user_id = msg.get("targetUserId")
+
+        if msg_type == "REGISTER":
+            reg_id = msg.get("userId") or sender_id
+            await self.register_user(reg_id, websocket)
+            await websocket.send_json({"type": "REGISTER_SUCCESS", "userId": reg_id})
+            return
+
+        if msg_type == "CALL_INITIATE":
+            # Caller starts call
+            callee_id = msg.get("targetUserId")
+            call_type = msg.get("callType", "video")
+            call_id = msg.get("callId") or f"call_{uuid.uuid4().hex[:12]}"
+            caller_name = msg.get("callerName", "Family Contact")
+
+            # Persist call record in SQLite
+            call_record = database.create_call_record({
+                "id": call_id,
+                "patientId": sender_id if "fam-" not in sender_id else callee_id,
+                "familyMemberId": callee_id if "fam-" in callee_id else sender_id,
+                "callType": call_type,
+                "direction": "outgoing",
+                "status": "ringing",
+                "startedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            })
+
+            self.active_sessions[call_id] = {
+                "callerId": sender_id,
+                "calleeId": callee_id,
+                "status": "ringing",
+                "callType": call_type,
+                "startedAt": time.time(),
+            }
+
+            # Forward incoming call invite with SDP offer to callee
+            sent = await self.send_to_user(callee_id, {
+                "type": "INCOMING_CALL",
+                "callId": call_id,
+                "callerId": sender_id,
+                "callerName": caller_name,
+                "callType": call_type,
+                "sdpOffer": msg.get("sdpOffer"),
+                "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            })
+
+            await websocket.send_json({
+                "type": "CALL_INITIATED",
+                "callId": call_id,
+                "calleeReachable": sent,
+                "callRecord": call_record,
+            })
+
+        elif msg_type == "CALL_RINGING":
+            # Callee acknowledges phone is ringing
+            caller_id = msg.get("callerId") or (self.active_sessions.get(call_id, {}).get("callerId"))
+            if caller_id:
+                await self.send_to_user(caller_id, {
+                    "type": "CALL_RINGING",
+                    "callId": call_id,
+                    "calleeId": sender_id,
+                })
+
+        elif msg_type == "CALL_ACCEPT":
+            # Callee accepts call with SDP answer
+            caller_id = msg.get("callerId") or (self.active_sessions.get(call_id, {}).get("callerId"))
+            if call_id in self.active_sessions:
+                self.active_sessions[call_id]["status"] = "accepted"
+                self.active_sessions[call_id]["answeredAt"] = time.time()
+
+            database.update_call_record(call_id, {
+                "status": "accepted",
+                "answeredAt": time.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            })
+
+            if caller_id:
+                await self.send_to_user(caller_id, {
+                    "type": "CALL_ACCEPTED",
+                    "callId": call_id,
+                    "calleeId": sender_id,
+                    "sdpAnswer": msg.get("sdpAnswer"),
+                })
+
+        elif msg_type == "CALL_DECLINE":
+            # Callee rejects call
+            caller_id = msg.get("callerId") or (self.active_sessions.get(call_id, {}).get("callerId"))
+            reason = msg.get("reason", "declined")
+            if call_id in self.active_sessions:
+                self.active_sessions[call_id]["status"] = "rejected"
+
+            database.update_call_record(call_id, {
+                "status": "rejected",
+                "endedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ"),
+            })
+
+            if caller_id:
+                await self.send_to_user(caller_id, {
+                    "type": "CALL_DECLINED",
+                    "callId": call_id,
+                    "reason": reason,
+                })
+
+        elif msg_type == "ICE_CANDIDATE":
+            # Forward ICE candidate to peer
+            candidate = msg.get("candidate")
+            target_id = target_user_id
+            if not target_id and call_id in self.active_sessions:
+                session = self.active_sessions[call_id]
+                target_id = session["calleeId"] if sender_id == session["callerId"] else session["callerId"]
+
+            if target_id:
+                await self.send_to_user(target_id, {
+                    "type": "ICE_CANDIDATE",
+                    "callId": call_id,
+                    "candidate": candidate,
+                    "fromUserId": sender_id,
+                })
+
+        elif msg_type == "CALL_END":
+            # Either participant terminates call
+            session = self.active_sessions.pop(call_id, None)
+            started_at_ts = session.get("startedAt", time.time()) if session else time.time()
+            duration_secs = int(time.time() - started_at_ts)
+
+            database.update_call_record(call_id, {
+                "status": "completed",
+                "endedAt": time.strftime("%Y-%m-%dT%H:%M:%SZ"),
+                "durationSeconds": max(duration_secs, int(msg.get("durationSeconds", 0))),
+            })
+
+            target_id = target_user_id
+            if session:
+                target_id = session["calleeId"] if sender_id == session["callerId"] else session["callerId"]
+
+            if target_id:
+                await self.send_to_user(target_id, {
+                    "type": "CALL_ENDED",
+                    "callId": call_id,
+                    "fromUserId": sender_id,
+                    "durationSeconds": duration_secs,
+                })
+
+        elif msg_type == "CALL_MUTE_STATE":
+            target_id = target_user_id
+            if not target_id and call_id in self.active_sessions:
+                session = self.active_sessions[call_id]
+                target_id = session["calleeId"] if sender_id == session["callerId"] else session["callerId"]
+            if target_id:
+                await self.send_to_user(target_id, {
+                    "type": "CALL_MUTE_STATE",
+                    "callId": call_id,
+                    "isAudioMuted": msg.get("isAudioMuted"),
+                    "isVideoDisabled": msg.get("isVideoDisabled"),
+                })
+
+call_signaling_manager = CallSignalingManager()
 
 # ── Thread pool for CPU-bound OpenCV work ─────────────────────────────────────
 # Allows multiple chunks to be analysed concurrently without blocking the
@@ -767,6 +956,228 @@ async def get_today_games_api():
     return JSONResponse(content={"success": True, "games": _GAME_RESULTS_DB[-5:]})
 
 
+# ── Common Game Sessions & Events Endpoints (SQLite Persisted) ───────────────
+
+@app.post("/api/games/sessions")
+async def create_game_session_api(payload: dict = Body(...)):
+    """
+    Creates a new persistent game session in SQLite.
+    Payload: { sessionId?, patientId, gameId, startedAt?, status?, score?, metadata? }
+    """
+    session = database.create_game_session(payload)
+    return JSONResponse(content={"success": True, "session": session})
+
+
+@app.get("/api/games/sessions/{session_id}")
+async def get_game_session_api(session_id: str):
+    """Retrieves a single game session by sessionId from SQLite."""
+    session = database.get_game_session(session_id)
+    if not session:
+        return JSONResponse(status_code=404, content={"success": False, "error": "Game session not found"})
+    return JSONResponse(content={"success": True, "session": session})
+
+
+@app.put("/api/games/sessions/{session_id}")
+async def update_game_session_api(session_id: str, payload: dict = Body(...)):
+    """
+    Updates an existing game session in SQLite (e.g., status, score, completedAt, metadata).
+    """
+    updated = database.update_game_session(session_id, payload)
+    if not updated:
+        return JSONResponse(status_code=404, content={"success": False, "error": "Game session not found"})
+    return JSONResponse(content={"success": True, "session": updated})
+
+
+@app.get("/api/games/sessions")
+async def get_game_sessions_api(patient_id: str = "mahi", game_id: Optional[str] = None, limit: int = 50):
+    """Retrieves game sessions for a patient from SQLite."""
+    sessions = database.get_patient_game_sessions(patient_id=patient_id, game_id=game_id, limit=limit)
+    return JSONResponse(content={"success": True, "sessions": sessions})
+
+
+@app.post("/api/games/events")
+async def create_game_event_api(payload: dict = Body(...)):
+    """
+    Records a discrete gameplay event in SQLite.
+    Payload: { eventId?, sessionId, patientId, gameId, eventType, timestamp?, metadata? }
+    """
+    event = database.create_game_event(payload)
+    return JSONResponse(content={"success": True, "event": event})
+
+
+@app.get("/api/games/events")
+async def get_game_events_api(session_id: Optional[str] = None, patient_id: Optional[str] = None, limit: int = 100):
+    """Retrieves gameplay events from SQLite by sessionId or patientId."""
+    events = database.get_game_events(session_id=session_id, patient_id=patient_id, limit=limit)
+    return JSONResponse(content={"success": True, "events": events})
+
+
+@app.get("/api/games/stats")
+async def get_game_stats_api(patient_id: str = "mahi", game_id: Optional[str] = None):
+    """
+    Retrieves aggregated game statistics from SQLite for personalization,
+    companion context, and caregiver dashboard.
+    """
+    stats = database.get_patient_game_stats(patient_id=patient_id, game_id=game_id)
+    return JSONResponse(content={"success": True, "stats": stats})
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PATIENT FAMILY HUB ENDPOINTS (REAL-TIME SQLITE BACKED)
+# ══════════════════════════════════════════════════════════════════════════════
+
+def _resolve_authenticated_patient(request: Request, default: str = "mahi") -> str:
+    """Helper to extract patient identity from authorization header or return default."""
+    auth_header = request.headers.get("authorization", "").lower()
+    if "mahi" in auth_header or "patient" in auth_header:
+        return "mahi"
+    if "caregiver" in auth_header or "anita" in auth_header:
+        return "mahi"  # Primary senior for caregiver
+    return default
+
+
+@app.get("/api/family")
+@app.get("/family")
+async def get_family_members_api(request: Request, patient_id: Optional[str] = None):
+    """
+    Retrieves real persistent family members for the patient from SQLite.
+    Scoped to the authenticated patient's identity.
+    """
+    resolved_patient = patient_id or _resolve_authenticated_patient(request)
+    members = database.get_patient_family_members(patient_id=resolved_patient)
+    return JSONResponse(content={"success": True, "patientId": resolved_patient, "family": members})
+
+
+@app.get("/api/patients/{patient_id}/family")
+@app.get("/patients/{patient_id}/family")
+async def get_specific_patient_family_api(patient_id: str):
+    """Retrieves family members for a specific patient."""
+    members = database.get_patient_family_members(patient_id=patient_id)
+    return JSONResponse(content={"success": True, "patientId": patient_id, "family": members})
+
+
+@app.get("/api/family/{member_id}")
+@app.get("/family/{member_id}")
+async def get_family_member_detail_api(member_id: str, request: Request):
+    """Retrieves single family member details."""
+    member = database.get_family_member(member_id)
+    if not member:
+        raise HTTPException(status_code=404, detail="Family member not found")
+    return JSONResponse(content={"success": True, "member": member})
+
+
+@app.post("/api/family")
+@app.post("/family")
+async def create_family_member_api(request: Request, payload: dict = Body(...)):
+    """Creates a new family member record in SQLite."""
+    patient_id = payload.get("patientId") or payload.get("patient_id") or _resolve_authenticated_patient(request)
+    created = database.create_family_member(patient_id=patient_id, data=payload)
+    return JSONResponse(content={"success": True, "member": created}, status_code=201)
+
+
+@app.put("/api/family/{member_id}")
+@app.put("/family/{member_id}")
+async def update_family_member_api(member_id: str, payload: dict = Body(...)):
+    """Updates an existing family member record."""
+    updated = database.update_family_member(member_id=member_id, data=payload)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Family member not found")
+    return JSONResponse(content={"success": True, "member": updated})
+
+
+@app.post("/api/family/{member_id}/toggle-favorite")
+@app.post("/family/{member_id}/toggle-favorite")
+@app.patch("/api/family/{member_id}/favorite")
+async def toggle_family_member_favorite_api(member_id: str):
+    """Toggles favorite pin for a family member."""
+    updated = database.toggle_family_member_favorite(member_id=member_id)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Family member not found")
+    return JSONResponse(content={"success": True, "member": updated})
+
+
+@app.delete("/api/family/{member_id}")
+@app.delete("/family/{member_id}")
+async def delete_family_member_api(member_id: str):
+    """Deletes a family member from SQLite database."""
+    deleted = database.delete_family_member(member_id=member_id)
+    if not deleted:
+        raise HTTPException(status_code=404, detail="Family member not found")
+    return JSONResponse(content={"success": True, "message": "Family member removed successfully"})
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# ONE-TO-ONE AUDIO & VIDEO CALL SESSIONS & HISTORY (REAL SQLITE PERSISTED)
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.post("/api/calls")
+@app.post("/calls")
+async def create_call_session_api(request: Request, payload: dict = Body(...)):
+    """
+    Creates and persists a real one-to-one call session in SQLite.
+    Payload: { id?, patientId?, familyMemberId, callType, direction?, status?, startedAt? }
+    """
+    patient_id = payload.get("patientId") or payload.get("patient_id") or _resolve_authenticated_patient(request)
+    family_member_id = payload.get("familyMemberId") or payload.get("family_member_id")
+    if not family_member_id:
+        raise HTTPException(status_code=400, detail="familyMemberId is required to initiate a call")
+
+    # Verify family member exists in database
+    member = database.get_family_member(family_member_id)
+    if not member:
+        raise HTTPException(status_code=404, detail="Family member contact not found")
+
+    call_record = database.create_call_record({
+        "id": payload.get("id") or f"call_{uuid.uuid4().hex[:12]}",
+        "patientId": patient_id,
+        "familyMemberId": family_member_id,
+        "callType": payload.get("callType", "video"),
+        "direction": payload.get("direction", "outgoing"),
+        "status": payload.get("status", "ringing"),
+        "startedAt": payload.get("startedAt") or time.strftime("%Y-%m-%dT%H:%M:%SZ"),
+    })
+
+    return JSONResponse(content={"success": True, "call": call_record}, status_code=201)
+
+
+@app.get("/api/calls/history")
+@app.get("/calls/history")
+@app.get("/api/patients/{patient_id}/calls")
+@app.get("/patients/{patient_id}/calls")
+async def get_call_history_api(request: Request, patient_id: Optional[str] = None, limit: int = 50):
+    """
+    Retrieves real call history for a patient from SQLite.
+    """
+    resolved_patient = patient_id or _resolve_authenticated_patient(request)
+    history = database.get_patient_call_history(patient_id=resolved_patient, limit=limit)
+    return JSONResponse(content={"success": True, "patientId": resolved_patient, "history": history})
+
+
+@app.get("/api/calls/{call_id}")
+@app.get("/calls/{call_id}")
+async def get_call_session_detail_api(call_id: str):
+    """Retrieves metadata of a specific call session."""
+    call_record = database.get_call_record(call_id)
+    if not call_record:
+        raise HTTPException(status_code=404, detail="Call record not found")
+    return JSONResponse(content={"success": True, "call": call_record})
+
+
+@app.put("/api/calls/{call_id}")
+@app.put("/calls/{call_id}")
+async def update_call_session_status_api(call_id: str, payload: dict = Body(...)):
+    """
+    Updates call session status (e.g. accepted, completed, rejected, missed),
+    answered/ended timestamps, and duration in seconds.
+    """
+    updated = database.update_call_record(call_id, payload)
+    if not updated:
+        raise HTTPException(status_code=404, detail="Call record not found")
+    return JSONResponse(content={"success": True, "call": updated})
+
+
+
+
 # ══════════════════════════════════════════════════════════════════════════════
 # REAL IOT HARDWARE & WEARABLE TELEMETRY ENDPOINTS (SQLITE BACKED)
 # ══════════════════════════════════════════════════════════════════════════════
@@ -964,6 +1375,51 @@ async def websocket_realtime_stream(websocket: WebSocket):
     except Exception as e:
         logger.error("[WS] Unexpected error: %s", e)
         realtime_manager.disconnect(websocket)
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# WEBRTC CALL SIGNALING WEBSOCKET ENDPOINT (/ws/calls)
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.websocket("/ws/calls")
+async def websocket_call_signaling(websocket: WebSocket, userId: Optional[str] = None):
+    """
+    Real-time WebRTC Call Signaling WebSocket endpoint.
+    Exchanges SDP Offer, SDP Answer, ICE Candidates, and Call Lifecycle events.
+    Does NOT carry raw audio/video media (WebRTC handles media peer-to-peer).
+    """
+    await websocket.accept()
+    # Read client user identifier from query param or header
+    client_id = userId or f"peer_{uuid.uuid4().hex[:8]}"
+    await call_signaling_manager.register_user(client_id, websocket)
+
+    try:
+        # Acknowledge connection
+        await websocket.send_json({
+            "type": "CONNECTION_ESTABLISHED",
+            "userId": client_id,
+            "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ"),
+        })
+
+        while True:
+            data = await websocket.receive_text()
+            try:
+                msg = json.loads(data)
+                if msg.get("type") == "PING":
+                    await websocket.send_json({"type": "PONG"})
+                else:
+                    await call_signaling_manager.handle_signaling_message(client_id, msg, websocket)
+            except json.JSONDecodeError:
+                logger.warning("[CallWS] Non-JSON payload received from %s", client_id)
+            except Exception as ex:
+                logger.error("[CallWS] Signaling error for %s: %s", client_id, ex)
+
+    except WebSocketDisconnect:
+        call_signaling_manager.unregister_user(client_id, websocket)
+    except Exception as e:
+        logger.error("[CallWS] Unexpected disconnect for %s: %s", client_id, e)
+        call_signaling_manager.unregister_user(client_id, websocket)
+
 
 
 

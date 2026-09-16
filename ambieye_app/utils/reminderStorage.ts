@@ -30,6 +30,7 @@ export interface RoutineTask {
   completed: boolean;
   status?: "done" | "skipped" | "pending";
   iconName: string;
+  description?: string;
 }
 
 export interface AppointmentItem {
@@ -56,7 +57,7 @@ const DEFAULT_MEDICATIONS: MedicationItem[] = [
     name: "Donepezil / Memory Tablet",
     dosage: "5mg with water",
     timeSlot: "morning",
-    timeLabel: "8:00 AM",
+    timeLabel: "9:00 AM",
     taken: false,
     pillColor: "#3B82F6",
   },
@@ -81,10 +82,38 @@ const DEFAULT_MEDICATIONS: MedicationItem[] = [
 ];
 
 const DEFAULT_ROUTINES: RoutineTask[] = [
-  { id: "rt-1", title: "Morning Tea in Courtyard", timeLabel: "7:00 AM", completed: true, iconName: "coffee" },
-  { id: "rt-2", title: "Gentle 15-min Garden Walk", timeLabel: "8:30 AM", completed: false, iconName: "sun" },
-  { id: "rt-3", title: "Play Daily Memory Game", timeLabel: "11:00 AM", completed: false, iconName: "award" },
-  { id: "rt-4", title: "Afternoon Rest & Calming Music", timeLabel: "3:00 PM", completed: false, iconName: "music" },
+  {
+    id: "rt-1",
+    title: "Morning Medicine",
+    timeLabel: "9:00 AM",
+    completed: false,
+    iconName: "pill",
+    description: "Take your morning medicine",
+  },
+  {
+    id: "rt-2",
+    title: "Bathing",
+    timeLabel: "10:30 AM",
+    completed: false,
+    iconName: "shower",
+    description: "Morning routine & refresh",
+  },
+  {
+    id: "rt-3",
+    title: "Grooming",
+    timeLabel: "11:00 AM",
+    completed: false,
+    iconName: "sparkles",
+    description: "Take your time",
+  },
+  {
+    id: "rt-4",
+    title: "Courtyard Rest & Music",
+    timeLabel: "3:00 PM",
+    completed: false,
+    iconName: "music",
+    description: "Gentle courtyard melodies",
+  },
 ];
 
 function getTodayString(): string {

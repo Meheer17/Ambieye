@@ -7,7 +7,7 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 const KEY_IP   = "eye_tracking_server_ip";
 const KEY_PORT = "eye_tracking_server_port";
 
-export const DEFAULT_IP = "172.26.251.66";
+export const DEFAULT_IP = "172.25.62.153";
 export const DEFAULT_PORT = "8000";
 
 export async function getServerConfig(): Promise<{ ip: string; port: string }> {

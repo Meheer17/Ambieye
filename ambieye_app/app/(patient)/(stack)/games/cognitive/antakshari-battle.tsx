@@ -23,6 +23,16 @@ import {
   speechRecognitionService,
   STTResult,
 } from "@/services/audio/speechRecognitionService";
+import { gameSessionService } from "@/services/games";
+import {
+  antakshariMatcher,
+  AntakshariMatchResult,
+  AntakshariGameLoop,
+  TOTAL_ROUNDS,
+  songRepository,
+  Song,
+} from "@/services/antakshari";
+import { GameEventType } from "@/types/gameSession";
 
 const { width } = Dimensions.get("window");
 
@@ -31,6 +41,20 @@ export type SingState = "idle" | "listening" | "processing";
 export default function AntakshariBattleScreen() {
   const router = useRouter();
   const { t, currentLang } = useTranslation();
+
+  // Antakshari Game Loop Controller (Rounds, Turns, Scoring & Completion)
+  const gameLoopRef = useRef<AntakshariGameLoop>(
+    new AntakshariGameLoop(songRepository, "M")
+  );
+  const sessionIdRef = useRef<string | null>(null);
+  const sessionStartedRef = useRef<boolean>(false);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [currentRound, setCurrentRound] = useState<number>(1);
+  const [gameScore, setGameScore] = useState<number>(0);
+  const [isGameCompleted, setIsGameCompleted] = useState<boolean>(false);
+  const [companionSong, setCompanionSong] = useState<Song | null>(null);
+  const [requiredSyllable, setRequiredSyllable] = useState<string>("M");
+  const [matchResult, setMatchResult] = useState<AntakshariMatchResult | null>(null);
 
   // Playback & UI Turn State
   const [isPlayingSong, setIsPlayingSong] = useState(false);
@@ -82,15 +106,58 @@ export default function AntakshariBattleScreen() {
     };
   }, [singState, recordPulseAnim]);
 
-  // Clean up timer on unmount
+  // Initialize Game Session & Companion on Mount
   useEffect(() => {
+    let isMounted = true;
+
+    if (!sessionStartedRef.current) {
+      sessionStartedRef.current = true;
+
+      const initSession = async () => {
+        try {
+          const session = await gameSessionService.startSession({
+            gameId: "antakshari_battle",
+            metadata: {
+              initialSyllable: "M",
+              gameTitle: "Antakshari Battle",
+              mode: "cultural_melody",
+              companionPersona: "bhupen_da",
+            },
+          });
+          if (isMounted && session) {
+            sessionIdRef.current = session.sessionId;
+            setSessionId(session.sessionId);
+            gameLoopRef.current.setSessionId(session.sessionId);
+
+            // Execute initial companion turn
+            setIsCompanionTurn(true);
+            setAvatarState("speaking");
+            const compRes = await gameLoopRef.current.executeCompanionTurn();
+            if (isMounted) {
+              if (compRes.song) setCompanionSong(compRes.song);
+              setRequiredSyllable(compRes.nextRequiredSyllable);
+              setIsCompanionTurn(false);
+              setAvatarState("idle");
+            }
+          }
+        } catch (err) {
+          console.warn("[AntakshariBattle] Failed to start game session:", err);
+        }
+      };
+
+      initSession();
+    }
+
     return () => {
+      isMounted = false;
       if (timerRef.current) {
         clearInterval(timerRef.current);
       }
       if (antakshariAudioService.isCurrentlyRecording()) {
         antakshariAudioService.stopRecording().catch(() => {});
       }
+      // If user exits before game completion, mark session as abandoned
+      gameLoopRef.current.abandonGame("screen_unmounted").catch(() => {});
     };
   }, []);
 
@@ -185,6 +252,38 @@ export default function AntakshariBattleScreen() {
 
         setSttResult(sttResponse);
         setAvatarState("idle");
+
+        // 3. Process Player Answer through GameLoop Controller
+        try {
+          const playResult = await gameLoopRef.current.processPlayerAnswer(
+            sttResponse.transcript,
+            audioResult.durationMs
+          );
+
+          setMatchResult(playResult.matchResult);
+          setGameScore(gameLoopRef.current.getState().gameScore);
+
+          if (playResult.isGameCompleted) {
+            setIsGameCompleted(true);
+            setAvatarState("speaking");
+          } else if (playResult.isCorrect) {
+            // Hand turn back to companion for next round after a brief natural pause
+            setTimeout(async () => {
+              setIsCompanionTurn(true);
+              setAvatarState("speaking");
+              const compRes = await gameLoopRef.current.executeCompanionTurn();
+              if (compRes.song) setCompanionSong(compRes.song);
+              setRequiredSyllable(compRes.nextRequiredSyllable);
+              setCurrentRound(gameLoopRef.current.getState().round);
+              setTimeout(() => {
+                setIsCompanionTurn(false);
+                setAvatarState("idle");
+              }, 1200);
+            }, 1000);
+          }
+        } catch (playErr) {
+          console.error("[AntakshariBattle] Process player answer error:", playErr);
+        }
       } else if (audioResult.error) {
         setErrorMessage(audioResult.error);
         setAvatarState("idle");
@@ -207,7 +306,13 @@ export default function AntakshariBattleScreen() {
   };
 
   const handleToggleHint = () => {
-    setShowHint((prev) => !prev);
+    const nextHint = !showHint;
+    setShowHint(nextHint);
+
+    // Record hint_used event when hint is opened
+    if (nextHint) {
+      gameLoopRef.current.useHint().catch(() => {});
+    }
   };
 
   const formatTime = (totalSeconds: number) => {
@@ -237,8 +342,13 @@ export default function AntakshariBattleScreen() {
 
           <View style={styles.headerTitleContainer}>
             <Text style={styles.headerTitle}>Antakshari Battle</Text>
-            <View style={styles.badgePill}>
-              <Text style={styles.badgeText}>CULTURAL MELODY</Text>
+            <View style={{ flexDirection: "row", gap: 6, marginTop: 4 }}>
+              <View style={styles.badgePill}>
+                <Text style={styles.badgeText}>{`ROUND ${currentRound}/${TOTAL_ROUNDS}`}</Text>
+              </View>
+              <View style={[styles.badgePill, { backgroundColor: "#ECFDF5", borderColor: "#A7F3D0" }]}>
+                <Text style={[styles.badgeText, { color: "#065F46" }]}>{`SCORE ${gameScore}`}</Text>
+              </View>
             </View>
           </View>
 
@@ -269,7 +379,11 @@ export default function AntakshariBattleScreen() {
             <View style={styles.turnTextColumn}>
               <Text style={styles.turnSubText}>CURRENT TURN</Text>
               <Text style={styles.turnMainTitle}>
-                {isCompanionTurn ? "Your Companion's Turn" : "Your Turn to Sing!"}
+                {isGameCompleted
+                  ? "Battle Finished!"
+                  : isCompanionTurn
+                  ? "Your Companion's Turn"
+                  : `Your Turn to Sing with "${requiredSyllable}"!`}
               </Text>
             </View>
 
@@ -310,14 +424,25 @@ export default function AntakshariBattleScreen() {
           </View>
         </View>
 
-        {/* ── 4. SHORT CLEAR INSTRUCTION ───────────────────────────── */}
+        {/* ── 4. SHORT CLEAR INSTRUCTION / COMPLETION BANNER ──────── */}
         <View style={styles.instructionContainer}>
-          <View style={styles.instructionCard}>
-            <Text style={styles.instructionEmoji}>🎶</Text>
-            <Text style={styles.instructionText}>
-              Listen to your companion, then sing your song.
-            </Text>
-          </View>
+          {isGameCompleted ? (
+            <View style={[styles.instructionCard, { backgroundColor: "#ECFDF5", borderColor: "#A7F3D0" }]}>
+              <Text style={styles.instructionEmoji}>🎉</Text>
+              <Text style={[styles.instructionText, { color: "#065F46", fontWeight: "700" }]}>
+                {`All ${TOTAL_ROUNDS} rounds completed! Final Score: ${gameScore}`}
+              </Text>
+            </View>
+          ) : (
+            <View style={styles.instructionCard}>
+              <Text style={styles.instructionEmoji}>🎶</Text>
+              <Text style={styles.instructionText}>
+                {isCompanionTurn
+                  ? "Companion is picking a melody..."
+                  : `Sing your song starting with letter "${requiredSyllable}".`}
+              </Text>
+            </View>
+          )}
         </View>
 
         {/* ── ERROR NOTICE BANNER ──────────────────────────────────── */}
@@ -358,10 +483,18 @@ export default function AntakshariBattleScreen() {
                   isPlayingSong && styles.actionButtonPrimaryTextActive,
                 ]}
               >
-                {isPlayingSong ? "Playing Companion's Song..." : "Play Companion's Song"}
+                {companionSong
+                  ? `Companion: "${companionSong.title}"`
+                  : isPlayingSong
+                  ? "Playing Companion's Song..."
+                  : "Play Companion's Song"}
               </Text>
               <Text style={styles.actionButtonSecondaryText}>
-                {isPlayingSong ? "Tap to pause audio" : "Listen to melody"}
+                {companionSong
+                  ? `Ends with '${requiredSyllable}' · Your starting sound`
+                  : isPlayingSong
+                  ? "Tap to pause audio"
+                  : "Listen to melody"}
               </Text>
             </View>
           </TouchableOpacity>
@@ -546,10 +679,12 @@ export default function AntakshariBattleScreen() {
                 <Text style={styles.hintTagText}>💡 MELODY HELPER</Text>
               </View>
               <Text style={styles.hintMainText}>
-                The companion ended with the sound <Text style={styles.hintLetterHighlight}>"M" (ম)</Text>.
+                The companion ended with the sound <Text style={styles.hintLetterHighlight}>"{requiredSyllable}"</Text>.
               </Text>
               <Text style={styles.hintSubText}>
-                Suggestions: "Moi Eti Jajabor" or "Musafir Hoon Yaaron"
+                {companionSong
+                  ? `Companion sang "${companionSong.title}". Sing any song starting with "${requiredSyllable}"!`
+                  : `Sing any song starting with "${requiredSyllable}"!`}
               </Text>
             </View>
           )}

@@ -23,7 +23,7 @@
     },
     "web": {
       "bundler": "metro",
-      "output": "static",
+      "output": "single",
       "favicon": "./assets/images/logo.png"
     },
     "plugins": [
@@ -47,7 +47,8 @@
         }
       ],
       "@react-native-community/datetimepicker",
-      "expo-web-browser"
+      "expo-web-browser",
+      "@config-plugins/react-native-webrtc"
     ],
     "experiments": {
       "typedRoutes": true

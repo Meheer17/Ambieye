@@ -1048,6 +1048,16 @@ export const caregiverStorage = {
     }
   },
 
+  async recordGameSession(session: CognitiveGameSession): Promise<void> {
+    try {
+      const list = await this.getGameSessions();
+      const updated = [session, ...list];
+      await AsyncStorage.setItem(STORAGE_KEYS.GAME_SESSIONS, JSON.stringify(updated));
+    } catch (e) {
+      console.warn("Failed to save game session to caregiver storage:", e);
+    }
+  },
+
   async getWeeklySummary(): Promise<WeeklySummaryData> {
     return DEFAULT_WEEKLY_SUMMARY;
   },

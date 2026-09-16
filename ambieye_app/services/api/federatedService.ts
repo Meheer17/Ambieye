@@ -32,7 +32,7 @@ import { Platform } from "react-native";
 
 const DEFAULT_SERVER_URL =
   Platform.OS === "android" || Platform.OS === "ios"
-    ? "http://172.26.251.66:8000"
+    ? "http://172.25.62.153:8000"
     : "http://127.0.0.1:8000";
 
 export const federatedService = {

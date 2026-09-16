@@ -32,7 +32,7 @@ export interface IoTHistoryItem {
   steps: number;
 }
 
-const SERVER_HOST = "172.26.251.66:8000";
+const SERVER_HOST = "172.25.62.153:8000";
 const HTTP_BASE_URL =
   Platform.OS === "android" || Platform.OS === "ios"
     ? `http://${SERVER_HOST}`
@@ -84,6 +84,9 @@ class IoTSensorService {
    * Initializes real-time bidirectional WebSocket connection
    */
   private initWebSocket() {
+    if (typeof WebSocket === "undefined") {
+      return;
+    }
     try {
       this.ws = new WebSocket(WS_BASE_URL);
 

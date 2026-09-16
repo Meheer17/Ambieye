@@ -26,7 +26,7 @@ import {
   TextSizeOption,
 } from "@/utils/accessibilityStorage";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect } from "expo-router";
 import { Colors, BorderRadius, Shadows, Spacing, WarmPalette } from "@/constants/theme";
 import { dementiaCareStorage } from "@/utils/dementiaCareStorage";
 import { CaregiverProfileScreen } from "@/components/caregiver/CaregiverProfileScreen";

@@ -1,5 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import apiClient from "@/services/api/apiService";
+import { recordRawGameEvent } from "@/services/companion/companionContextService";
 
 // Define the game result interface
 export interface GameResult {
@@ -23,6 +24,25 @@ export const saveGameResult = async (result: GameResult): Promise<void> => {
     accuracy: Math.min(100, Math.round((result.score / 100) * 100)),
     date: today,
   });
+
+  // 1. Record to unified raw game event persistence pipeline
+  try {
+    await recordRawGameEvent({
+      gameId: result.gameId,
+      eventType: "game_completed",
+      payload: {
+        gameName: getGameNameById(result.gameId),
+        score: result.score,
+        durationSeconds: result.duration,
+        accuracyPercent: Math.min(100, Math.round((result.score / 100) * 100)),
+        completed: true,
+        metadata: result.details,
+      },
+    });
+  } catch (rawError) {
+    console.warn("[saveGameResult] Failed to bridge to recordRawGameEvent:", rawError);
+  }
+
 
   try {
     // Save to backend API
