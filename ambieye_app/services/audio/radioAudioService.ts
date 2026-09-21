@@ -1,5 +1,17 @@
-import { Audio } from "expo-av";
 import { Platform } from "react-native";
+import type { Audio as AudioType } from "expo-av";
+
+// Safely obtain Audio from expo-av without crashing when ExponentAV native module is absent (e.g. Expo Go, Web, or unlinked builds)
+let Audio: typeof AudioType | null = null;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const ExpoAv = require("expo-av");
+  if (ExpoAv && ExpoAv.Audio) {
+    Audio = ExpoAv.Audio;
+  }
+} catch (e) {
+  console.warn("[RadioAudioService] ExponentAV native module not available; relying on software synth fallback.");
+}
 
 export interface RadioStationConfig {
   id: string;
@@ -70,14 +82,14 @@ export const RADIO_STATION_CONFIGS: RadioStationConfig[] = [
 ];
 
 class RadioAudioService {
-  private soundObject: Audio.Sound | null = null;
+  private soundObject: AudioType.Sound | null = null;
   private currentStationId: string | null = null;
   private isAudioPlaying: boolean = false;
   private volume: number = 0.8;
   private isInitialized: boolean = false;
 
   private async initializeAudioSession(): Promise<void> {
-    if (this.isInitialized) return;
+    if (this.isInitialized || !Audio) return;
     try {
       await Audio.setAudioModeAsync({
         allowsRecordingIOS: false,
@@ -98,6 +110,12 @@ class RadioAudioService {
   async playStation(station: RadioStationConfig, volumeLevel: "gentle" | "standard" = "standard"): Promise<boolean> {
     await this.initializeAudioSession();
     this.volume = volumeLevel === "gentle" ? 0.45 : 0.85;
+
+    if (!Audio) {
+      this.currentStationId = station.id;
+      this.isAudioPlaying = true;
+      return false; // Indicates software oscillator fallback can run seamlessly
+    }
 
     // If already playing this station, adjust volume and ensure playback
     if (this.soundObject && this.currentStationId === station.id) {

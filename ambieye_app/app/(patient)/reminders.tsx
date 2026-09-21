@@ -12,7 +12,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Feather from "@expo/vector-icons/Feather";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useFocusEffect } from "@react-navigation/native";
+import { useFocusEffect } from "expo-router/react-navigation";
 import { Colors, BorderRadius, Shadows, Spacing, WarmPalette } from "@/constants/theme";
 import { useTranslation } from "@/constants/i18n";
 import { reminderStorage, MedicationItem, DailyHydration, RoutineTask } from "@/utils/reminderStorage";

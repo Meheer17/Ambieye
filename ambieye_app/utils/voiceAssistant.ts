@@ -9,9 +9,18 @@
  * - Anti-stuttering, gentle rate (0.88x) and reassuring tone tuned for cognitive care
  */
 import { Platform } from "react-native";
-import * as Speech from "expo-speech";
+import type * as SpeechType from "expo-speech";
 import * as Haptics from "expo-haptics";
 import { SupportedLanguage } from "@/constants/i18n";
+
+// Safely obtain Speech without crashing when ExpoSpeech native module is absent
+let Speech: typeof SpeechType | null = null;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  Speech = require("expo-speech");
+} catch (e) {
+  console.warn("[VoiceAssistant] ExpoSpeech native module not available in this environment.");
+}
 
 // Web Speech API fallback reference
 let activeUtterance: any = null;
@@ -123,7 +132,7 @@ export class VoiceAssistant {
     VoiceAssistant.triggerHaptic();
 
     // ── 1. NATIVE MOBILE APP (Android & iOS) via expo-speech ────────────────
-    if (Platform.OS !== "web") {
+    if (Platform.OS !== "web" && Speech) {
       try {
         Speech.stop();
         VoiceAssistant.isSpeaking = true;
@@ -230,7 +239,9 @@ export class VoiceAssistant {
   public static stop(): void {
     if (Platform.OS !== "web") {
       try {
-        Speech.stop();
+        if (Speech?.stop) {
+          Speech.stop();
+        }
       } catch (e) {
         // ignore
       }

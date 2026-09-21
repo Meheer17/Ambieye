@@ -1,5 +1,17 @@
-import { Audio } from "expo-av";
 import { Platform } from "react-native";
+import type { Audio as AudioType } from "expo-av";
+
+// Safely obtain Audio from expo-av without crashing when ExponentAV native module is absent (e.g. Expo Go, Web, or unlinked builds)
+let Audio: typeof AudioType | null = null;
+try {
+  // eslint-disable-next-line @typescript-eslint/no-var-requires
+  const ExpoAv = require("expo-av");
+  if (ExpoAv && ExpoAv.Audio) {
+    Audio = ExpoAv.Audio;
+  }
+} catch (e) {
+  console.warn("[AntakshariAudioService] ExponentAV native module not available in this environment.");
+}
 
 export interface AudioRecordingResult {
   success: boolean;
@@ -9,7 +21,7 @@ export interface AudioRecordingResult {
 }
 
 class AntakshariAudioService {
-  private recording: Audio.Recording | null = null;
+  private recording: AudioType.Recording | null = null;
   private lastRecordedUri: string | null = null;
   private isRecording: boolean = false;
 
@@ -17,6 +29,9 @@ class AntakshariAudioService {
    * Request microphone permission from the system
    */
   async requestPermission(): Promise<boolean> {
+    if (!Audio) {
+      return false;
+    }
     try {
       const response = await Audio.requestPermissionsAsync();
       return response.granted || response.status === "granted";
@@ -30,6 +45,9 @@ class AntakshariAudioService {
    * Check if microphone permission is already granted
    */
   async checkPermission(): Promise<boolean> {
+    if (!Audio) {
+      return false;
+    }
     try {
       const response = await Audio.getPermissionsAsync();
       return response.granted || response.status === "granted";
@@ -43,6 +61,12 @@ class AntakshariAudioService {
    * Start recording the patient's singing voice
    */
   async startRecording(): Promise<{ success: boolean; error?: string }> {
+    if (!Audio) {
+      return {
+        success: false,
+        error: "Audio recording is not supported in this client environment (requires a Development Build).",
+      };
+    }
     try {
       // 1. Check or request permission
       const hasPermission = await this.requestPermission();
@@ -115,10 +139,12 @@ class AntakshariAudioService {
 
       // Reset audio mode
       try {
-        await Audio.setAudioModeAsync({
-          allowsRecordingIOS: false,
-          playsInSilentModeIOS: true,
-        });
+        if (Audio) {
+          await Audio.setAudioModeAsync({
+            allowsRecordingIOS: false,
+            playsInSilentModeIOS: true,
+          });
+        }
       } catch (_) {}
 
       return {
