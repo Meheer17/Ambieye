@@ -18,4 +18,10 @@ apps/mobile_client/.expo
 **/.turbo
 
 eye_tracking_server/.venv*
+eye_tracking_server/venv*
+**/.venv*
+**/venv*
+**/*.db-shm
+**/*.db-wal
+**/.DS_Store
 **/__pycache__

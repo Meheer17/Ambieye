@@ -19,6 +19,7 @@ import Feather from "@expo/vector-icons/Feather";
 import { useAuth } from "@/hooks/useAuth";
 import { patientService } from "@/services/api/patientService";
 import { Colors, Shadows } from "@/constants/theme";
+import { useTranslation, SupportedLanguage } from "@/constants/i18n";
 
 function showAlert(title: string, message?: string) {
   if (Platform.OS === "web") {
@@ -40,11 +41,13 @@ interface ProfileData {
 export default function SettingsScreen() {
   const router = useRouter();
   const { logout, username } = useAuth();
+  const { t, currentLang, changeLanguage, supportedLanguages } = useTranslation();
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [showAboutModal, setShowAboutModal] = useState(false);
   const [showHelpModal, setShowHelpModal] = useState(false);
+  const [showLangModal, setShowLangModal] = useState(false);
 
   useEffect(() => {
     const fetchProfileData = async () => {
@@ -66,10 +69,10 @@ export default function SettingsScreen() {
   }, []);
 
   const handleLogout = () => {
-    Alert.alert("Logout", "Are you sure you want to logout?", [
-      { text: "Cancel", style: "cancel" },
+    Alert.alert(t("logout_confirm_title"), t("logout_confirm_msg"), [
+      { text: t("cancel"), style: "cancel" },
       {
-        text: "Logout",
+        text: t("logout_btn"),
         style: "destructive",
         onPress: async () => {
           try {
@@ -86,7 +89,7 @@ export default function SettingsScreen() {
 
   const handleDelete = () => {
     Alert.alert("Delete Account", "This action cannot be undone. Are you sure?", [
-      { text: "Cancel", style: "cancel" },
+      { text: t("cancel"), style: "cancel" },
       {
         text: "Delete",
         style: "destructive",
@@ -107,7 +110,7 @@ export default function SettingsScreen() {
   const shareDocCode = () => {
     const docCode = profileData?.uuid || "";
     Share.share({
-      message: `Connect with me on AmbiEye using my doctor code: ${docCode}`,
+      message: `Connect with me on SmritiNER using my doctor code: ${docCode}`,
       title: "Share Doctor Code",
     }).catch(console.error);
   };
@@ -122,6 +125,7 @@ export default function SettingsScreen() {
 
   const docCode = profileData?.uuid || "";
   const initials = (profileData?.fullName?.charAt(0) || username?.toString().charAt(0) || "D").toUpperCase();
+  const currentLangObj = supportedLanguages.find((l) => l.code === currentLang) || supportedLanguages[0];
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
@@ -141,28 +145,43 @@ export default function SettingsScreen() {
           <Text style={styles.profileName}>{profileData?.fullName || username}</Text>
           <View style={styles.rolePill}>
             <Feather name="activity" size={12} color={Colors.primary} />
-            <Text style={styles.roleText}>Doctor</Text>
+            <Text style={styles.roleText}>{t("doctor_role_tag")}</Text>
           </View>
           <Text style={styles.profileEmail}>{profileData?.email || ""}</Text>
-          <TouchableOpacity
-            style={styles.editBtn}
-            onPress={() => router.push("/profile/edit")}
-          >
-            <Feather name="edit-2" size={14} color={Colors.primary} />
-            <Text style={styles.editBtnText}>Edit Profile</Text>
-          </TouchableOpacity>
+        </View>
+
+        {/* Language Selection */}
+        <View style={styles.section}>
+          <Text style={styles.sectionLabel}>{t("language_section")}</Text>
+          <View style={styles.card}>
+            <TouchableOpacity
+              style={styles.settingRow}
+              onPress={() => setShowLangModal(true)}
+            >
+              <View style={styles.settingIconBg}>
+                <Feather name="globe" size={18} color={Colors.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={styles.settingLabel}>{t("select_language")}</Text>
+                <Text style={{ fontSize: 12, color: Colors.textSecondary, marginTop: 2 }}>
+                  {currentLangObj.flagEmoji} {currentLangObj.nativeName} ({currentLangObj.name})
+                </Text>
+              </View>
+              <Feather name="chevron-right" size={16} color={Colors.textLight} />
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* Doctor Code */}
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>MY DOCTOR CODE</Text>
+          <Text style={styles.sectionLabel}>{t("doctor_code")}</Text>
           <View style={styles.card}>
             <View style={styles.codeRow}>
               <View style={styles.codeIconBg}>
                 <Feather name="hash" size={20} color={Colors.primary} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.codeLabel}>Share with patients to connect</Text>
+                <Text style={styles.codeLabel}>{t("share_code_desc")}</Text>
                 <Text style={styles.codeValue}>{docCode || "Not available"}</Text>
               </View>
               <TouchableOpacity style={styles.shareBtn} onPress={shareDocCode}>
@@ -174,12 +193,11 @@ export default function SettingsScreen() {
 
         {/* Account */}
         <View style={styles.section}>
-          <Text style={styles.sectionLabel}>ACCOUNT</Text>
+          <Text style={styles.sectionLabel}>{t("my_account")}</Text>
           <View style={styles.card}>
             {[
-              { icon: "help-circle", label: "Help & Support", onPress: () => setShowHelpModal(true) },
-              { icon: "info", label: "About AmbiEye", onPress: () => setShowAboutModal(true) },
-              { icon: "book", label: "Privacy Policy", onPress: () => router.push("/(doctor)/(stack)/privacy") },
+              { icon: "help-circle", label: t("help_support"), onPress: () => setShowHelpModal(true) },
+              { icon: "book", label: t("privacy_policy"), onPress: () => router.push("/(doctor)/(stack)/privacy") },
             ].map((item, i, arr) => (
               <TouchableOpacity
                 key={item.label}
@@ -203,10 +221,53 @@ export default function SettingsScreen() {
           ) : (
             <>
               <Feather name="log-out" size={18} color="#fff" />
-              <Text style={styles.logoutText}>Logout</Text>
+              <Text style={styles.logoutText}>{t("logout_btn")}</Text>
             </>
           )}
         </TouchableOpacity>
+
+        {/* Language Modal */}
+        <Modal visible={showLangModal} transparent animationType="slide">
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalBox}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>{t("select_language")}</Text>
+                <TouchableOpacity onPress={() => setShowLangModal(false)} style={styles.modalCloseBtn}>
+                  <Feather name="x" size={20} color={Colors.textSecondary} />
+                </TouchableOpacity>
+              </View>
+              <ScrollView style={{ maxHeight: 380 }} showsVerticalScrollIndicator={false}>
+                {supportedLanguages.map((lang) => {
+                  const isSelected = currentLang === lang.code;
+                  return (
+                    <TouchableOpacity
+                      key={lang.code}
+                      style={[
+                        styles.helpItem,
+                        isSelected && { backgroundColor: '#EFF6FF', borderColor: '#2563EB', borderWidth: 1 },
+                      ]}
+                      onPress={async () => {
+                        await changeLanguage(lang.code as SupportedLanguage);
+                        setShowLangModal(false);
+                      }}
+                    >
+                      <Text style={{ fontSize: 22 }}>{lang.flagEmoji}</Text>
+                      <View style={{ flex: 1, marginLeft: 10 }}>
+                        <Text style={{ fontSize: 15, fontWeight: "700", color: isSelected ? "#2563EB" : Colors.text }}>
+                          {lang.nativeName}
+                        </Text>
+                        <Text style={{ fontSize: 12, color: Colors.textSecondary }}>
+                          {lang.name} • {lang.region}
+                        </Text>
+                      </View>
+                      {isSelected && <Feather name="check" size={18} color="#2563EB" />}
+                    </TouchableOpacity>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          </View>
+        </Modal>
 
         <TouchableOpacity style={styles.deleteBtn} onPress={handleDelete} disabled={isLoggingOut}>
           <Feather name="trash-2" size={16} color={Colors.error} />

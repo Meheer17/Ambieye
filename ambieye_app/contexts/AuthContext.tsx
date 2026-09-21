@@ -3,7 +3,7 @@ import { Text } from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { authService } from "../services/api/apiService";
 
-type UserType = "doctor" | "patient";
+type UserType = "doctor" | "patient" | "caregiver";
 type AuthState = {
   isAuthenticated: boolean;
   userType: UserType | null;
@@ -82,9 +82,19 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         const { success, user, error } = await authService.verify();
 
         if (success && user) {
+          const isCaregiver =
+            user.role === "caregiver" ||
+            user.mode === "caregiver" ||
+            user.username?.toLowerCase() === "caregiver";
+          const resolvedType: UserType = isCaregiver
+            ? "caregiver"
+            : user.role === "doctor"
+            ? "doctor"
+            : "patient";
+
           setAuthState({
             isAuthenticated: true,
-            userType: user.role,
+            userType: resolvedType,
             userId: user.id,
             username: user.username,
             isLoading: false,
@@ -141,14 +151,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       );
 
       if (success && user) {
+        const isCaregiver =
+          username.toLowerCase() === "caregiver" ||
+          user.role === "caregiver" ||
+          user.mode === "caregiver" ||
+          authState.userType === "caregiver";
+
+        const resolvedType: UserType = isCaregiver
+          ? "caregiver"
+          : user.role === "doctor"
+          ? "doctor"
+          : "patient";
+
         setAuthState({
           isAuthenticated: true,
           userId: user.id,
           username: user.username,
-          userType: user.role,
+          userType: resolvedType,
           isLoading: false,
           error: null,
         });
+        await AsyncStorage.setItem("userType", resolvedType);
         return true;
       } else {
         setAuthState((prev) => ({
@@ -196,7 +219,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
 
       const { success, user, error } = await authService.signup({
         ...userData,
-        userType: authState.userType,
+        userType: authState.userType === "doctor" ? "doctor" : "patient",
       });
 
       if (success && user) {
@@ -238,7 +261,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
         isAuthenticated: false,
         userId: null,
         username: null,
-        userType: authState.userType, // Preserve user type after logout
+        userType: null,
         isLoading: false,
         error: null,
       });

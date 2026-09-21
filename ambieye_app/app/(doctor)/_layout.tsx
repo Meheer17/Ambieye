@@ -4,10 +4,13 @@ import { View, StyleSheet, Platform } from "react-native";
 import Feather from "@expo/vector-icons/Feather";
 import FontAwesome from "@expo/vector-icons/FontAwesome";
 import { Colors } from "@/constants/theme";
+import { useTranslation } from "@/constants/i18n";
 
 const ICON_SIZE = 22;
 
 export default function DoctorTabLayout() {
+  const { t } = useTranslation();
+
   return (
     <Tabs
       screenOptions={{
@@ -41,7 +44,7 @@ export default function DoctorTabLayout() {
       <Tabs.Screen
         name="index"
         options={{
-          title: "Home",
+          title: t("tab_home"),
           tabBarIcon: ({ color, focused }) => (
             <View style={focused ? styles.activeIconBg : styles.iconBg}>
               <Feather name="home" size={ICON_SIZE} color={color} />
@@ -52,7 +55,7 @@ export default function DoctorTabLayout() {
       <Tabs.Screen
         name="patients"
         options={{
-          title: "Patients",
+          title: t("tab_patients"),
           tabBarIcon: ({ color, focused }) => (
             <View style={focused ? styles.activeIconBg : styles.iconBg}>
               <FontAwesome name="users" size={ICON_SIZE} color={color} />
@@ -63,7 +66,7 @@ export default function DoctorTabLayout() {
       <Tabs.Screen
         name="queries"
         options={{
-          title: "Queries",
+          title: t("tab_queries"),
           tabBarIcon: ({ color, focused }) => (
             <View style={focused ? styles.activeIconBg : styles.iconBg}>
               <Feather name="message-circle" size={ICON_SIZE} color={color} />
@@ -74,7 +77,7 @@ export default function DoctorTabLayout() {
       <Tabs.Screen
         name="settings"
         options={{
-          title: "Profile",
+          title: t("tab_profile"),
           tabBarIcon: ({ color, focused }) => (
             <View style={focused ? styles.activeIconBg : styles.iconBg}>
               <Feather name="user" size={ICON_SIZE} color={color} />

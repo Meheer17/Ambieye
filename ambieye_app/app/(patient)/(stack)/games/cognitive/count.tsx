@@ -1,320 +1,332 @@
-import React, { useState, useRef } from "react";
+import React, { useState, useRef, useEffect } from "react";
 import {
   StyleSheet,
   View,
   Text,
   TouchableOpacity,
-  Alert,
   ScrollView,
-  Animated,
-  Easing,
+  Dimensions,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
-import FontAwesome from "@expo/vector-icons/FontAwesome";
+import Feather from "@expo/vector-icons/Feather";
 import { saveGameResult } from "@/utils/gameUtils";
+import { useTranslation } from "@/constants/i18n";
+import { VoiceAssistant } from "@/utils/voiceAssistant";
+import { Colors, BorderRadius, Shadows, Spacing } from "@/constants/theme";
 
-export default function CountAndChooseGame() {
+const { width } = Dimensions.get("window");
+
+interface CountItemType {
+  nameKey: string;
+  emoji: string;
+  color: string;
+  bg: string;
+}
+
+const COUNTABLE_ITEMS: CountItemType[] = [
+  { nameKey: "item_xorai", emoji: "🏆", color: "#CA8A04", bg: "#FEF08A" },
+  { nameKey: "item_tea", emoji: "🍵", color: "#16A34A", bg: "#DCFCE7" },
+  { nameKey: "item_bamboo", emoji: "🧺", color: "#B45309", bg: "#FEF3C7" },
+  { nameKey: "item_dhol", emoji: "🥁", color: "#9333EA", bg: "#FAF5FF" },
+  { nameKey: "item_rhino", emoji: "🦏", color: "#059669", bg: "#ECFDF5" },
+];
+
+export default function CulturalCountGame() {
   const router = useRouter();
+  const { t, currentLang } = useTranslation();
+
   const [gameActive, setGameActive] = useState(false);
+  const [gameOver, setGameOver] = useState(false);
+  const [difficulty, setDifficulty] = useState<"easy" | "medium" | "hard">("easy");
   const [score, setScore] = useState(0);
   const [round, setRound] = useState(0);
-  const [totalRounds] = useState(10);
-  const [objects, setObjects] = useState<any[]>([]);
+  const [totalRounds] = useState(5);
+  const [currentItem, setCurrentItem] = useState<CountItemType>(COUNTABLE_ITEMS[0]);
+  const [targetCount, setTargetCount] = useState(3);
   const [options, setOptions] = useState<number[]>([]);
-  const [correctAnswer, setCorrectAnswer] = useState(0);
+  const [selectedOption, setSelectedOption] = useState<number | null>(null);
+  const [isCorrect, setIsCorrect] = useState<boolean | null>(null);
   const [correctSelections, setCorrectSelections] = useState(0);
   const [wrongSelections, setWrongSelections] = useState(0);
   const [gameStartTime, setGameStartTime] = useState(0);
-  const timerValue = useRef(new Animated.Value(0)).current;
-  const animationRef = useRef<Animated.CompositeAnimation | null>(null);
 
-  // Array of icons to use in the game
-  const iconOptions = [
-    { name: "star", color: "#FFD700" },
-    { name: "heart", color: "#FF6B6B" },
-    { name: "circle", color: "#4ECDC4" },
-    { name: "square", color: "#5762D5" },
-    { name: "diamond", color: "#FF9F1C" },
-    { name: "triangle", color: "#FF5733" },
-  ];
-
-  const setupRound = () => {
-    // Check if we've completed all rounds first
-    const nextRound = round + 1;
-    if (nextRound > totalRounds) {
-      endGame();
-      return;
-    }
-
-    // Stop any existing animation
-    if (animationRef.current) {
-      animationRef.current.stop();
-    }
-
-    setRound(nextRound);
-
-    // Choose a random icon for this round
-    const randomIcon = iconOptions[Math.floor(Math.random() * iconOptions.length)];
-
-    // Decide the number of objects to display (3-15 based on the round)
-    const count = Math.min(3 + nextRound, 15);
-    setCorrectAnswer(count);
-
-    // Create objects with non-overlapping positions
-    const newObjects = [];
-    for (let i = 0; i < count; i++) {
-      const size = Math.random() * 10 + 20; // Size between 20-30
-      let position;
-      let overlapFound;
-      let attempts = 0;
-      const maxAttempts = 50; // Prevent infinite loop
-
-      // Keep generating positions until we find one with no overlap
-      do {
-        overlapFound = false;
-        position = {
-          x: Math.random() * 240 + 20, // Adjust based on screen width
-          y: Math.random() * 200 + 20, // Position within the game area
-        };
-
-        // Check for overlap with existing objects
-        for (let j = 0; j < newObjects.length; j++) {
-          const existingObj = newObjects[j];
-          const minDistance = (size + existingObj.size) / 2; // Minimum distance to avoid overlap
-
-          // Calculate distance between objects
-          const dx = position.x - existingObj.position.x;
-          const dy = position.y - existingObj.position.y;
-          const distance = Math.sqrt(dx * dx + dy * dy);
-
-          if (distance < minDistance) {
-            overlapFound = true;
-            break;
-          }
-        }
-
-        attempts++;
-      } while (overlapFound && attempts < maxAttempts);
-
-      // If we exceeded max attempts, adjust position to ensure no overlap
-      if (attempts >= maxAttempts) {
-        // Place objects in a grid-like pattern if we can't find non-overlapping positions
-        const gridSize = Math.ceil(Math.sqrt(count));
-        const cellWidth = 240 / gridSize;
-        const cellHeight = 200 / gridSize;
-        const row = Math.floor(i / gridSize);
-        const col = i % gridSize;
-        position = {
-          x: 20 + col * cellWidth + (cellWidth - size) / 2,
-          y: 20 + row * cellHeight + (cellHeight - size) / 2
-        };
-      }
-
-      newObjects.push({
-        id: i,
-        icon: randomIcon.name,
-        color: randomIcon.color,
-        size: size,
-        rotation: Math.random() * 360,
-        position: position
-      });
-    }
-    setObjects(newObjects);
-
-    // Generate answer options (including the correct one)
-    const correctOption = count;
-    let answerOptions = [correctOption];
-
-    while (answerOptions.length < 4) {
-      let option;
-      if (count <= 5) {
-        // For small counts, options close to correct answer
-        option = Math.max(1, correctOption + (Math.random() > 0.5 ? 1 : -1) * (Math.floor(Math.random() * 3) + 1));
-      } else {
-        // For larger counts, options can be further off
-        option = Math.max(1, correctOption + (Math.random() > 0.5 ? 1 : -1) * (Math.floor(Math.random() * 5) + 1));
-      }
-
-      if (!answerOptions.includes(option)) {
-        answerOptions.push(option);
-      }
-    }
-
-    // Shuffle the options
-    answerOptions.sort(() => Math.random() - 0.5);
-    setOptions(answerOptions);
-
-    // Reset and start the timer animation (from 0 to 100)
-    timerValue.setValue(0);
-    animationRef.current = Animated.timing(timerValue, {
-      toValue: 100,
-      duration: 15000, // 15 seconds per round
-      useNativeDriver: false,
-      easing: Easing.linear // Use linear easing for smooth progression
-    });
-
-    animationRef.current.start(({finished}) => {
-      if (finished && nextRound < totalRounds) {
-        setupRound();
-      }
-    });
-  };
-
-  const startGame = () => {
+  const startGame = (diff: "easy" | "medium" | "hard" = "easy") => {
+    setDifficulty(diff);
     setGameActive(true);
+    setGameOver(false);
     setScore(0);
     setRound(0);
     setCorrectSelections(0);
     setWrongSelections(0);
     setGameStartTime(Date.now());
-    setupRound();
+    VoiceAssistant.speak(`${t("game_count")}. ${t("play_now")}`, currentLang);
+    setupRound(1, diff);
   };
 
-  const handleOptionSelect = (selectedCount: number) => {
-    if (selectedCount === correctAnswer) {
-      setCorrectSelections(prev => prev + 1);
-      setScore(prevScore => prevScore + 10);
-    } else {
-      setWrongSelections(prev => prev + 1);
-      setScore(prevScore => Math.max(0, prevScore - 5));
-    }
+  const setupRound = (nextRound: number, diff: "easy" | "medium" | "hard") => {
+    setRound(nextRound);
+    setSelectedOption(null);
+    setIsCorrect(null);
 
-    // Check if this was the last round
-    if (round >= totalRounds) {
-      endGame();
+    // Pick random item
+    const item = COUNTABLE_ITEMS[Math.floor(Math.random() * COUNTABLE_ITEMS.length)];
+    setCurrentItem(item);
+
+    // Determine count based on difficulty
+    let count = 3;
+    if (diff === "easy") {
+      count = Math.floor(Math.random() * 3) + 3; // 3 to 5
+    } else if (diff === "medium") {
+      count = Math.floor(Math.random() * 4) + 4; // 4 to 7
     } else {
-      setupRound();
+      count = Math.floor(Math.random() * 5) + 5; // 5 to 9
     }
+    setTargetCount(count);
+
+    // Generate 4 distinct options
+    const optionSet = new Set<number>([count]);
+    while (optionSet.size < 4) {
+      const offset = (Math.random() > 0.5 ? 1 : -1) * (Math.floor(Math.random() * 3) + 1);
+      const val = Math.max(1, count + offset);
+      optionSet.add(val);
+    }
+    const shuffledOptions = Array.from(optionSet).sort(() => Math.random() - 0.5);
+    setOptions(shuffledOptions);
+
+    // Read question aloud
+    const questionText = `${t(item.nameKey)}?`;
+    VoiceAssistant.speak(questionText, currentLang);
   };
 
-  const endGame = async () => {
-    // Stop the timer animation if it's running
-    if (animationRef.current) {
-      animationRef.current.stop();
+  const handleSelectOption = (num: number) => {
+    if (selectedOption !== null) return; // Prevent double taps
+    setSelectedOption(num);
+
+    const correct = num === targetCount;
+    setIsCorrect(correct);
+
+    if (correct) {
+      setScore((prev) => prev + 100);
+      setCorrectSelections((prev) => prev + 1);
+      VoiceAssistant.speak(t("correct_feedback"), currentLang);
+    } else {
+      setWrongSelections((prev) => prev + 1);
+      VoiceAssistant.speak(`${t("wrong_feedback_prefix")} ${targetCount}`, currentLang);
     }
 
+    setTimeout(() => {
+      if (round < totalRounds) {
+        setupRound(round + 1, difficulty);
+      } else {
+        finishGame();
+      }
+    }, 1200);
+  };
+
+  const finishGame = async () => {
     setGameActive(false);
-    const gameDuration = (Date.now() - gameStartTime) / 1000; // in seconds
+    setGameOver(true);
+    const duration = (Date.now() - gameStartTime) / 1000;
+    const totalAttempts = correctSelections + wrongSelections;
+    const accuracy = totalAttempts > 0 ? Math.round((correctSelections / totalAttempts) * 100) : 100;
 
-    // Calculate final score (cap at 100)
-    const finalScore = Math.min(100, Math.max(0, score));
+    await saveGameResult({
+      gameId: 11,
+      score: score,
+      duration: duration,
+      date: new Date().toISOString(),
+      details: {
+        accuracy,
+        correctSelections,
+        wrongSelections,
+        difficulty,
+      },
+    });
 
-    try {
-      // Save game result to API
-      await saveGameResult({
-        gameId: 11, // ID for "Count and choose" game
-        score: finalScore,
-        duration: gameDuration,
-        date: new Date().toISOString(),
-        details: {
-          rounds: round,
-          correctSelections,
-          wrongSelections
-        }
-      });
-
-      Alert.alert(
-        "Game Complete!",
-        `Score: ${finalScore}%\nTime: ${Math.round(gameDuration)}s`,
-        [{ text: "OK", onPress: () => router.back() }]
-      );
-    } catch (error) {
-      console.error("Failed to save game result:", error);
-      Alert.alert(
-        "Game Complete!",
-        `Score: ${finalScore}%\nTime: ${Math.round(gameDuration)}s\n(Failed to save results)`,
-        [{ text: "OK", onPress: () => router.back() }]
-      );
-    }
+    VoiceAssistant.speak(`${t("well_done")}! ${t("game_complete_msg")}`, currentLang);
   };
 
-  return (
-    <ScrollView style={styles.container}>
-      <View
-        style={{
-          display: "flex",
-          flexDirection: "row",
-          justifyContent: "space-between",
-        }}
-      >
-        <TouchableOpacity onPress={() => router.back()}>
-          <FontAwesome name="arrow-left" size={24} color="#0EA5E9" />
-        </TouchableOpacity>
-        <Text style={styles.gameTitle}>Count and Choose</Text>
-      </View>
+  // ── Intro Screen ───────────────────────────────────────────────────────
+  if (!gameActive && !gameOver) {
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.headerBar}>
+          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+            <Feather name="arrow-left" size={24} color="#0F172A" />
+          </TouchableOpacity>
+          <Text style={styles.headerBarTitle}>{t("game_count")}</Text>
+          <View style={{ width: 40 }} />
+        </View>
 
-      {!gameActive ? (
-        <View style={styles.startContainer}>
-          <Text style={styles.instructionText}>
-            Count the number of objects displayed on the screen and select the correct answer.
-            Be quick - you have 15 seconds for each round!
-          </Text>
-          <TouchableOpacity style={styles.startButton} onPress={startGame}>
-            <Text style={styles.startButtonText}>Start Game</Text>
+        <ScrollView contentContainerStyle={styles.introContent}>
+          <View style={styles.heroCard}>
+            <Text style={styles.heroEmoji}>🏆 🍵 🧺</Text>
+            <Text style={styles.heroTitle}>{t("game_count")}</Text>
+            <Text style={styles.heroDesc}>{t("game_count_desc")}</Text>
+          </View>
+
+          <Text style={styles.sectionLabel}>{t("select_difficulty")}</Text>
+          <View style={styles.diffContainer}>
+            <TouchableOpacity
+              style={[styles.diffBtn, difficulty === "easy" && styles.diffBtnSelected]}
+              onPress={() => setDifficulty("easy")}
+            >
+              <Text style={styles.diffBtnEmoji}>🌱</Text>
+              <Text style={styles.diffBtnText}>{t("level_easy")}</Text>
+              <Text style={styles.diffBtnSub}>3 - 5 Items</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.diffBtn, difficulty === "medium" && styles.diffBtnSelected]}
+              onPress={() => setDifficulty("medium")}
+            >
+              <Text style={styles.diffBtnEmoji}>🌿</Text>
+              <Text style={styles.diffBtnText}>{t("level_medium")}</Text>
+              <Text style={styles.diffBtnSub}>4 - 7 Items</Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.diffBtn, difficulty === "hard" && styles.diffBtnSelected]}
+              onPress={() => setDifficulty("hard")}
+            >
+              <Text style={styles.diffBtnEmoji}>🌳</Text>
+              <Text style={styles.diffBtnText}>{t("level_hard")}</Text>
+              <Text style={styles.diffBtnSub}>5 - 9 Items</Text>
+            </TouchableOpacity>
+          </View>
+
+          <TouchableOpacity
+            style={styles.startBtn}
+            onPress={() => startGame(difficulty)}
+            activeOpacity={0.85}
+          >
+            <Feather name="play" size={22} color="#FFFFFF" />
+            <Text style={styles.startBtnText}>{t("play_now")}</Text>
+          </TouchableOpacity>
+        </ScrollView>
+      </SafeAreaView>
+    );
+  }
+
+  // ── Game Over Screen ───────────────────────────────────────────────────
+  if (gameOver) {
+    const totalAttempts = correctSelections + wrongSelections;
+    const accuracy = totalAttempts > 0 ? Math.round((correctSelections / totalAttempts) * 100) : 100;
+
+    return (
+      <SafeAreaView style={styles.container}>
+        <View style={styles.gameOverContainer}>
+          <Text style={{ fontSize: 50, marginBottom: 10 }}>🎉</Text>
+          <Text style={styles.gameOverTitle}>{t("well_done")}</Text>
+          <Text style={styles.gameOverSub}>{t("game_complete_msg")}</Text>
+
+          <View style={styles.resultsGrid}>
+            <View style={styles.statBox}>
+              <Text style={styles.statBoxNum}>{score}</Text>
+              <Text style={styles.statBoxLabel}>{t("score")}</Text>
+            </View>
+            <View style={styles.statBox}>
+              <Text style={styles.statBoxNum}>{accuracy}%</Text>
+              <Text style={styles.statBoxLabel}>{t("accuracy")}</Text>
+            </View>
+            <View style={styles.statBox}>
+              <Text style={styles.statBoxNum}>{correctSelections}/{totalRounds}</Text>
+              <Text style={styles.statBoxLabel}>{t("correct_stat")}</Text>
+            </View>
+          </View>
+
+          <TouchableOpacity
+            style={styles.startBtn}
+            onPress={() => startGame(difficulty)}
+            activeOpacity={0.85}
+          >
+            <Feather name="rotate-ccw" size={20} color="#FFFFFF" />
+            <Text style={styles.startBtnText}>{t("play_again")}</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.secondaryBtn}
+            onPress={() => router.back()}
+          >
+            <Text style={styles.secondaryBtnText}>{t("back_to_games")}</Text>
           </TouchableOpacity>
         </View>
-      ) : (
-        <View style={styles.gameContainer}>
-          <View style={styles.scoreContainer}>
-            <Text style={styles.scoreText}>Score: {score}</Text>
-            <Text style={styles.roundText}>Round: {round}/{totalRounds}</Text>
-          </View>
+      </SafeAreaView>
+    );
+  }
 
-          <Text style={styles.questionText}>
-            How many objects do you see?
-          </Text>
+  // ── Gameplay Screen ────────────────────────────────────────────────────
+  return (
+    <SafeAreaView style={styles.container}>
+      {/* Top Bar */}
+      <View style={styles.topStatsBar}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.exitBtn}>
+          <Feather name="x" size={22} color="#0F172A" />
+        </TouchableOpacity>
 
-          <View style={styles.timerContainer}>
-            <Animated.View 
-              style={[
-                styles.timerBar,
-                {
-                  width: timerValue.interpolate({
-                    inputRange: [0, 100],
-                    outputRange: ['0%', '100%']
-                  })
-                }
-              ]} 
-            />
-          </View>
-
-          <View style={styles.objectsContainer}>
-            {objects.map((obj) => (
-              <View
-                key={obj.id}
-                style={[
-                  styles.object,
-                  {
-                    left: obj.position.x,
-                    top: obj.position.y,
-                    transform: [{ rotate: `${obj.rotation}deg` }],
-                  }
-                ]}
-              >
-                <FontAwesome
-                  name={obj.icon}
-                  size={obj.size}
-                  color={obj.color}
-                />
-              </View>
-            ))}
-          </View>
-
-          <View style={styles.optionsContainer}>
-            {options.map((option, index) => (
-              <TouchableOpacity
-                key={index}
-                style={styles.optionButton}
-                onPress={() => handleOptionSelect(option)}
-              >
-                <Text style={styles.optionText}>{option}</Text>
-              </TouchableOpacity>
-            ))}
-          </View>
+        <View style={styles.roundBadge}>
+          <Text style={styles.roundBadgeText}>{t("round")} {round}/{totalRounds}</Text>
         </View>
-      )}
-    </ScrollView>
+
+        <View style={styles.scoreBadge}>
+          <Feather name="award" size={16} color="#CA8A04" />
+          <Text style={styles.scoreBadgeText}>{score}</Text>
+        </View>
+      </View>
+
+      {/* Spoken Audio Helper Prompt */}
+      <TouchableOpacity
+        style={styles.promptBar}
+        onPress={() => VoiceAssistant.speak(`${t(currentItem.nameKey)}?`, currentLang)}
+      >
+        <Feather name="volume-2" size={20} color="#2563EB" />
+        <Text style={styles.promptText}>
+          {t("count_question_prompt")} ({t(currentItem.nameKey)})
+        </Text>
+      </TouchableOpacity>
+
+      {/* Object Display Canvas */}
+      <View style={[styles.canvasCard, { backgroundColor: currentItem.bg }]}>
+        <View style={styles.itemsGrid}>
+          {Array.from({ length: targetCount }).map((_, idx) => (
+            <View key={idx} style={styles.itemEmojiWrapper}>
+              <Text style={styles.itemEmoji}>{currentItem.emoji}</Text>
+            </View>
+          ))}
+        </View>
+      </View>
+
+      {/* Answer Options Grid (Big Touch Targets) */}
+      <View style={styles.optionsWrapper}>
+        <Text style={styles.chooseLabel}>Choose the correct number:</Text>
+        <View style={styles.optionsGrid}>
+          {options.map((opt) => {
+            const isSelected = selectedOption === opt;
+            const isAnswer = opt === targetCount;
+            let btnStyle = styles.optionBtn;
+
+            if (selectedOption !== null) {
+              if (isSelected && isCorrect) btnStyle = { ...btnStyle, ...styles.optionBtnCorrect };
+              else if (isSelected && !isCorrect) btnStyle = { ...btnStyle, ...styles.optionBtnWrong };
+              else if (isAnswer) btnStyle = { ...btnStyle, ...styles.optionBtnCorrect };
+            }
+
+            return (
+              <TouchableOpacity
+                key={opt}
+                style={btnStyle}
+                onPress={() => handleSelectOption(opt)}
+                disabled={selectedOption !== null}
+                activeOpacity={0.7}
+              >
+                <Text style={styles.optionBtnText}>{opt}</Text>
+              </TouchableOpacity>
+            );
+          })}
+        </View>
+      </View>
+    </SafeAreaView>
   );
 }
 
@@ -322,122 +334,278 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#F8FAFC",
-    padding: 20,
-    paddingTop: 56,
   },
-  backButton: {
-    marginTop: 20,
-    marginBottom: 10,
-  },
-  gameTitle: {
-    fontSize: 24,
-    fontWeight: "bold",
-    color: "#0EA5E9",
-    marginBottom: 20,
-    textAlign: "center",
-  },
-  startContainer: {
-    height: 500,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  instructionText: {
-    fontSize: 18,
-    textAlign: "center",
-    marginBottom: 30,
-    color: "#333",
-    lineHeight: 26,
-    paddingHorizontal: 20,
-  },
-  startButton: {
-    backgroundColor: "#0EA5E9",
-    paddingHorizontal: 40,
-    paddingVertical: 15,
-    borderRadius: 30,
-  },
-  startButtonText: {
-    color: "#fff",
-    fontSize: 18,
-    fontWeight: "bold",
-  },
-  gameContainer: {
-    paddingBottom: 40,
-  },
-  scoreContainer: {
+  headerBar: {
     flexDirection: "row",
+    alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 20,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: "#E2E8F0",
   },
-  scoreText: {
+  backBtn: {
+    padding: 8,
+  },
+  headerBarTitle: {
     fontSize: 18,
-    fontWeight: "bold",
-    color: "#0EA5E9",
+    fontWeight: "700",
+    color: "#0F172A",
   },
-  roundText: {
-    fontSize: 18,
-    fontWeight: "bold",
-    color: "#333",
+  introContent: {
+    padding: Spacing.md,
   },
-  questionText: {
-    fontSize: 20,
-    fontWeight: "bold",
+  heroCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.xl,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    marginBottom: Spacing.lg,
+    ...Shadows.md,
+  },
+  heroEmoji: {
+    fontSize: 48,
+    marginBottom: Spacing.sm,
+  },
+  heroTitle: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#0F172A",
     textAlign: "center",
-    marginBottom: 20,
-    color: "#333",
+    marginBottom: 6,
   },
-  timerContainer: {
-    height: 6,
-    width: '100%',
-    backgroundColor: '#e0e0e0',
-    borderRadius: 3,
-    marginBottom: 20,
-    overflow: 'hidden',
+  heroDesc: {
+    fontSize: 14,
+    color: "#64748B",
+    textAlign: "center",
+    lineHeight: 20,
   },
-  timerBar: {
-    height: '100%',
-    backgroundColor: '#0EA5E9',
-    borderRadius: 3,
+  sectionLabel: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#1E293B",
+    marginBottom: Spacing.sm,
   },
-  objectsContainer: {
-    width: "100%",
-    height: 300,
-    backgroundColor: "#fff",
-    borderRadius: 10,
-    position: "relative",
-    marginBottom: 20,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
+  diffContainer: {
+    flexDirection: "row",
+    gap: 10,
+    marginBottom: Spacing.xl,
   },
-  object: {
-    position: "absolute",
+  diffBtn: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#E2E8F0",
+    ...Shadows.sm,
+  },
+  diffBtnSelected: {
+    borderColor: "#2563EB",
+    backgroundColor: "#EFF6FF",
+  },
+  diffBtnEmoji: {
+    fontSize: 24,
+    marginBottom: 4,
+  },
+  diffBtnText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#0F172A",
+  },
+  diffBtnSub: {
+    fontSize: 11,
+    color: "#64748B",
+    marginTop: 2,
+  },
+  startBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    backgroundColor: "#2563EB",
+    borderRadius: BorderRadius.xl,
+    paddingVertical: 16,
+    gap: 8,
+    ...Shadows.md,
+  },
+  startBtnText: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  topStatsBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+  },
+  exitBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "#FFFFFF",
     justifyContent: "center",
     alignItems: "center",
+    ...Shadows.sm,
   },
-  optionsContainer: {
+  roundBadge: {
+    backgroundColor: "#E0F2FE",
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  roundBadgeText: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#0284C7",
+  },
+  scoreBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FEF9C3",
+    paddingHorizontal: 14,
+    paddingVertical: 6,
+    borderRadius: 20,
+    gap: 6,
+  },
+  scoreBadgeText: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#854D0E",
+  },
+  promptBar: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#EFF6FF",
+    padding: Spacing.md,
+    marginHorizontal: Spacing.md,
+    borderRadius: BorderRadius.lg,
+    gap: 10,
+    marginBottom: Spacing.sm,
+  },
+  promptText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#1E40AF",
+    flex: 1,
+  },
+  canvasCard: {
+    flex: 1,
+    marginHorizontal: Spacing.md,
+    borderRadius: BorderRadius.xl,
+    padding: Spacing.lg,
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#E2E8F0",
+  },
+  itemsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
-    justifyContent: "space-between",
-  },
-  optionButton: {
-    width: "48%",
-    backgroundColor: "#fff",
-    paddingVertical: 15,
-    paddingHorizontal: 20,
-    borderRadius: 10,
-    marginBottom: 15,
+    justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 2,
+    gap: 16,
   },
-  optionText: {
-    fontSize: 20,
-    fontWeight: "bold",
-    color: "#0EA5E9",
+  itemEmojiWrapper: {
+    padding: 8,
+  },
+  itemEmoji: {
+    fontSize: 48,
+  },
+  optionsWrapper: {
+    padding: Spacing.md,
+    paddingBottom: Spacing.xl,
+  },
+  chooseLabel: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#475569",
+    textAlign: "center",
+    marginBottom: Spacing.md,
+  },
+  optionsGrid: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  optionBtn: {
+    flex: 1,
+    height: 64,
+    borderRadius: BorderRadius.xl,
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
+    alignItems: "center",
+    borderWidth: 2,
+    borderColor: "#CBD5E1",
+    ...Shadows.md,
+  },
+  optionBtnCorrect: {
+    backgroundColor: "#22C55E",
+    borderColor: "#16A34A",
+  },
+  optionBtnWrong: {
+    backgroundColor: "#EF4444",
+    borderColor: "#DC2626",
+  },
+  optionBtnText: {
+    fontSize: 26,
+    fontWeight: "800",
+    color: "#0F172A",
+  },
+  gameOverContainer: {
+    flex: 1,
+    padding: Spacing.xl,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  gameOverTitle: {
+    fontSize: 26,
+    fontWeight: "800",
+    color: "#0F172A",
+    marginBottom: 6,
+  },
+  gameOverSub: {
+    fontSize: 15,
+    color: "#64748B",
+    textAlign: "center",
+    marginBottom: Spacing.xl,
+  },
+  resultsGrid: {
+    flexDirection: "row",
+    gap: Spacing.md,
+    marginBottom: Spacing.xl,
+    width: "100%",
+  },
+  statBox: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+    borderRadius: BorderRadius.lg,
+    padding: Spacing.md,
+    alignItems: "center",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    ...Shadows.sm,
+  },
+  statBoxNum: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: "#2563EB",
+  },
+  statBoxLabel: {
+    fontSize: 12,
+    color: "#64748B",
+    marginTop: 4,
+  },
+  secondaryBtn: {
+    marginTop: Spacing.md,
+    paddingVertical: 12,
+  },
+  secondaryBtnText: {
+    fontSize: 15,
+    fontWeight: "600",
+    color: "#64748B",
   },
 });

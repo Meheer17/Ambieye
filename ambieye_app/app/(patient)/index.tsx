@@ -1,3428 +1,1194 @@
-import React, { useState, useEffect, useCallback, useMemo } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   StyleSheet,
   View,
   Text,
   ScrollView,
   TouchableOpacity,
-  TextInput,
   Modal,
   Platform,
-  TouchableWithoutFeedback,
-  ActivityIndicator,
-  StatusBar,
-  BackHandler,
-  RefreshControl,
+  Alert,
+  Dimensions,
+  Animated,
+  Easing,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useAuth } from "@/hooks/useAuth";
-import Feather from "@expo/vector-icons/Feather";
-import AntDesign from "@expo/vector-icons/AntDesign";
-import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import Ionicons from "@expo/vector-icons/Ionicons";
-import DateTimePicker from "@react-native-community/datetimepicker";
-import { router, useFocusEffect } from "expo-router";
-import { patientService, Query } from "@/services/api/patientService";
+import { useRouter, useFocusEffect } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { VisitRecord } from "@/services/api/doctorService";
-import EyeTrackingBadge from "@/components/EyeTrackingBadge";
+import Feather from "@expo/vector-icons/Feather";
+import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
+import { useAuth } from "@/hooks/useAuth";
+import { useTranslation, SUPPORTED_LANGUAGES, SupportedLanguage } from "@/constants/i18n";
+import { reminderStorage, DailyHydration, MedicationItem } from "@/utils/reminderStorage";
+import {
+  caregiverStorage,
+  FamilySentItem,
+  CognitiveGameSession,
+  CaregiverSleepRecord,
+  PatientProfile,
+} from "@/utils/caregiverStorage";
+import { dementiaCareStorage } from "@/utils/dementiaCareStorage";
+import { federatedService, CognitiveStabilityResult } from "@/services/api/federatedService";
+import {
+  companionService,
+  REMINISCENCE_TOPICS,
+  ReminiscenceTopic,
+} from "@/services/companion/companionService";
+import { VoiceAssistant } from "@/utils/voiceAssistant";
+import TimeOrientationCard from "@/components/TimeOrientationCard";
+import CalmCornerModal from "@/components/CalmCornerModal";
+import { VirtualAvatar, AvatarState } from "@/components/companion/VirtualAvatar";
+import { CompanionScreen } from "@/components/companion/CompanionScreen";
+import { SmritiGeetiRadio } from "@/components/patient/SmritiGeetiRadio";
+import { SmritiPhotobook } from "@/components/patient/SmritiPhotobook";
+import { AponManuhSpeedDial } from "@/components/patient/AponManuhSpeedDial";
+import { BaganorKothaWeather } from "@/components/patient/BaganorKothaWeather";
+import { ManorSthitiMood } from "@/components/patient/ManorSthitiMood";
+import { GharorBartaPostcards } from "@/components/patient/GharorBartaPostcards";
+import { Colors, Spacing, WarmPalette } from "@/constants/theme";
 
-export default function PatientHome() {
-  const { username } = useAuth();
-  const [activeSection, setActiveSection] = useState<any>(null);
-  const [reminders, setReminders] = useState<any[]>([]);
-  const [visitHistory, setVisitHistory] = useState<VisitRecord[]>([]);
+const { width } = Dimensions.get("window");
 
-  // History tab state
-  const [gameHistory, setGameHistory] = useState<any[]>([]);
-  const [historyIsLoading, setHistoryIsLoading] = useState(true);
-  const [isRefreshing, setIsRefreshing] = useState(false);
+export type SeniorFeatureTab = "radio" | "photos" | "family" | "mood";
 
-  // Queries state
-  const [queryStats, setQueryStats] = useState({
-    pending: 0,
-    answered: 0,
-    total: 0,
-  });
-  const [recentQueries, setRecentQueries] = useState<Query[]>([]);
-  const [queriesLoading, setQueriesLoading] = useState(true);
+export default function PatientHomeScreen() {
+  const router = useRouter();
+  const { username, logout } = useAuth();
+  const { t, currentLang, changeLanguage } = useTranslation();
 
-  // Reminder form state
-  const [showReminderForm, setShowReminderForm] = useState(false);
-  const [newReminder, setNewReminder] = useState({
-    title: "",
-    date: new Date(),
-    time: new Date(),
-    showDatePicker: false,
-    showTimePicker: false,
-  });
-  const [editingReminderId, setEditingReminderId] = useState<number | null>(
-    null,
+  const [activeFeatureTab, setActiveFeatureTab] = useState<SeniorFeatureTab>("radio");
+  const [languageModalVisible, setLanguageModalVisible] = useState(false);
+  const [calmCornerVisible, setCalmCornerVisible] = useState(false);
+  const [companionModalVisible, setCompanionModalVisible] = useState(false);
+
+  // Daily Care & Reminder Data
+  const [hydration, setHydration] = useState<DailyHydration>({ date: "", glassesDrunk: 3, dailyGoal: 8 });
+  const [medications, setMedications] = useState<MedicationItem[]>([]);
+  const [familyItems, setFamilyItems] = useState<FamilySentItem[]>([]);
+  const [profile, setProfile] = useState<PatientProfile | null>(null);
+  const [sosBanner, setSosBanner] = useState<string | null>(null);
+
+  // Avatar Companion In-Hero State
+  const [avatarState, setAvatarState] = useState<AvatarState>("idle");
+  const [avatarSpeechText, setAvatarSpeechText] = useState<string>(
+    "Good day, Bhaben! I am your companion Smriti Mitr. Tap any question below or speak with me!"
   );
 
-  // Profile data for visit history
-  const [profileData, setProfileData] = useState<any>(null);
-  const [visitHistoryLoading, setVisitHistoryLoading] = useState(true);
-  const [selectedVisitRecord, setSelectedVisitRecord] = useState<any>(null);
-  const [showVisitDetailsModal, setShowVisitDetailsModal] = useState(false);
+  // Feedback animation
+  const [celebrateAnim] = useState(new Animated.Value(1));
 
-  const loadReminders = useCallback(async () => {
-    try {
-      const savedReminders = await AsyncStorage.getItem("reminders");
-      if (savedReminders) {
-        setReminders(JSON.parse(savedReminders));
-      } else {
-        setReminders([]);
-      }
-    } catch (error) {
-      console.error("Error loading reminders:", error);
-      setReminders([]);
-    }
+  const loadData = useCallback(async () => {
+    const hyd = await reminderStorage.getTodayHydration();
+    const meds = await reminderStorage.getTodayMedications();
+    const fam = await caregiverStorage.getFamilySentItems();
+    const prof = await caregiverStorage.getPatientProfile();
+
+    setHydration(hyd);
+    setMedications(meds);
+    setFamilyItems(fam);
+    setProfile(prof);
   }, []);
-
-  const fetchProfileData = useCallback(async () => {
-    setVisitHistoryLoading(true);
-    try {
-      const profileResponse = await patientService.getProfile();
-      if (profileResponse.success) {
-        setProfileData(profileResponse.profile);
-        if (profileResponse.profile.visitRecords) {
-          setVisitHistory(profileResponse.profile.visitRecords);
-        }
-
-        // Check doctor_id and redirect if missing
-        if (profileResponse.profile && !profileResponse.profile.doctor_id) {
-          router.replace("/settings");
-        }
-
-      } else {
-        console.error(
-          "Error fetching profile data:",
-          profileResponse.message,
-        );
-      }
-    } catch (error) {
-      console.error("Error fetching profile data:", error);
-    } finally {
-      setVisitHistoryLoading(false);
-    }
-  }, [router]);
-
-  // Fetch dashboard data
-  useEffect(() => {
-    loadReminders();
-    fetchProfileData();
-  }, [loadReminders, fetchProfileData]);
-
-  const fetchDashboardQueries = useCallback(async () => {
-    setQueriesLoading(true);
-    try {
-      const dashboardResponse = await patientService.getDashboard();
-      if (dashboardResponse.success) {
-        const stats = dashboardResponse.stats || {
-          pendingQueries: 0,
-          answeredQueries: 0,
-          totalQueries: 0,
-        };
-        setQueryStats({
-          pending: stats.pendingQueries || 0,
-          answered: stats.answeredQueries || 0,
-          total: stats.totalQueries || 0,
-        });
-        const recent = Array.isArray(dashboardResponse.recentQueries)
-          ? dashboardResponse.recentQueries.slice(0, 3)
-          : [];
-        setRecentQueries(recent);
-        return;
-      }
-
-      const queriesResponse = await patientService.getQueries();
-      if (queriesResponse.success) {
-        const sorted = [...queriesResponse.queries].sort(
-          (a: Query, b: Query) =>
-            new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
-        );
-        const pendingCount = queriesResponse.queries.filter(
-          (query: Query) => query.status === "pending",
-        ).length;
-        const answeredCount = queriesResponse.queries.filter(
-          (query: Query) =>
-            query.status === "answered" || query.status === "closed",
-        ).length;
-        setQueryStats({
-          pending: pendingCount,
-          answered: answeredCount,
-          total: queriesResponse.queries.length,
-        });
-        setRecentQueries(sorted.slice(0, 3));
-      } else {
-        setQueryStats({ pending: 0, answered: 0, total: 0 });
-        setRecentQueries([]);
-      }
-    } catch (error) {
-      console.error("Error fetching queries:", error);
-      setQueryStats({ pending: 0, answered: 0, total: 0 });
-      setRecentQueries([]);
-    } finally {
-      setQueriesLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchDashboardQueries();
-  }, [fetchDashboardQueries]);
 
   useFocusEffect(
     useCallback(() => {
-      const onBackPress = () => {
-        if (showVisitDetailsModal) {
-          setShowVisitDetailsModal(false);
-          return true;
-        }
-        if (showReminderForm) {
-          setShowReminderForm(false);
-          return true;
-        }
-        if (activeSection) {
-          setActiveSection(null);
-          return true;
-        }
-        return false;
-      };
-
-      const subscription = BackHandler.addEventListener(
-        "hardwareBackPress",
-        onBackPress,
-      );
-      return () => subscription.remove();
-    }, [activeSection, showReminderForm, showVisitDetailsModal]),
+      loadData();
+    }, [loadData])
   );
 
-  const fetchGameHistory = useCallback(async () => {
-    setHistoryIsLoading(true);
-    try {
-      const response = await patientService.getGameHistory();
-      if (response.success) {
-        setGameHistory(response.history || []);
-      } else {
-        setGameHistory([]);
-        console.error("Failed to fetch game history:", response.message);
-      }
-    } catch (error) {
-      console.error("Error fetching game history:", error);
-      setGameHistory([]);
-    } finally {
-      setHistoryIsLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchGameHistory();
-  }, [fetchGameHistory]);
-
-  const handleRefresh = useCallback(async () => {
-    setIsRefreshing(true);
-    await Promise.all([
-      loadReminders(),
-      fetchProfileData(),
-      fetchGameHistory(),
-      fetchDashboardQueries(),
-    ]);
-    setIsRefreshing(false);
-  }, [
-    loadReminders,
-    fetchProfileData,
-    fetchGameHistory,
-    fetchDashboardQueries,
-  ]);
-
-  // Save reminders to storage
-  const saveReminders = async (updatedReminders: any[]) => {
-    try {
-      await AsyncStorage.setItem("reminders", JSON.stringify(updatedReminders));
-      setReminders(updatedReminders);
-    } catch (error) {
-      console.error("Error saving reminders:", error);
-    }
+  const handleLogout = () => {
+    Alert.alert(
+      currentLang === "as" ? "লগআউট কৰিব নেকি?" : currentLang === "hi" ? "लॉग आउट करें?" : "Log Out",
+      currentLang === "as" ? "আপুনি নিজৰ একাউণ্টৰ পৰা ওলাই যাব বিচাৰে নেকি?" : "Are you sure you want to log out of AmbiEye?",
+      [
+        { text: currentLang === "as" ? "বাতিল" : "Cancel", style: "cancel" },
+        {
+          text: currentLang === "as" ? "লগআউট" : "Log Out",
+          style: "destructive",
+          onPress: async () => {
+            await logout();
+            router.replace("/auth/login");
+          },
+        },
+      ]
+    );
   };
 
-  const handleAddReminder = () => {
-    if (newReminder.title.trim() === "") {
-      alert("Please enter a reminder title");
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (currentLang === "as") {
+      if (hour < 12) return "শুভ প্ৰভাত";
+      if (hour < 17) return "শুভ অপৰাহ্ন";
+      return "শুভ সন্ধিয়া";
+    }
+    if (currentLang === "hi") {
+      if (hour < 12) return "शुभ प्रभात";
+      if (hour < 17) return "शुभ दोपहर";
+      return "शुभ संध्या";
+    }
+    if (hour < 12) return t("greeting_morning");
+    if (hour < 17) return t("greeting_afternoon");
+    return t("greeting_evening");
+  };
+
+  const handleVoiceGreeting = () => {
+    const greetingText = `${getGreeting()} ${profile?.name || "Bhaben"}. I am your Smriti Mitr companion. Everything is safe and peaceful at home in Kamrup.`;
+    VoiceAssistant.speak(greetingText, currentLang);
+  };
+
+  // Avatar Companion Voice Interaction
+  const handleAskCompanion = async (topic: ReminiscenceTopic) => {
+    setAvatarState("thinking");
+    let response = topic.avatarStarter;
+    if (currentLang === "as" && topic.avatarStarterAs) {
+      response = topic.avatarStarterAs;
+    } else if (currentLang === "hi" && topic.avatarStarterHi) {
+      response = topic.avatarStarterHi;
+    }
+
+    setTimeout(() => {
+      setAvatarSpeechText(response);
+      setAvatarState("speaking");
+      companionService.speakResponse(response, currentLang as any);
+
+      const durationMs = Math.max(3000, response.length * 68);
+      setTimeout(() => {
+        setAvatarState("idle");
+      }, durationMs);
+    }, 700);
+  };
+
+  const handleAvatarMicTap = async () => {
+    if (avatarState === "speaking") {
+      companionService.stopSpeech();
+      setAvatarState("idle");
       return;
     }
 
-    const formattedDate = newReminder.date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    });
+    setAvatarState("listening");
+    setTimeout(async () => {
+      const result = await companionService.processElderInput("How did I do in Antakshari today?", currentLang as any);
+      setAvatarSpeechText(result.responseText);
+      setAvatarState("speaking");
+      companionService.speakResponse(result.responseText, currentLang as any);
 
-    const formattedTime = newReminder.time.toLocaleTimeString("en-US", {
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-
-    if (editingReminderId !== null) {
-      // Edit existing reminder
-      const updatedReminders = reminders.map((reminder) =>
-        reminder.id === editingReminderId
-          ? {
-            ...reminder,
-            title: newReminder.title,
-            date: formattedDate,
-            time: formattedTime,
-          }
-          : reminder,
-      );
-      saveReminders(updatedReminders);
-    } else {
-      // Add new reminder
-      const newId =
-        reminders.length > 0 ? Math.max(...reminders.map((r) => r.id)) + 1 : 1;
-      const reminderToAdd = {
-        id: newId,
-        title: newReminder.title,
-        date: formattedDate,
-        time: formattedTime,
-      };
-      saveReminders([...reminders, reminderToAdd]);
-    }
-
-    // Reset form
-    setNewReminder({
-      title: "",
-      date: new Date(),
-      time: new Date(),
-      showDatePicker: false,
-      showTimePicker: false,
-    });
-    setEditingReminderId(null);
-    setShowReminderForm(false);
+      const durationMs = Math.max(3000, result.responseText.length * 68);
+      setTimeout(() => {
+        setAvatarState("idle");
+      }, durationMs);
+    }, 2200);
   };
 
-  const handleEditReminder = (reminder: any) => {
-    // Parse date and time strings into Date objects
-    let reminderDate;
-    try {
-      reminderDate =
-        reminder.date === "Daily" ? new Date() : new Date(reminder.date);
-    } catch (e) {
-      reminderDate = new Date();
-    }
-
-    let reminderTime;
-    try {
-      const [hours, minutes] = reminder.time
-        .match(/(\d+):(\d+)/)?.[0]
-        .split(":") || ["12", "00"];
-      const ampm = reminder.time.includes("AM") ? "AM" : "PM";
-
-      const timeDate = new Date();
-      let hour = parseInt(hours);
-      if (ampm === "PM" && hour < 12) hour += 12;
-      if (ampm === "AM" && hour === 12) hour = 0;
-
-      timeDate.setHours(hour, parseInt(minutes), 0);
-      reminderTime = timeDate;
-    } catch (e) {
-      reminderTime = new Date();
-    }
-
-    setNewReminder({
-      title: reminder.title,
-      date: reminderDate,
-      time: reminderTime,
-      showDatePicker: false,
-      showTimePicker: false,
-    });
-    setEditingReminderId(reminder.id);
-    setShowReminderForm(true);
-  };
-
-  const handleDeleteReminder = (id: number) => {
-    const updatedReminders = reminders.filter((reminder) => reminder.id !== id);
-    saveReminders(updatedReminders);
-  };
-
-  const showVisitDetails = (visit: any) => {
-    setSelectedVisitRecord(visit);
-    setShowVisitDetailsModal(true);
-  };
-
-  // Format date to a readable string
-  const formatDate = (dateString: string | Date) => {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  };
-
-  const getAccuracyFromGame = (game: any) => {
-    const accuracyValue = game?.details?.accuracy ?? game?.accuracy;
-    if (accuracyValue !== undefined && accuracyValue !== null) {
-      const parsed =
-        typeof accuracyValue === "string"
-          ? parseFloat(accuracyValue)
-          : accuracyValue;
-      if (!Number.isNaN(parsed)) {
-        return Math.min(Math.max(parsed, 0), 100);
-      }
-    }
-
-    const scoreValue = parseFloat(game?.score?.toString() || "0");
-    if (!Number.isNaN(scoreValue)) {
-      return Math.min(Math.max((scoreValue / 10) * 100, 0), 100);
-    }
-
-    return 0;
-  };
-
-  const calculateAverageAccuracy = (games: any[]) => {
-    if (!games || games.length === 0) return 0;
-    const total = games.reduce(
-      (sum: number, game: any) => sum + getAccuracyFromGame(game),
-      0,
-    );
-    return Math.round(total / games.length);
-  };
-
-  const sortedGameHistory = useMemo(() => {
-    return [...gameHistory].sort(
-      (a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
-    );
-  }, [gameHistory]);
-
-  const playedGameHistory = useMemo(() => {
-    return sortedGameHistory.filter((day: any) => {
-      const totalGames = day?.summary?.totalGames ?? day?.games?.length ?? 0;
-      return totalGames > 0;
-    });
-  }, [sortedGameHistory]);
-
-  const chartDays = useMemo(() => {
-    if (playedGameHistory.length <= 7) return playedGameHistory;
-    return playedGameHistory.slice(playedGameHistory.length - 7);
-  }, [playedGameHistory]);
-
-  const progressChartData = useMemo(
-    () =>
-      chartDays.map((day: any) => ({
-        label: new Date(day.date).toLocaleDateString("en-US", {
-          month: "short",
-          day: "numeric",
-        }),
-        value: day?.summary?.totalGames ?? day?.games?.length ?? 0,
-      })),
-    [chartDays],
-  );
-
-  const accuracyChartData = useMemo(
-    () =>
-      chartDays.map((day: any) => ({
-        label: new Date(day.date).toLocaleDateString("en-US", {
-          month: "short",
-          day: "numeric",
-        }),
-        value: Math.round(
-          day?.summary?.averageAccuracy ??
-          calculateAverageAccuracy(day?.games || []),
-        ),
-      })),
-    [chartDays],
-  );
-
-  const latestDayStats = useMemo(() => {
-    if (playedGameHistory.length === 0) {
-      return {
-        dateLabel: "No recent activity",
-        gamesPlayed: 0,
-        averageScore: 0,
-        averageAccuracy: 0,
-        minutesPlayed: 0,
-      };
-    }
-
-    const latestDay = playedGameHistory[playedGameHistory.length - 1];
-    const latestGames = latestDay?.games || [];
-    const totalGames = latestDay?.summary?.totalGames ?? latestGames.length;
-    const averageScore = Math.round(
-      latestDay?.summary?.averageScore ??
-      (latestGames.length
-        ? latestGames.reduce(
-          (sum: number, game: any) =>
-            sum + parseFloat(game?.score?.toString() || "0"),
-          0,
-        ) / latestGames.length
-        : 0),
-    );
-    const averageAccuracy = Math.round(
-      latestDay?.summary?.averageAccuracy ??
-      calculateAverageAccuracy(latestGames),
-    );
-    const totalPlayTimeSeconds =
-      latestDay?.summary?.totalPlayTime ??
-      latestGames.reduce(
-        (sum: number, game: any) => sum + (game?.time || 0),
-        0,
-      );
-
-    return {
-      dateLabel: new Date(latestDay.date).toLocaleDateString("en-US", {
-        month: "short",
-        day: "numeric",
+  // Doinik Niyam (Hydration & Meds)
+  const triggerCelebrationAnim = () => {
+    Animated.sequence([
+      Animated.timing(celebrateAnim, {
+        toValue: 1.05,
+        duration: 150,
+        easing: Easing.out(Easing.quad),
+        useNativeDriver: true,
       }),
-      gamesPlayed: totalGames || 0,
-      averageScore: Number.isFinite(averageScore) ? averageScore : 0,
-      averageAccuracy: Number.isFinite(averageAccuracy) ? averageAccuracy : 0,
-      minutesPlayed: Math.round(totalPlayTimeSeconds / 60),
-    };
-  }, [playedGameHistory]);
+      Animated.timing(celebrateAnim, {
+        toValue: 1,
+        duration: 180,
+        easing: Easing.in(Easing.quad),
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
 
-  const sortedVisitHistory = useMemo(() => {
-    return [...visitHistory].sort(
-      (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
-    );
-  }, [visitHistory]);
+  const handleAddWater = async () => {
+    const updated = await reminderStorage.addWaterGlass();
+    setHydration(updated);
+    triggerCelebrationAnim();
 
-  const progressChartMax = Math.max(
-    ...progressChartData.map((item) => item.value),
-    1,
-  );
-  const accuracyChartMax = 100;
-  const weeklyGamesTotal = progressChartData.reduce(
-    (sum, item) => sum + item.value,
-    0,
-  );
-  const weeklyAccuracyAverage = accuracyChartData.length
-    ? Math.round(
-      accuracyChartData.reduce((sum, item) => sum + item.value, 0) /
-      accuracyChartData.length,
-    )
-    : 0;
+    const voiceMsg =
+      currentLang === "as"
+        ? `বহুত ভাল! আপুনি ${updated.glassesDrunk} গিলাচ পানী খালে।`
+        : currentLang === "hi"
+        ? `बहुत बढ़िया! आपने ${updated.glassesDrunk} गिलास पानी पिया।`
+        : `Wonderful job! You drank ${updated.glassesDrunk} of ${updated.dailyGoal} glasses.`;
 
-  const renderChartBars = (
-    data: { label: string; value: number }[],
-    color: string,
-    maxValue: number,
-  ) => {
-    if (!data || data.length === 0) return null;
+    VoiceAssistant.speak(voiceMsg, currentLang);
+  };
 
-    // Use flex-start with gap when few bars, space-between when many
-    const useSpaceBetween = data.length >= 4;
+  const handleMarkMedTaken = async (id: string) => {
+    const updated = await reminderStorage.toggleMedication(id);
+    setMedications(updated);
+    triggerCelebrationAnim();
 
-    return (
-      <View style={[chartStyles.chartBars, !useSpaceBetween && { justifyContent: "flex-start", gap: 16 }]}>
-        {data.map((item, index) => {
-          const barHeight = Math.max(
-            8,
-            Math.round((item.value / maxValue) * 90),
-          );
-          return (
-            <View
-              key={`${item.label}-${index}`}
-              style={[chartStyles.chartBarItem, !useSpaceBetween && { flex: 0, width: 40 }]}
+    const voiceMsg =
+      currentLang === "as"
+        ? "ঔষধ খোৱা সম্পন্ন হ'ল।"
+        : currentLang === "hi"
+        ? "दवाई ले ली गई है।"
+        : "Prescribed medication marked as taken.";
+
+    VoiceAssistant.speak(voiceMsg, currentLang);
+  };
+
+  const handleSOS = async () => {
+    await reminderStorage.triggerSOS();
+    const alertMsg =
+      currentLang === "as"
+        ? "জৰুৰী সহায় বাৰ্তা কন্যা অনিতা আৰু পৰিয়াললৈ প্ৰেৰণ কৰা হৈছে।"
+        : currentLang === "hi"
+        ? "आपातकालीन सहायता संदेश अनिता और परिवार को भेज दिया गया है।"
+        : t("sos_alert_sent");
+
+    setSosBanner(alertMsg);
+    VoiceAssistant.speak(alertMsg, currentLang);
+    if (Platform.OS !== "web") {
+      Alert.alert(t("sos_button"), alertMsg);
+    }
+  };
+
+  const currentLangObj = SUPPORTED_LANGUAGES.find((l) => l.code === currentLang) || SUPPORTED_LANGUAGES[0];
+  const nextPendingMed = medications.find((m) => !m.taken);
+
+  return (
+    <SafeAreaView style={styles.container} edges={["top"]}>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* ── 1. TIGHT NATIVE TOP APP BAR ─────────────────────────────────── */}
+        <View style={styles.topAppBar}>
+          <View style={styles.userTitleGroup}>
+            <View style={styles.userAvatarCircle}>
+              <Text style={{ fontSize: 20 }}>🧓</Text>
+              <View style={styles.greenOnlineDot} />
+            </View>
+            <View>
+              <Text style={styles.greetingMiniText}>{getGreeting()},</Text>
+              <Text style={styles.userNameMiniText} numberOfLines={1}>
+                {profile?.name || "Bhaben Barman"}
+              </Text>
+            </View>
+          </View>
+
+          <View style={styles.appBarActions}>
+            {/* Language Pill */}
+            <TouchableOpacity
+              style={styles.langPill}
+              onPress={() => setLanguageModalVisible(true)}
+              activeOpacity={0.8}
             >
-              <Text style={chartStyles.chartValue}>{item.value}</Text>
-              <View
-                style={[
-                  chartStyles.chartBar,
-                  {
-                    height: barHeight,
-                    backgroundColor: color,
-                    opacity: item.value === 0 ? 0.35 : 1,
-                  },
-                ]}
-              />
-              <Text style={chartStyles.chartLabel}>{item.label}</Text>
-            </View>
-          );
-        })}
-      </View>
-    );
-  };
+              <Text style={styles.langEmoji}>{currentLangObj.flagEmoji}</Text>
+              <Text style={styles.langPillText}>{currentLangObj.nativeName}</Text>
+              <Feather name="chevron-down" size={12} color="#6366F1" />
+            </TouchableOpacity>
 
-  const gameCategories = [
-    {
-      key: "identification",
-      title: "Identify",
-      description: "Colors and symbols",
-      count: 5,
-      color: "#0EA5E9",
-      softColor: "rgba(14, 165, 233, 0.12)",
-      icon: "visibility" as const,
-    },
-    {
-      key: "movement",
-      title: "Movement",
-      description: "Tracking and motion",
-      count: 4,
-      color: "#8B5CF6",
-      softColor: "rgba(139, 92, 246, 0.12)",
-      icon: "track-changes" as const,
-    },
-    {
-      key: "cognitive",
-      title: "Cognitive",
-      description: "Memory and focus",
-      count: 3,
-      color: "#10B981",
-      softColor: "rgba(16, 185, 129, 0.12)",
-      icon: "psychology" as const,
-    },
-  ];
+            {/* Voice Assistant Button */}
+            <TouchableOpacity
+              style={styles.actionIconBtn}
+              onPress={handleVoiceGreeting}
+              activeOpacity={0.8}
+            >
+              <Feather name="volume-2" size={17} color="#6366F1" />
+            </TouchableOpacity>
 
-  const handleCategoryPress = (categoryKey: string) => {
-    router.push({
-      pathname: "/games",
-      params: { category: categoryKey },
-    });
-  };
-  const renderProgressSection = () => {
-    if (historyIsLoading) {
-      return (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#0284C7" />
-          <Text style={dashboardStyles.loadingText}>
-            Loading your progress...
-          </Text>
-        </View>
-      );
-    }
-
-    if (!gameHistory || gameHistory.length === 0) {
-      return (
-        <View style={dashboardStyles.emptyStateContainer}>
-          <MaterialIcons
-            name="trending-up"
-            size={60}
-            color="#0284C7"
-            style={{ opacity: 0.6 }}
-          />
-          <Text style={dashboardStyles.emptyStateTitle}>
-            No Progress Data Yet
-          </Text>
-          <Text style={dashboardStyles.emptyStateMessage}>
-            Complete some games to see your progress tracked here
-          </Text>
-          <TouchableOpacity
-            style={dashboardStyles.emptyStateButton}
-            onPress={() => router.push("/games")}
-          >
-            <Text style={dashboardStyles.emptyStateButtonText}>
-              Start Playing
-            </Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setActiveSection(null)}
-            style={styles.backButtons}
-          >
-            <Feather
-              name="arrow-left"
-              size={18}
-              color="#0284C7"
-              style={{ marginRight: 5 }}
-            />
-            <Text style={dashboardStyles.backLink}>Back</Text>
-          </TouchableOpacity>
-        </View>
-      );
-    }
-
-    // Get today's data (first entry should be the most recent)
-    const todaysData = gameHistory[0];
-    const todaysDate = new Date(todaysData?.date || new Date());
-    const formattedDate = todaysDate.toLocaleDateString("en-US", {
-      weekday: "long",
-      month: "long",
-      day: "numeric",
-    });
-
-    // Get stats from summary data
-    const gamesPlayed = todaysData?.summary?.totalGames || 0;
-    const totalGames = 12; // Total possible games
-    const completionPercentage = Math.min(
-      Math.round((gamesPlayed / totalGames) * 100),
-      100,
-    );
-
-    // Get average score and accuracy from summary
-    const averageScore = Math.round(todaysData?.summary?.averageScore || 0);
-    const averageAccuracy = Math.round(
-      todaysData?.summary?.averageAccuracy || 0,
-    );
-
-    // Convert total play time from seconds to hours and minutes
-    // const totalPlayTimeSeconds = todaysData?.summary?.totalPlayTime || 0;
-    // const totalPlayTimeHours = Math.floor(totalPlayTimeSeconds / 3600);
-    // const totalPlayTimeMinutes = Math.floor((totalPlayTimeSeconds % 3600) / 60);
-    // const formattedTime = totalPlayTimeHours > 0
-    //   ? `${totalPlayTimeHours}h ${totalPlayTimeMinutes}m`
-    //   : `${totalPlayTimeMinutes}m`;
-
-    return (
-      <ScrollView
-        style={styles.sectionContent}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={handleRefresh}
-            colors={["#0EA5E9"]}
-            tintColor="#0EA5E9"
-          />
-        }
-      >
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Progress</Text>
-          <TouchableOpacity
-            onPress={() => setActiveSection(null)}
-            style={styles.backButton}
-          >
-            <Feather
-              name="arrow-left"
-              size={18}
-              color="#0284C7"
-              style={{ marginRight: 5 }}
-            />
-            <Text style={dashboardStyles.backLink}>Back</Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* Today's Progress Summary Card */}
-        <View style={progressStyles.progressSummaryCard}>
-          <Text style={progressStyles.progressSummaryDate}>
-            {formattedDate}
-          </Text>
-
-          <View style={progressStyles.progressSummaryStatsRow}>
-            <View style={progressStyles.progressSummaryStatItem}>
-              <Text style={progressStyles.progressSummaryStatValue}>
-                {gamesPlayed}
-              </Text>
-              <Text style={progressStyles.progressSummaryStatLabel}>
-                Games Played
-              </Text>
-            </View>
-            <View style={progressStyles.progressSummaryStatDivider} />
-
-            <View style={progressStyles.progressSummaryStatItem}>
-              <Text style={progressStyles.progressSummaryStatValue}>
-                {averageScore}
-              </Text>
-              <Text style={progressStyles.progressSummaryStatLabel}>
-                Avg Score
-              </Text>
-            </View>
-            <View style={progressStyles.progressSummaryStatDivider} />
-
-            <View style={progressStyles.progressSummaryStatItem}>
-              <Text style={progressStyles.progressSummaryStatValue}>
-                {averageAccuracy}%
-              </Text>
-              <Text style={progressStyles.progressSummaryStatLabel}>
-                Avg Accuracy
-              </Text>
-            </View>
+            {/* Logout Exit Button */}
+            <TouchableOpacity
+              style={[styles.actionIconBtn, { backgroundColor: "#FFF1F2", borderColor: "#FECDD3" }]}
+              onPress={handleLogout}
+              activeOpacity={0.8}
+            >
+              <Feather name="log-out" size={16} color="#E11D48" />
+            </TouchableOpacity>
           </View>
+        </View>
 
-          <View style={progressStyles.progressCompletionContainer}>
-            <Text style={progressStyles.progressCompletionText}>
-              {gamesPlayed} of {totalGames} games completed (
-              {completionPercentage}%)
-            </Text>
-            <View style={progressStyles.progressCompletionBar}>
-              <View
-                style={[
-                  progressStyles.progressCompletionFill,
-                  { width: `${completionPercentage}%` },
-                ]}
+        {/* ── 2. SLEEK COMPACT HERO: AI AVATAR & REALITY ORIENTATION ──────── */}
+        <View style={styles.heroCompanionBox}>
+          <View style={styles.avatarSpeechRow}>
+            {/* Left: Interactive Avatar */}
+            <TouchableOpacity
+              onPress={handleAvatarMicTap}
+              activeOpacity={0.85}
+              style={styles.avatarTapWrapper}
+            >
+              <VirtualAvatar
+                size={68}
+                state={avatarState}
+                onPress={handleAvatarMicTap}
+                showStatusBadge={false}
               />
-            </View>
-          </View>
-
-          <Text style={progressStyles.progressGamesListTitle}>
-            Todays Games
-          </Text>
-
-          {todaysData?.games?.map((game: any, index: number) => {
-            // Calculate accuracy percentage for display
-            let accuracy = null;
-            if (game.details && game.details.accuracy) {
-              accuracy = game.details.accuracy;
-            }
-
-            const accuracyPercent = accuracy
-              ? Math.min(Math.max(parseFloat(accuracy.toString()), 0), 100)
-              : Math.min(
-                Math.max(
-                  (parseInt(game.score?.toString() || "0") / 10) * 100,
-                  10,
-                ),
-                100,
-              );
-
-            // Format duration to minutes
-            const durationMinutes = (game.time / 60).toFixed(1);
-
-            return (
-              <View key={index} style={progressStyles.progressGameItem}>
-                <View style={progressStyles.progressGameIconContainer}>
-                  <Ionicons name="game-controller" size={22} color="#fff" />
-                </View>
-                <View style={progressStyles.progressGameContent}>
-                  <Text style={progressStyles.progressGameName}>
-                    {game.game}
-                  </Text>
-                  <View style={progressStyles.progressGameStats}>
-                    <Text style={progressStyles.progressGameScore}>
-                      Score:{" "}
-                      <Text style={progressStyles.progressGameScoreValue}>
-                        {game.score || 0}
-                      </Text>
-                    </Text>
-                    <Text style={progressStyles.progressGameTime}>
-                      {durationMinutes} min
-                    </Text>
-                  </View>
-                  <View style={progressStyles.progressGameAccuracyContainer}>
-                    <View style={progressStyles.progressGameAccuracyBar}>
-                      <View
-                        style={[
-                          progressStyles.progressGameAccuracyFill,
-                          { width: `${accuracyPercent}%` },
-                        ]}
-                      />
-                    </View>
-                    <Text style={progressStyles.progressGameAccuracyText}>
-                      {Math.round(accuracyPercent)}%
-                    </Text>
-                  </View>
-                  {/* Eye tracking result from OpenCV server */}
-                  <EyeTrackingBadge eyeTracking={game.details?.eyeTracking} />
-                </View>
+              <View style={styles.tapMicBadge}>
+                <Feather
+                  name={avatarState === "speaking" ? "volume-x" : "mic"}
+                  size={11}
+                  color="#FFFFFF"
+                />
               </View>
-            );
-          })}
+            </TouchableOpacity>
 
-          {(!todaysData?.games || todaysData.games.length === 0) && (
-            <View style={progressStyles.noGamesContainer}>
-              <Text style={progressStyles.noGamesText}>
-                No games played today. Start playing to track your progress!
+            {/* Right: Conversational Bubble */}
+            <View style={styles.speechBubbleRight}>
+              <View style={styles.bubbleTopHeader}>
+                <Text style={styles.avatarNameText}>Smriti Mitr 🌸</Text>
+                <TouchableOpacity
+                  onPress={() => setCompanionModalVisible(true)}
+                  style={styles.expandMiniBtn}
+                >
+                  <Feather name="maximize-2" size={12} color="#6366F1" />
+                </TouchableOpacity>
+              </View>
+              <Text style={styles.avatarSpeechBody} numberOfLines={3}>
+                {avatarSpeechText}
               </Text>
+            </View>
+          </View>
+
+          {/* Quick Voice Prompt Chips */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.promptChipsRow}
+          >
+            {REMINISCENCE_TOPICS.map((topic) => (
               <TouchableOpacity
-                style={dashboardStyles.emptyStateButton}
-                onPress={() => router.push("/games")}
+                key={topic.id}
+                style={styles.miniPromptChip}
+                onPress={() => handleAskCompanion(topic)}
+                activeOpacity={0.8}
               >
-                <Text style={dashboardStyles.emptyStateButtonText}>
-                  Play Now
+                <Text style={styles.miniPromptEmoji}>{topic.emoji}</Text>
+                <Text style={styles.miniPromptText} numberOfLines={1}>
+                  {topic.title}
                 </Text>
               </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
+        {/* ── 3. FOUR-WAY MOBILE FEATURE SEGMENT TABS ───────────────────────── */}
+        <View style={styles.segmentNavContainer}>
+          <TouchableOpacity
+            style={[styles.segmentTabItem, activeFeatureTab === "radio" && styles.segmentTabActive]}
+            onPress={() => setActiveFeatureTab("radio")}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.segmentTabEmoji}>📻</Text>
+            <Text
+              style={[
+                styles.segmentTabText,
+                activeFeatureTab === "radio" && styles.segmentTabTextActive,
+              ]}
+              numberOfLines={1}
+            >
+              {currentLang === "as" ? "ৰেডিঅ’" : currentLang === "hi" ? "रेडियो" : "Radio"}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.segmentTabItem, activeFeatureTab === "photos" && styles.segmentTabActive]}
+            onPress={() => setActiveFeatureTab("photos")}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.segmentTabEmoji}>📖</Text>
+            <Text
+              style={[
+                styles.segmentTabText,
+                activeFeatureTab === "photos" && styles.segmentTabTextActive,
+              ]}
+              numberOfLines={1}
+            >
+              {currentLang === "as" ? "স্মৃতি ফটো" : currentLang === "hi" ? "तस्वीरें" : "Photos"}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.segmentTabItem, activeFeatureTab === "family" && styles.segmentTabActive]}
+            onPress={() => setActiveFeatureTab("family")}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.segmentTabEmoji}>📞</Text>
+            <Text
+              style={[
+                styles.segmentTabText,
+                activeFeatureTab === "family" && styles.segmentTabTextActive,
+              ]}
+              numberOfLines={1}
+            >
+              {currentLang === "as" ? "পৰিয়াল" : currentLang === "hi" ? "परिवार" : "Family"}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.segmentTabItem, activeFeatureTab === "mood" && styles.segmentTabActive]}
+            onPress={() => setActiveFeatureTab("mood")}
+            activeOpacity={0.8}
+          >
+            <Text style={styles.segmentTabEmoji}>🌸</Text>
+            <Text
+              style={[
+                styles.segmentTabText,
+                activeFeatureTab === "mood" && styles.segmentTabTextActive,
+              ]}
+              numberOfLines={1}
+            >
+              {currentLang === "as" ? "শান্তি" : currentLang === "hi" ? "शांति" : "Peace"}
+            </Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* ── ACTIVE FEATURE CARD CONTENT ─────────────────────────────────── */}
+        <View style={styles.activeFeatureWrapper}>
+          {activeFeatureTab === "radio" && <SmritiGeetiRadio />}
+
+          {activeFeatureTab === "photos" && (
+            <SmritiPhotobook
+              onAskCompanion={(topicTitle) =>
+                handleAskCompanion({
+                  id: "mem-custom",
+                  title: topicTitle,
+                  prompt: `Tell me about ${topicTitle}`,
+                  avatarStarter: `Ah, ${topicTitle}! Looking at our family memories brings so much joy. What part of that day do you remember most?`,
+                  avatarStarterAs: `আহা, ${topicTitle}! পৰিয়ালৰ এনে মধুৰ স্মৃতি সুঁৱৰিলে মনটো আনন্দেৰে ভৰি পৰে। আপোনাৰ কি কি মনত পৰিছে কওকচোন?`,
+                  avatarStarterHi: `अहा, ${topicTitle}! अपने परिवार की इन प्यारी यादों को देखकर मन कितना खुश हो जाता है। आप उस दिन के बारे में क्या सोच रहे हैं?`,
+                  emoji: "📖",
+                  category: "places",
+                })
+              }
+            />
+          )}
+
+          {activeFeatureTab === "family" && (
+            <View style={{ gap: 12 }}>
+              <AponManuhSpeedDial />
+              <GharorBartaPostcards items={familyItems} />
+            </View>
+          )}
+
+          {activeFeatureTab === "mood" && (
+            <View style={{ gap: 12 }}>
+              <ManorSthitiMood
+                onOpenCalmCorner={() => setCalmCornerVisible(true)}
+                onOpenFamilyCall={() => {
+                  const dialMsg =
+                    currentLang === "as"
+                      ? "অনিতালৈ ফোন সংযোগ কৰা হৈছে..."
+                      : currentLang === "hi"
+                      ? "अनिता को फोन मिलाया जा रहा है..."
+                      : "Connecting call to Anita...";
+                  VoiceAssistant.speak(dialMsg, currentLang);
+                }}
+              />
+              <BaganorKothaWeather />
+              {/* Calm Corner Shortcut */}
               <TouchableOpacity
-                onPress={() => setActiveSection(null)}
-                style={[
-                  styles.backButton,
-                  { alignSelf: "center", marginTop: 20, marginBottom: 30 },
-                ]}
+                style={styles.calmCornerBanner}
+                onPress={() => setCalmCornerVisible(true)}
+                activeOpacity={0.85}
               >
-                <Feather
-                  name="arrow-left"
-                  size={18}
-                  color="#0284C7"
-                  style={{ marginRight: 5 }}
-                />
-                <Text style={dashboardStyles.backLink}>Back to Dashboard</Text>
+                <View style={styles.calmBannerLeft}>
+                  <Text style={{ fontSize: 22 }}>🌙</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.calmBannerTitle}>Sandhya Shanti · Calm Corner</Text>
+                    <Text style={styles.calmBannerSub} numberOfLines={1}>
+                      Guided breathing & Bhupen Hazarika melodies
+                    </Text>
+                  </View>
+                </View>
+                <Feather name="chevron-right" size={18} color="#6366F1" />
               </TouchableOpacity>
             </View>
           )}
         </View>
 
-        {/* Previous Days Data */}
-        {gameHistory.slice(1).map((dayData, dayIndex) => {
-          // Format date for display
-          const date = new Date(dayData.date);
-          const formattedDate = date.toLocaleDateString("en-US", {
-            weekday: "short",
-            month: "short",
-            day: "numeric",
-          });
+        {/* ── 4. DOINIK NIYAM (SINGLE-ACTION FOCUS CARE) ──────────────────── */}
+        <Animated.View style={[styles.dailyFocusCard, { transform: [{ scale: celebrateAnim }] }]}>
+          <View style={styles.focusHeaderRow}>
+            <View style={styles.focusTitleGroup}>
+              <MaterialCommunityIcons name="water-check" size={20} color="#6366F1" />
+              <Text style={styles.focusCardTitle}>
+                {currentLang === "as" ? "দৈনিক নিয়ম · পানী আৰু ঔষধ" : "Daily Routine Care"}
+              </Text>
+            </View>
+            <View style={styles.focusCountPill}>
+              <Text style={styles.focusCountText}>
+                {hydration.glassesDrunk}/{hydration.dailyGoal} 🥛
+              </Text>
+            </View>
+          </View>
 
-          // Get stats from summary data for this day
-          const gamesPlayedForDay = dayData?.summary?.totalGames || 0;
-          const completionPercentageForDay = Math.min(
-            Math.round((gamesPlayedForDay / totalGames) * 100),
-            100,
-          );
-
-          return (
-            <View key={dayIndex} style={progressStyles.progressPastDayCard}>
-              <View style={progressStyles.progressPastDayHeader}>
-                <View style={progressStyles.progressPastDayBadge}>
-                  <Text style={progressStyles.progressPastDayBadgeText}>
-                    {date.toLocaleDateString("en-US", { day: "2-digit" })}
-                  </Text>
-                </View>
-                <View style={progressStyles.progressPastDayInfo}>
-                  <Text style={progressStyles.progressPastDayDate}>
-                    {formattedDate}
-                  </Text>
-                  <Text style={progressStyles.progressPastDayStats}>
-                    {gamesPlayedForDay} games • {completionPercentageForDay}%
-                    completed
-                  </Text>
-                </View>
-              </View>
-
-              <View style={progressStyles.progressPastDayCompletion}>
-                <View style={progressStyles.progressPastDayCompletionBar}>
-                  <View
-                    style={[
-                      progressStyles.progressPastDayCompletionFill,
-                      { width: `${completionPercentageForDay}%` },
-                    ]}
+          {/* 8 Compact Water Glasses */}
+          <View style={styles.waterGlassesTrack}>
+            {Array.from({ length: hydration.dailyGoal }).map((_, idx) => {
+              const isFilled = idx < hydration.glassesDrunk;
+              return (
+                <View
+                  key={idx}
+                  style={[
+                    styles.waterCupBubble,
+                    isFilled ? styles.waterCupFilled : styles.waterCupEmpty,
+                  ]}
+                >
+                  <MaterialCommunityIcons
+                    name={isFilled ? "cup-water" : "cup-outline"}
+                    size={16}
+                    color={isFilled ? "#6366F1" : "#CBD5E1"}
                   />
                 </View>
-              </View>
-            </View>
-          );
-        })}
-      </ScrollView>
-    );
-  };
+              );
+            })}
+          </View>
 
-  const renderHistorySection = () => {
-    if (historyIsLoading) {
-      return (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#0284C7" />
-          <Text style={dashboardStyles.loadingText}>
-            Loading your history...
-          </Text>
-        </View>
-      );
-    }
-
-    if (!gameHistory || gameHistory.length === 0) {
-      return (
-        <View style={dashboardStyles.emptyStateContainer}>
-          <MaterialIcons
-            name="history"
-            size={60}
-            color="#0284C7"
-            style={{ opacity: 0.6 }}
-          />
-          <Text style={dashboardStyles.emptyStateTitle}>No History Yet</Text>
-          <Text style={dashboardStyles.emptyStateMessage}>
-            Play some games to build your gaming history
-          </Text>
+          {/* 1-Tap Drink Water Action */}
           <TouchableOpacity
-            style={dashboardStyles.emptyStateButton}
-            onPress={() => router.push("/games")}
+            style={styles.oneTapWaterBtn}
+            onPress={handleAddWater}
+            activeOpacity={0.85}
           >
-            <Text style={dashboardStyles.emptyStateButtonText}>
-              Start Playing
+            <MaterialCommunityIcons name="plus-circle" size={18} color="#FFFFFF" />
+            <Text style={styles.oneTapWaterBtnText} numberOfLines={1}>
+              {currentLang === "as"
+                ? "✓ ১ গিলাচ পানী খালোঁ"
+                : currentLang === "hi"
+                ? "✓ १ गिलास पानी पिया"
+                : "✓ Drank 1 Glass of Water"}
             </Text>
           </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setActiveSection(null)}
-            style={styles.backButtons}
-          >
-            <Feather
-              name="arrow-left"
-              size={18}
-              color="#0284C7"
-              style={{ marginRight: 5 }}
-            />
-            <Text style={dashboardStyles.backLink}>Back</Text>
-          </TouchableOpacity>
-        </View>
-      );
-    }
 
-    return (
-      <ScrollView
-        style={styles.sectionContent}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={handleRefresh}
-            colors={["#0EA5E9"]}
-            tintColor="#0EA5E9"
-          />
-        }
-      >
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Game History</Text>
-          <TouchableOpacity
-            onPress={() => setActiveSection(null)}
-            style={styles.backButton}
-          >
-            <Feather
-              name="arrow-left"
-              size={18}
-              color="#0284C7"
-              style={{ marginRight: 5 }}
-            />
-            <Text style={dashboardStyles.backLink}>Back</Text>
-          </TouchableOpacity>
-        </View>
-
-        <View style={historyStyles.historyContainer}>
-          {gameHistory.map((dayData, dayIndex) => {
-            // Format date for display
-            const date = new Date(dayData.date);
-            const formattedDate = date.toLocaleDateString("en-US", {
-              weekday: "short",
-              month: "short",
-              day: "numeric",
-            });
-
-            return (
-              <View key={dayIndex} style={historyStyles.historyDateGroup}>
-                <View style={historyStyles.historyDateHeader}>
-                  <View style={historyStyles.historyDateBadge}>
-                    <Text style={historyStyles.historyDateBadgeText}>
-                      {date.toLocaleDateString("en-US", {
-                        day: "2-digit",
-                      })}
-                    </Text>
-                  </View>
-                  <Text style={historyStyles.historyDateText}>
-                    {formattedDate}
-                  </Text>
-                </View>
-
-                {dayData.games.map(
-                  (
-                    game: {
-                      details?: { accuracy?: string | number };
-                      score?: string | number;
-                      time: number;
-                      game: string;
-                    },
-                    gameIndex: number,
-                  ) => {
-                    // Check for accuracy in details
-                    let accuracy = null;
-                    if (game.details && game.details.accuracy) {
-                      accuracy = game.details.accuracy;
-                    }
-
-                    // Calculate accuracy percentage for display
-                    const accuracyPercent = accuracy
-                      ? Math.min(
-                        Math.max(parseFloat(accuracy.toString()), 0),
-                        100,
-                      )
-                      : Math.min(
-                        Math.max(
-                          (parseInt(game.score?.toString() || "0") / 10) *
-                          100,
-                          10,
-                        ),
-                        100,
-                      );
-
-                    // Format duration to minutes
-                    const durationMinutes = (game.time / 60).toFixed(1);
-
-                    return (
-                      <View key={gameIndex} style={historyStyles.historyCard}>
-                        <View style={historyStyles.historyGameIcon}>
-                          <Ionicons
-                            name="game-controller"
-                            size={24}
-                            color="#fff"
-                          />
-                        </View>
-                        <View style={historyStyles.historyCardContent}>
-                          <Text style={historyStyles.historyGameTitle}>
-                            {game.game}
-                          </Text>
-                          <View style={historyStyles.historyDetails}>
-                            <Feather
-                              name="clock"
-                              size={14}
-                              color="#0284C7"
-                              style={historyStyles.historyDetailIcon}
-                            />
-                            <Text style={historyStyles.historyTimeText}>
-                              {durationMinutes} min
-                            </Text>
-                            <Feather
-                              name="award"
-                              size={14}
-                              color="#0284C7"
-                              style={historyStyles.historyDetailIcon}
-                            />
-                            <Text style={historyStyles.historyScoreText}>
-                              Score:{" "}
-                              <Text style={historyStyles.historyScoreValue}>
-                                {game.score || "N/A"}
-                              </Text>
-                            </Text>
-                          </View>
-
-                          <View style={historyStyles.historyAccuracy}>
-                            <Text style={historyStyles.historyAccuracyLabel}>
-                              Accuracy
-                            </Text>
-                            <View style={historyStyles.historyDetails}>
-                              <View style={historyStyles.historyAccuracyBar}>
-                                <View
-                                  style={[
-                                    historyStyles.historyAccuracyFill,
-                                    { width: `${accuracyPercent}%` },
-                                  ]}
-                                />
-                              </View>
-                              <Text style={historyStyles.historyAccuracyText}>
-                                {Math.round(accuracyPercent)}%
-                              </Text>
-                            </View>
-                          </View>
-                        </View>
-                      </View>
-                    );
-                  },
-                )}
+          {/* Next Medication Reminder if pending */}
+          {nextPendingMed && (
+            <View style={styles.compactMedRow}>
+              <MaterialCommunityIcons name="pill" size={18} color="#10B981" />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.compactMedTitle} numberOfLines={1}>
+                  {nextPendingMed.name} ({nextPendingMed.timeLabel})
+                </Text>
               </View>
-            );
-          })}
-        </View>
-      </ScrollView>
-    );
-  };
-
-  const renderReminderSection = () => (
-    <ScrollView
-      style={styles.sectionContent}
-      refreshControl={
-        <RefreshControl
-          refreshing={isRefreshing}
-          onRefresh={handleRefresh}
-          colors={["#0EA5E9"]}
-          tintColor="#0EA5E9"
-        />
-      }
-    >
-      <View style={styles.sectionHeader}>
-        <Text style={styles.sectionTitle}>Reminders</Text>
-        <View style={styles.headerActions}>
-          <TouchableOpacity
-            onPress={() => setShowReminderForm(true)}
-            style={styles.addButton}
-          >
-            <Feather
-              name="plus"
-              size={18}
-              color="#0284C7"
-              style={{ marginRight: 5 }}
-            />
-            <Text style={styles.addLink}>Add New</Text>
-          </TouchableOpacity>
-          <TouchableOpacity
-            onPress={() => setActiveSection(null)}
-            style={styles.backButton}
-          >
-            <Feather
-              name="arrow-left"
-              size={18}
-              color="#0284C7"
-              style={{ marginRight: 5 }}
-            />
-            <Text style={dashboardStyles.backLink}>Back</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-
-      <View style={styles.remindersList}>
-        {reminders.map((reminder) => (
-          <View key={reminder.id} style={styles.reminderCard}>
-            <View style={[styles.reminderIcon, { backgroundColor: "#0F172A" }]}>
-              <AntDesign name="clock-circle" size={24} color="#fff" />
-            </View>
-            <View style={styles.reminderContent}>
-              <Text style={styles.reminderTitle}>{reminder.title}</Text>
-              <View style={styles.reminderTimeContainer}>
-                <Feather
-                  name="calendar"
-                  size={14}
-                  color="#0284C7"
-                  style={styles.reminderTimeIcon}
-                />
-                <Text style={styles.reminderDate}>{reminder.date}</Text>
-                <Feather
-                  name="clock"
-                  size={14}
-                  color="#0284C7"
-                  style={styles.reminderTimeIcon}
-                />
-                <Text style={styles.reminderTime}>{reminder.time}</Text>
-              </View>
-            </View>
-            <View style={styles.reminderActions}>
               <TouchableOpacity
-                onPress={() => handleEditReminder(reminder)}
-                style={styles.reminderActionButton}
+                style={styles.compactMedTakenBtn}
+                onPress={() => handleMarkMedTaken(nextPendingMed.id)}
+                activeOpacity={0.8}
               >
-                <Feather name="edit" size={20} color="#0284C7" />
-              </TouchableOpacity>
-              <TouchableOpacity
-                onPress={() => handleDeleteReminder(reminder.id)}
-                style={styles.reminderActionButton}
-              >
-                <Feather name="trash-2" size={20} color="#0284C7" />
+                <Text style={styles.compactMedTakenText}>✓ Taken</Text>
               </TouchableOpacity>
             </View>
-          </View>
-        ))}
+          )}
+        </Animated.View>
 
-        {reminders.length === 0 && (
-          <View style={styles.noRemindersContainer}>
-            <Text style={styles.noRemindersText}>No reminders set</Text>
-            <TouchableOpacity
-              style={styles.addReminderButton}
-              onPress={() => setShowReminderForm(true)}
-            >
-              <Text style={styles.addReminderButtonText}>+ Set Reminder</Text>
-            </TouchableOpacity>
-          </View>
-        )}
-      </View>
-
-      {/* Reminder Form Modal */}
-      <Modal
-        visible={showReminderForm}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setShowReminderForm(false)}
-      >
-        <TouchableWithoutFeedback onPress={() => setShowReminderForm(false)}>
-          <View style={styles.modalOverlay} />
-        </TouchableWithoutFeedback>
-        <View style={styles.modalContainer}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>
-              {editingReminderId ? "Edit Reminder" : "Add New Reminder"}
-            </Text>
-
-            <TextInput
-              style={styles.reminderInput}
-              value={newReminder.title}
-              onChangeText={(text) =>
-                setNewReminder({ ...newReminder, title: text })
-              }
-              placeholder="Enter reminder title"
-              placeholderTextColor="#888"
-            />
-
-            <TouchableOpacity
-              style={styles.dateTimeButton}
-              onPress={() =>
-                setNewReminder({
-                  ...newReminder,
-                  showDatePicker: true,
-                })
-              }
-            >
-              <Feather
-                name="calendar"
-                size={20}
-                color="#0284C7"
-                style={{ marginRight: 10 }}
-              />
-              <Text style={styles.dateTimeText}>
-                {newReminder.date.toLocaleDateString()}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.dateTimeButton}
-              onPress={() =>
-                setNewReminder({
-                  ...newReminder,
-                  showTimePicker: true,
-                })
-              }
-            >
-              <Feather
-                name="clock"
-                size={20}
-                color="#0284C7"
-                style={{ marginRight: 10 }}
-              />
-              <Text style={styles.dateTimeText}>
-                {newReminder.time.toLocaleTimeString([], {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                })}
-              </Text>
-            </TouchableOpacity>
-
-            {newReminder.showDatePicker && (
-              <DateTimePicker
-                value={newReminder.date}
-                mode="date"
-                display="default"
-                onChange={(_, selectedDate) => {
-                  setNewReminder({
-                    ...newReminder,
-                    date: selectedDate || newReminder.date,
-                    showDatePicker: Platform.OS === "ios",
-                  });
-                }}
-              />
-            )}
-
-            {newReminder.showTimePicker && (
-              <DateTimePicker
-                value={newReminder.time}
-                mode="time"
-                display="default"
-                onChange={(_, selectedTime) => {
-                  setNewReminder({
-                    ...newReminder,
-                    time: selectedTime || newReminder.time,
-                    showTimePicker: Platform.OS === "ios",
-                  });
-                }}
-              />
-            )}
-
-            <View style={styles.modalButtons}>
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={() => setShowReminderForm(false)}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.saveButton}
-                onPress={handleAddReminder}
-              >
-                <Text style={styles.saveButtonText}>Save</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </View>
-      </Modal>
-    </ScrollView>
-  );
-  const renderVisitHistorySection = () => {
-    if (visitHistoryLoading) {
-      return (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#0284C7" />
-          <Text style={dashboardStyles.loadingText}>
-            Loading visit history...
-          </Text>
-        </View>
-      );
-    }
-
-    return (
-      <ScrollView
-        style={styles.sectionContent}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={handleRefresh}
-            colors={["#0EA5E9"]}
-            tintColor="#0EA5E9"
-          />
-        }
-      >
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Review Dates</Text>
-          <TouchableOpacity
-            onPress={() => setActiveSection(null)}
-            style={styles.backButton}
-          >
-            <Feather
-              name="arrow-left"
-              size={18}
-              color="#0284C7"
-              style={{ marginRight: 5 }}
-            />
-            <Text style={dashboardStyles.backLink}>Back</Text>
-          </TouchableOpacity>
-        </View>
-
-        {sortedVisitHistory.length > 0 ? (
-          sortedVisitHistory.map((visit, index) => (
-            <TouchableOpacity
-              key={index}
-              style={dashboardStyles.visitRecordCard}
-              onPress={() => showVisitDetails(visit)}
-            >
-              <View style={dashboardStyles.visitRecordHeader}>
-                <View style={dashboardStyles.visitDateContainer}>
-                  <Feather name="calendar" size={16} color="#0284C7" />
-                  <Text style={dashboardStyles.visitDate}>
-                    {formatDate(visit.date)}
-                  </Text>
-                </View>
-                <Feather name="chevron-right" size={20} color="#888" />
-              </View>
-
-              <View style={dashboardStyles.visitRecordDetails}>
-                {visit.notes && (
-                  <View style={dashboardStyles.visitRecordItem}>
-                    <Text style={dashboardStyles.visitRecordLabel}>Notes:</Text>
-                    <Text style={dashboardStyles.visitRecordValue}>
-                      {visit.notes}
-                    </Text>
-                  </View>
-                )}
-
-                {visit.visiondistant && (
-                  <View style={dashboardStyles.visitRecordItem}>
-                    <Text style={dashboardStyles.visitRecordLabel}>
-                      Distant Vision:
-                    </Text>
-                    <Text style={dashboardStyles.visitRecordValue}>
-                      {visit.visiondistant}
-                    </Text>
-                  </View>
-                )}
-
-                {visit.visionnear && (
-                  <View style={dashboardStyles.visitRecordItem}>
-                    <Text style={dashboardStyles.visitRecordLabel}>
-                      Near Vision:
-                    </Text>
-                    <Text style={dashboardStyles.visitRecordValue}>
-                      {visit.visionnear}
-                    </Text>
-                  </View>
-                )}
-              </View>
-            </TouchableOpacity>
-          ))
-        ) : (
-          <View style={dashboardStyles.noRecordsContainer}>
-            <Feather name="file-text" size={40} color="#ccc" />
-            <Text style={dashboardStyles.noRecordsText}>
-              No visit records available
-            </Text>
-          </View>
-        )}
-
-        {/* Visit Details Modal is rendered at the top level */}
-      </ScrollView>
-    );
-  };
-
-  // Shared Visit Details Modal (accessible from both dashboard and reviewDates section)
-  const renderVisitDetailsModal = () => (
-    <Modal
-      visible={showVisitDetailsModal}
-      transparent={true}
-      animationType="fade"
-      onRequestClose={() => setShowVisitDetailsModal(false)}
-    >
-      <View style={styles.modalOverlay}>
-        <View style={styles.modalContent}>
-          <View style={dashboardStyles.modalHeader}>
-            <Text style={styles.modalTitle}>Visit Details</Text>
-            <TouchableOpacity
-              onPress={() => setShowVisitDetailsModal(false)}
-            >
-              <Feather name="x" size={24} color="#333" />
-            </TouchableOpacity>
-          </View>
-
-          <ScrollView style={dashboardStyles.modalScrollContent}>
-            {selectedVisitRecord && (
-              <>
-                <View style={dashboardStyles.visitDetailHeader}>
-                  <Feather name="calendar" size={18} color="#0284C7" />
-                  <Text style={dashboardStyles.visitDetailDate}>
-                    {formatDate(selectedVisitRecord.date)}
-                  </Text>
-                </View>
-
-                {/* Vision Assessment Section */}
-                <View style={dashboardStyles.visitDetailSection}>
-                  <Text style={dashboardStyles.visitDetailSectionTitle}>
-                    Vision Assessment
-                  </Text>
-
-                  {selectedVisitRecord.visiondistant && (
-                    <View style={dashboardStyles.visitDetailItem}>
-                      <Text style={dashboardStyles.visitDetailLabel}>
-                        Distant Vision:
-                      </Text>
-                      <Text style={dashboardStyles.visitDetailValue}>
-                        {selectedVisitRecord.visiondistant}
-                      </Text>
-                    </View>
-                  )}
-
-                  {selectedVisitRecord.visionnear && (
-                    <View style={dashboardStyles.visitDetailItem}>
-                      <Text style={dashboardStyles.visitDetailLabel}>
-                        Near Vision:
-                      </Text>
-                      <Text style={dashboardStyles.visitDetailValue}>
-                        {selectedVisitRecord.visionnear}
-                      </Text>
-                    </View>
-                  )}
-
-                  {selectedVisitRecord.bcvadistant && (
-                    <View style={dashboardStyles.visitDetailItem}>
-                      <Text style={dashboardStyles.visitDetailLabel}>
-                        BCVA Distant:
-                      </Text>
-                      <Text style={dashboardStyles.visitDetailValue}>
-                        {selectedVisitRecord.bcvadistant}
-                      </Text>
-                    </View>
-                  )}
-
-                  {selectedVisitRecord.bcvanear && (
-                    <View style={dashboardStyles.visitDetailItem}>
-                      <Text style={dashboardStyles.visitDetailLabel}>
-                        BCVA Near:
-                      </Text>
-                      <Text style={dashboardStyles.visitDetailValue}>
-                        {selectedVisitRecord.bcvanear}
-                      </Text>
-                    </View>
-                  )}
-
-                  {selectedVisitRecord.colorvision && (
-                    <View style={dashboardStyles.visitDetailItem}>
-                      <Text style={dashboardStyles.visitDetailLabel}>
-                        Color Vision:
-                      </Text>
-                      <Text style={dashboardStyles.visitDetailValue}>
-                        {selectedVisitRecord.colorvision}
-                      </Text>
-                    </View>
-                  )}
-                </View>
-
-                {/* Retinoscopy Section */}
-                {(selectedVisitRecord.dryretinoscopy ||
-                  selectedVisitRecord.wetretinoscopy) && (
-                    <View style={dashboardStyles.visitDetailSection}>
-                      <Text style={dashboardStyles.visitDetailSectionTitle}>
-                        Retinoscopy
-                      </Text>
-
-                      {selectedVisitRecord.dryretinoscopy && (
-                        <View style={dashboardStyles.visitDetailItem}>
-                          <Text style={dashboardStyles.visitDetailLabel}>
-                            Dry Retinoscopy:
-                          </Text>
-                          <Text style={dashboardStyles.visitDetailValue}>
-                            {selectedVisitRecord.dryretinoscopy}
-                          </Text>
-                        </View>
-                      )}
-
-                      {selectedVisitRecord.wetretinoscopy && (
-                        <View style={dashboardStyles.visitDetailItem}>
-                          <Text style={dashboardStyles.visitDetailLabel}>
-                            Wet Retinoscopy:
-                          </Text>
-                          <Text style={dashboardStyles.visitDetailValue}>
-                            {selectedVisitRecord.wetretinoscopy}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-                  )}
-
-                {/* Other Measurements Section */}
-                {(selectedVisitRecord.pmtvisiontpg ||
-                  selectedVisitRecord.pgpower ||
-                  selectedVisitRecord.pmt ||
-                  selectedVisitRecord.pda ||
-                  selectedVisitRecord.adar ||
-                  selectedVisitRecord.ar ||
-                  selectedVisitRecord.nct) && (
-                    <View style={dashboardStyles.visitDetailSection}>
-                      <Text style={dashboardStyles.visitDetailSectionTitle}>
-                        Other Measurements
-                      </Text>
-
-                      {selectedVisitRecord.pmtvisiontpg && (
-                        <View style={dashboardStyles.visitDetailItem}>
-                          <Text style={dashboardStyles.visitDetailLabel}>
-                            PMT Vision TPG:
-                          </Text>
-                          <Text style={dashboardStyles.visitDetailValue}>
-                            {selectedVisitRecord.pmtvisiontpg}
-                          </Text>
-                        </View>
-                      )}
-
-                      {selectedVisitRecord.pgpower && (
-                        <View style={dashboardStyles.visitDetailItem}>
-                          <Text style={dashboardStyles.visitDetailLabel}>
-                            PG Power:
-                          </Text>
-                          <Text style={dashboardStyles.visitDetailValue}>
-                            {selectedVisitRecord.pgpower}
-                          </Text>
-                        </View>
-                      )}
-
-                      {selectedVisitRecord.pmt && (
-                        <View style={dashboardStyles.visitDetailItem}>
-                          <Text style={dashboardStyles.visitDetailLabel}>
-                            PMT:
-                          </Text>
-                          <Text style={dashboardStyles.visitDetailValue}>
-                            {selectedVisitRecord.pmt}
-                          </Text>
-                        </View>
-                      )}
-
-                      {selectedVisitRecord.pda && (
-                        <View style={dashboardStyles.visitDetailItem}>
-                          <Text style={dashboardStyles.visitDetailLabel}>
-                            PDA:
-                          </Text>
-                          <Text style={dashboardStyles.visitDetailValue}>
-                            {selectedVisitRecord.pda}
-                          </Text>
-                        </View>
-                      )}
-
-                      {selectedVisitRecord.adar && (
-                        <View style={dashboardStyles.visitDetailItem}>
-                          <Text style={dashboardStyles.visitDetailLabel}>
-                            ADAR:
-                          </Text>
-                          <Text style={dashboardStyles.visitDetailValue}>
-                            {selectedVisitRecord.adar}
-                          </Text>
-                        </View>
-                      )}
-
-                      {selectedVisitRecord.ar && (
-                        <View style={dashboardStyles.visitDetailItem}>
-                          <Text style={dashboardStyles.visitDetailLabel}>
-                            AR:
-                          </Text>
-                          <Text style={dashboardStyles.visitDetailValue}>
-                            {selectedVisitRecord.ar}
-                          </Text>
-                        </View>
-                      )}
-
-                      {selectedVisitRecord.nct && (
-                        <View style={dashboardStyles.visitDetailItem}>
-                          <Text style={dashboardStyles.visitDetailLabel}>
-                            NCT:
-                          </Text>
-                          <Text style={dashboardStyles.visitDetailValue}>
-                            {selectedVisitRecord.nct}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-                  )}
-
-                {/* Prescription Section */}
-                {selectedVisitRecord.glassPrescription && (
-                  <View style={dashboardStyles.visitDetailSection}>
-                    <Text style={dashboardStyles.visitDetailSectionTitle}>
-                      Prescription
-                    </Text>
-                    <View style={dashboardStyles.visitDetailItem}>
-                      <Text style={dashboardStyles.visitDetailLabel}>
-                        Glass Prescription:
-                      </Text>
-                      <Text style={dashboardStyles.visitDetailValue}>
-                        {selectedVisitRecord.glassPrescription}
-                      </Text>
-                    </View>
-                  </View>
-                )}
-
-                {/* Notes Section */}
-                {selectedVisitRecord.notes && (
-                  <View style={dashboardStyles.visitDetailSection}>
-                    <Text style={dashboardStyles.visitDetailSectionTitle}>
-                      Notes
-                    </Text>
-                    <View style={dashboardStyles.visitDetailItem}>
-                      <Text style={dashboardStyles.visitDetailValue}>
-                        {selectedVisitRecord.notes}
-                      </Text>
-                    </View>
-                  </View>
-                )}
-              </>
-            )}
-          </ScrollView>
-
-          <TouchableOpacity
-            style={dashboardStyles.modalCloseButton}
-            onPress={() => setShowVisitDetailsModal(false)}
-          >
-            <Text style={dashboardStyles.modalCloseButtonText}>Close</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </Modal>
-  );
-
-  return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#0F172A' }} edges={["top"]}>
-      <StatusBar barStyle="light-content" backgroundColor="#0F172A" />
-      {renderVisitDetailsModal()}
-      <ScrollView
-        style={styles.container}
-        showsVerticalScrollIndicator={false}
-        contentContainerStyle={styles.scrollContent}
-        refreshControl={
-          <RefreshControl
-            refreshing={isRefreshing}
-            onRefresh={handleRefresh}
-            colors={["#0EA5E9"]}
-            tintColor="#0EA5E9"
-          />
-        }
-      >
-        <View
-          style={[
-            styles.welcomeSection,
-            {
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              paddingTop: 16,
-            },
-          ]}
+        {/* ── 5. CULTURAL COGNITIVE GAMES DEDICATED BANNER ─────────────────── */}
+        <TouchableOpacity
+          style={styles.aestheticGamesBanner}
+          onPress={() => router.push("/(patient)/games" as any)}
+          activeOpacity={0.85}
         >
-          <View>
-            <Text style={styles.welcomeText}>Hello,</Text>
-            <Text style={styles.patientName}>{username}</Text>
+          <View style={styles.gamesBannerIconCircle}>
+            <Text style={{ fontSize: 24 }}>🎮</Text>
           </View>
-          <TouchableOpacity
-            onPress={() => router.push("/settings")}
-            style={{
-              width: 44,
-              height: 44,
-              borderRadius: 14,
-              backgroundColor: "rgba(255,255,255,0.12)",
-              justifyContent: "center",
-              alignItems: "center",
-              borderWidth: 1,
-              borderColor: "rgba(255,255,255,0.2)",
-            }}
-          >
-            <Feather name="settings" size={20} color="#fff" />
-          </TouchableOpacity>
-        </View>
-
-        {activeSection ? (
-          // Show active section content
-          <>
-            {activeSection === "progress" && renderProgressSection()}
-            {activeSection === "reminder" && renderReminderSection()}
-            {activeSection === "history" && renderHistorySection()}
-            {activeSection === "reviewDates" && renderVisitHistorySection()}
-          </>
-        ) : (
-          <View style={dashboardStyles.dashboardContent}>
-            <View style={dashboardStyles.sectionCard}>
-              <View style={dashboardStyles.sectionHeaderRow}>
-                <Text style={dashboardStyles.sectionHeaderTitle}>
-                  Game Categories
-                </Text>
-                <TouchableOpacity
-                  onPress={() => router.push("/games")}
-                  style={dashboardStyles.linkButton}
-                >
-                  <Text style={dashboardStyles.linkText}>View all</Text>
-                  <Feather name="chevron-right" size={16} color="#0EA5E9" />
-                </TouchableOpacity>
-              </View>
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={dashboardStyles.categoryScroll}
-              >
-                {gameCategories.map((category) => (
-                  <TouchableOpacity
-                    key={category.key}
-                    style={dashboardStyles.categoryCard}
-                    onPress={() => handleCategoryPress(category.key)}
-                    activeOpacity={0.9}
-                  >
-                    <View
-                      style={[
-                        dashboardStyles.categoryIcon,
-                        { backgroundColor: category.softColor },
-                      ]}
-                    >
-                      <MaterialIcons
-                        name={category.icon}
-                        size={22}
-                        color={category.color}
-                      />
-                    </View>
-                    <Text style={dashboardStyles.categoryTitle}>
-                      {category.title}
-                    </Text>
-                    <Text style={dashboardStyles.categoryDescription}>
-                      {category.description}
-                    </Text>
-                    <View style={dashboardStyles.categoryMetaRow}>
-                      <Text
-                        style={[
-                          dashboardStyles.categoryCount,
-                          { color: category.color },
-                        ]}
-                      >
-                        {category.count} games
-                      </Text>
-                      <Feather
-                        name="arrow-right"
-                        size={14}
-                        color={category.color}
-                      />
-                    </View>
-                  </TouchableOpacity>
-                ))}
-              </ScrollView>
+          <View style={{ flex: 1 }}>
+            <View style={styles.gamesBannerBadgeRow}>
+              <Text style={styles.gamesBannerBadgeText}>COGNITIVE EXERCISES</Text>
             </View>
+            <Text style={styles.gamesBannerTitle}>
+              {t("games_title") || "Mind & Eye Games"}
+            </Text>
+            <Text style={styles.gamesBannerSub} numberOfLines={1}>
+              {currentLang === "as"
+                ? "অন্তাক্ষৰী, গামোচা মিলোৱা আৰু চকুৰ পৰীক্ষা"
+                : currentLang === "hi"
+                ? "अंताक्षरी, स्मृति खेल और नेत्र ट्रैकिंग"
+                : "Antakshari recall, motif match & OpenCV gaze games"}
+            </Text>
+          </View>
+          <View style={styles.gamesBannerArrowCircle}>
+            <Feather name="arrow-right" size={16} color="#6366F1" />
+          </View>
+        </TouchableOpacity>
 
-            <View style={dashboardStyles.sectionCard}>
-              <View style={dashboardStyles.sectionHeaderRow}>
-                <Text style={dashboardStyles.sectionHeaderTitle}>Reminders</Text>
-                <TouchableOpacity
-                  onPress={() => setShowReminderForm(true)}
-                  style={dashboardStyles.linkButton}
-                >
-                  <Feather name="plus" size={16} color="#0EA5E9" />
-                  <Text style={dashboardStyles.linkText}>Add</Text>
-                </TouchableOpacity>
-              </View>
-              <View style={styles.remindersList}>
-                {reminders.map((reminder) => (
-                  <View key={reminder.id} style={styles.reminderCard}>
-                    <View
-                      style={[styles.reminderIcon, { backgroundColor: "#0F172A" }]}
-                    >
-                      <AntDesign name="clock-circle" size={24} color="#fff" />
-                    </View>
-                    <View style={styles.reminderContent}>
-                      <Text style={styles.reminderTitle}>{reminder.title}</Text>
-                      <View style={styles.reminderTimeContainer}>
-                        <Feather
-                          name="calendar"
-                          size={14}
-                          color="#0284C7"
-                          style={styles.reminderTimeIcon}
-                        />
-                        <Text style={styles.reminderDate}>{reminder.date}</Text>
-                        <Feather
-                          name="clock"
-                          size={14}
-                          color="#0284C7"
-                          style={styles.reminderTimeIcon}
-                        />
-                        <Text style={styles.reminderTime}>{reminder.time}</Text>
-                      </View>
-                    </View>
-                    <View style={styles.reminderActions}>
-                      <TouchableOpacity
-                        onPress={() => handleEditReminder(reminder)}
-                        style={styles.reminderActionButton}
-                      >
-                        <Feather name="edit" size={20} color="#0284C7" />
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        onPress={() => handleDeleteReminder(reminder.id)}
-                        style={styles.reminderActionButton}
-                      >
-                        <Feather name="trash-2" size={20} color="#0284C7" />
-                      </TouchableOpacity>
-                    </View>
-                  </View>
-                ))}
+        {/* ── 6. BOTTOM NATIVE EMERGENCY SOS BUTTON ────────────────────────── */}
+        <TouchableOpacity
+          style={styles.mobileSosButton}
+          onPress={handleSOS}
+          activeOpacity={0.85}
+        >
+          <Feather name="alert-triangle" size={20} color="#E11D48" />
+          <View style={{ flexShrink: 1 }}>
+            <Text style={styles.mobileSosText} numberOfLines={1}>
+              {currentLang === "as"
+                ? "জৰুৰীকালীন সহায় (SOS Alert)"
+                : currentLang === "hi"
+                ? "आपातकालीन सहायता (SOS Alert)"
+                : t("sos_button")}
+            </Text>
+            <Text style={styles.mobileSosSubText} numberOfLines={1}>
+              {currentLang === "as"
+                ? "অনিতা আৰু ডাক্টৰলৈ ১-টেপ সংকেত"
+                : "1-Tap Emergency Alert to Family & Doctor"}
+            </Text>
+          </View>
+        </TouchableOpacity>
 
-                {reminders.length === 0 && (
-                  <View style={dashboardStyles.inlineEmptyCard}>
-                    <Text style={dashboardStyles.inlineEmptyTitle}>
-                      No reminders yet
-                    </Text>
-                    <Text style={dashboardStyles.inlineEmptyText}>
-                      Add a reminder to keep your routine on track.
-                    </Text>
-                    <TouchableOpacity
-                      style={dashboardStyles.inlineEmptyButton}
-                      onPress={() => setShowReminderForm(true)}
-                    >
-                      <Text style={dashboardStyles.inlineEmptyButtonText}>
-                        Set Reminder
-                      </Text>
-                    </TouchableOpacity>
-                  </View>
-                )}
-              </View>
-            </View>
-
-            <View style={dashboardStyles.sectionCard}>
-              <View style={dashboardStyles.sectionHeaderRow}>
-                <View>
-                  <Text style={dashboardStyles.sectionHeaderTitle}>
-                    Progress Overview
-                  </Text>
-                  <Text style={dashboardStyles.sectionSubtitle}>
-                    {playedGameHistory.length > 0 ? `Last ${Math.min(playedGameHistory.length, 7)} sessions` : "No sessions yet"}
-                  </Text>
-                </View>
-                <TouchableOpacity
-                  onPress={() => setActiveSection("progress")}
-                  style={dashboardStyles.linkButton}
-                >
-                  <Text style={dashboardStyles.linkText}>Details</Text>
-                  <Feather name="chevron-right" size={16} color="#0EA5E9" />
-                </TouchableOpacity>
-              </View>
-              <View style={dashboardStyles.metricsRow}>
-                <View style={dashboardStyles.metricCard}>
-                  <Text style={dashboardStyles.metricLabel}>Games</Text>
-                  <Text style={dashboardStyles.metricValue}>
-                    {latestDayStats.gamesPlayed}
-                  </Text>
-                </View>
-                <View style={dashboardStyles.metricCard}>
-                  <Text style={dashboardStyles.metricLabel}>Avg Score</Text>
-                  <Text style={dashboardStyles.metricValue}>
-                    {latestDayStats.averageScore}
-                  </Text>
-                </View>
-                <View style={dashboardStyles.metricCard}>
-                  <Text style={dashboardStyles.metricLabel}>Accuracy</Text>
-                  <Text style={[dashboardStyles.metricValue, dashboardStyles.metricValueSmall]}>
-                    {latestDayStats.averageAccuracy}%
-                  </Text>
-                </View>
-              </View>
-              {historyIsLoading ? (
-                <View style={dashboardStyles.inlineLoading}>
-                  <ActivityIndicator size="small" color="#0EA5E9" />
-                  <Text style={dashboardStyles.inlineLoadingText}>
-                    Loading progress...
-                  </Text>
-                </View>
-              ) : playedGameHistory.length === 0 ? (
-                <View style={dashboardStyles.inlineEmptyCard}>
-                  <Text style={dashboardStyles.inlineEmptyTitle}>
-                    No progress data yet
-                  </Text>
-                  <Text style={dashboardStyles.inlineEmptyText}>
-                    Play a game to start tracking your progress.
-                  </Text>
-                  <TouchableOpacity
-                    style={dashboardStyles.inlineEmptyButton}
-                    onPress={() => router.push("/games")}
-                  >
-                    <Text style={dashboardStyles.inlineEmptyButtonText}>
-                      Start Playing
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                <View style={chartStyles.chartCard}>
-                  <View style={chartStyles.chartHeader}>
-                    <Text style={chartStyles.chartTitle}>Games Played</Text>
-                    <Text style={chartStyles.chartMeta}>
-                      {weeklyGamesTotal} total
-                    </Text>
-                  </View>
-                  {renderChartBars(
-                    progressChartData,
-                    "#0EA5E9",
-                    progressChartMax,
-                  )}
-                </View>
-              )}
-            </View>
-
-            <View style={dashboardStyles.sectionCard}>
-              <View style={dashboardStyles.sectionHeaderRow}>
-                <View>
-                  <Text style={dashboardStyles.sectionHeaderTitle}>
-                    History Trends
-                  </Text>
-                  <Text style={dashboardStyles.sectionSubtitle}>
-                    {playedGameHistory.length > 0 ? `Last ${Math.min(playedGameHistory.length, 7)} sessions` : "No sessions yet"}
-                  </Text>
-                </View>
-                <TouchableOpacity
-                  onPress={() => setActiveSection("history")}
-                  style={dashboardStyles.linkButton}
-                >
-                  <Text style={dashboardStyles.linkText}>Details</Text>
-                  <Feather name="chevron-right" size={16} color="#0EA5E9" />
-                </TouchableOpacity>
-              </View>
-              {historyIsLoading ? (
-                <View style={dashboardStyles.inlineLoading}>
-                  <ActivityIndicator size="small" color="#0EA5E9" />
-                  <Text style={dashboardStyles.inlineLoadingText}>
-                    Loading history...
-                  </Text>
-                </View>
-              ) : playedGameHistory.length === 0 ? (
-                <View style={dashboardStyles.inlineEmptyCard}>
-                  <Text style={dashboardStyles.inlineEmptyTitle}>
-                    No history yet
-                  </Text>
-                  <Text style={dashboardStyles.inlineEmptyText}>
-                    Complete sessions to see trends here.
-                  </Text>
-                  <TouchableOpacity
-                    style={dashboardStyles.inlineEmptyButton}
-                    onPress={() => router.push("/games")}
-                  >
-                    <Text style={dashboardStyles.inlineEmptyButtonText}>
-                      Play Now
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              ) : (
-                <View style={chartStyles.chartCard}>
-                  <View style={chartStyles.chartHeader}>
-                    <Text style={chartStyles.chartTitle}>Avg Accuracy</Text>
-                    <Text style={chartStyles.chartMeta}>
-                      {weeklyAccuracyAverage}% avg
-                    </Text>
-                  </View>
-                  {renderChartBars(
-                    accuracyChartData,
-                    "#10B981",
-                    accuracyChartMax,
-                  )}
-                </View>
-              )}
-            </View>
-
-            <View style={dashboardStyles.sectionCard}>
-              <View style={dashboardStyles.sectionHeaderRow}>
-                <Text style={dashboardStyles.sectionHeaderTitle}>
-                  Review Dates
-                </Text>
-                <TouchableOpacity
-                  onPress={() => setActiveSection("reviewDates")}
-                  style={dashboardStyles.linkButton}
-                >
-                  <Text style={dashboardStyles.linkText}>Details</Text>
-                  <Feather name="chevron-right" size={16} color="#0EA5E9" />
-                </TouchableOpacity>
-              </View>
-              {visitHistoryLoading ? (
-                <View style={dashboardStyles.inlineLoading}>
-                  <ActivityIndicator size="small" color="#0EA5E9" />
-                  <Text style={dashboardStyles.inlineLoadingText}>
-                    Loading review dates...
-                  </Text>
-                </View>
-              ) : sortedVisitHistory.length > 0 ? (
-                sortedVisitHistory.map((visit, index) => (
-                  <TouchableOpacity
-                    key={index}
-                    style={[
-                      dashboardStyles.visitRecordCard,
-                      dashboardStyles.visitRecordCardInline,
-                    ]}
-                    onPress={() => {
-                      setSelectedVisitRecord(visit);
-                      setShowVisitDetailsModal(true);
-                    }}
-                  >
-                    <View style={dashboardStyles.visitRecordHeader}>
-                      <View style={dashboardStyles.visitDateContainer}>
-                        <Feather name="calendar" size={16} color="#0284C7" />
-                        <Text style={dashboardStyles.visitDate}>
-                          {formatDate(visit.date)}
-                        </Text>
-                      </View>
-                      <Feather name="chevron-right" size={20} color="#888" />
-                    </View>
-
-                    <View style={dashboardStyles.visitRecordDetails}>
-                      {visit.notes && (
-                        <View style={dashboardStyles.visitRecordItem}>
-                          <Text style={dashboardStyles.visitRecordLabel}>
-                            Notes:
-                          </Text>
-                          <Text style={dashboardStyles.visitRecordValue}>
-                            {visit.notes}
-                          </Text>
-                        </View>
-                      )}
-
-                      {visit.visiondistant && (
-                        <View style={dashboardStyles.visitRecordItem}>
-                          <Text style={dashboardStyles.visitRecordLabel}>
-                            Distant Vision:
-                          </Text>
-                          <Text style={dashboardStyles.visitRecordValue}>
-                            {visit.visiondistant}
-                          </Text>
-                        </View>
-                      )}
-
-                      {visit.visionnear && (
-                        <View style={dashboardStyles.visitRecordItem}>
-                          <Text style={dashboardStyles.visitRecordLabel}>
-                            Near Vision:
-                          </Text>
-                          <Text style={dashboardStyles.visitRecordValue}>
-                            {visit.visionnear}
-                          </Text>
-                        </View>
-                      )}
-                    </View>
-                  </TouchableOpacity>
-                ))
-              ) : (
-                <View style={dashboardStyles.inlineEmptyCard}>
-                  <Text style={dashboardStyles.inlineEmptyTitle}>
-                    No review dates yet
-                  </Text>
-                  <Text style={dashboardStyles.inlineEmptyText}>
-                    Your visit records will appear here once available.
-                  </Text>
-                </View>
-              )}
-            </View>
-
-            <View style={dashboardStyles.sectionCard}>
-              <View style={dashboardStyles.sectionHeaderRow}>
-                <Text style={dashboardStyles.sectionHeaderTitle}>Queries</Text>
-                <View style={dashboardStyles.sectionHeaderActions}>
-                  <TouchableOpacity
-                    onPress={() => router.push("/queries")}
-                    style={dashboardStyles.linkButton}
-                  >
-                    <Text style={dashboardStyles.linkText}>Ask</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity
-                    onPress={() => router.push("/queries")}
-                    style={dashboardStyles.linkButton}
-                  >
-                    <Text style={dashboardStyles.linkText}>View all</Text>
-                    <Feather name="chevron-right" size={16} color="#0EA5E9" />
-                  </TouchableOpacity>
-                </View>
-              </View>
-              <View style={dashboardStyles.queryStatsRow}>
-                <View style={dashboardStyles.queryStatCard}>
-                  <Text style={dashboardStyles.queryStatLabel}>Pending</Text>
-                  <Text style={dashboardStyles.queryStatValue}>
-                    {queryStats.pending}
-                  </Text>
-                </View>
-                <View style={dashboardStyles.queryStatCard}>
-                  <Text style={dashboardStyles.queryStatLabel}>Answered</Text>
-                  <Text style={dashboardStyles.queryStatValue}>
-                    {queryStats.answered}
-                  </Text>
-                </View>
-                <View style={dashboardStyles.queryStatCard}>
-                  <Text style={dashboardStyles.queryStatLabel}>Total</Text>
-                  <Text style={dashboardStyles.queryStatValue}>
-                    {queryStats.total}
-                  </Text>
-                </View>
-              </View>
-
-              {queriesLoading ? (
-                <View style={dashboardStyles.inlineLoading}>
-                  <ActivityIndicator size="small" color="#0EA5E9" />
-                  <Text style={dashboardStyles.inlineLoadingText}>
-                    Loading queries...
-                  </Text>
-                </View>
-              ) : recentQueries.length > 0 ? (
-                recentQueries.map((query) => (
-                  <TouchableOpacity
-                    key={query.id}
-                    style={dashboardStyles.queryItem}
-                    onPress={() => router.push(`/query/${query.id}`)}
-                  >
-                    <View
-                      style={[
-                        dashboardStyles.queryStatusDot,
-                        {
-                          backgroundColor:
-                            query.status === "pending" ? "#F59E0B" : "#10B981",
-                        },
-                      ]}
-                    />
-                    <View style={dashboardStyles.queryContent}>
-                      <View style={dashboardStyles.queryHeaderRow}>
-                        <Text style={dashboardStyles.queryStatusText}>
-                          {query.status === "pending" ? "Pending" : "Answered"}
-                        </Text>
-                        <Text style={dashboardStyles.queryDate}>
-                          {new Date(query.createdAt).toLocaleDateString()}
-                        </Text>
-                      </View>
-                      <Text style={dashboardStyles.queryQuestion} numberOfLines={2}>
-                        {query.question}
-                      </Text>
-                    </View>
-                    <Feather name="chevron-right" size={18} color="#94A3B8" />
-                  </TouchableOpacity>
-                ))
-              ) : (
-                <View style={dashboardStyles.inlineEmptyCard}>
-                  <Text style={dashboardStyles.inlineEmptyTitle}>
-                    No queries yet
-                  </Text>
-                  <Text style={dashboardStyles.inlineEmptyText}>
-                    Ask your doctor a question to get started.
-                  </Text>
-                  <TouchableOpacity
-                    style={dashboardStyles.inlineEmptyButton}
-                    onPress={() => router.push("/queries")}
-                  >
-                    <Text style={dashboardStyles.inlineEmptyButtonText}>
-                      Ask a Question
-                    </Text>
-                  </TouchableOpacity>
-                </View>
-              )}
-            </View>
+        {/* SOS Sent Banner */}
+        {sosBanner && (
+          <View style={styles.sosSentNotification}>
+            <Feather name="check-circle" size={16} color="#16A34A" />
+            <Text style={styles.sosSentText}>{sosBanner}</Text>
           </View>
         )}
+
+        <View style={{ height: 90 }} />
       </ScrollView>
+
+      {/* ── Modals ──────────────────────────────────────────────────────── */}
+      <CalmCornerModal
+        visible={calmCornerVisible}
+        onClose={() => setCalmCornerVisible(false)}
+      />
+
+      <Modal
+        visible={languageModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setLanguageModalVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setLanguageModalVisible(false)}
+        >
+          <View style={styles.langModalBox} onStartShouldSetResponder={() => true}>
+            <View style={styles.langModalHeader}>
+              <Text style={styles.langModalTitle}>{t("select_language")}</Text>
+              <TouchableOpacity onPress={() => setLanguageModalVisible(false)}>
+                <Feather name="x" size={20} color="#0F172A" />
+              </TouchableOpacity>
+            </View>
+
+            <View style={{ gap: 8 }}>
+              {SUPPORTED_LANGUAGES.map((lang) => {
+                const isSelected = currentLang === lang.code;
+                return (
+                  <TouchableOpacity
+                    key={lang.code}
+                    style={[styles.langChoiceCard, isSelected && styles.langChoiceSelected]}
+                    onPress={async () => {
+                      await changeLanguage(lang.code);
+                      setLanguageModalVisible(false);
+                      VoiceAssistant.speak(`Language set to ${lang.name}`, lang.code);
+                    }}
+                    activeOpacity={0.7}
+                  >
+                    <Text style={{ fontSize: 20 }}>{lang.flagEmoji}</Text>
+                    <View style={{ flex: 1 }}>
+                      <Text style={styles.langChoiceNative}>{lang.nativeName}</Text>
+                      <Text style={styles.langChoiceSub}>{lang.name} • {lang.region}</Text>
+                    </View>
+                    {isSelected && <Feather name="check" size={20} color="#2563EB" />}
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+          </View>
+        </TouchableOpacity>
+      </Modal>
+
+      <Modal
+        visible={companionModalVisible}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setCompanionModalVisible(false)}
+      >
+        <CompanionScreen onClose={() => setCompanionModalVisible(false)} isModal />
+      </Modal>
     </SafeAreaView>
   );
 }
 
-const progressStyles = StyleSheet.create({
-  progressSummaryCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  progressSummaryDate: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#111827",
-    marginBottom: 16,
-    textAlign: "center",
-  },
-  progressSummaryStatsRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 20,
-  },
-  progressSummaryStatItem: {
-    flex: 1,
-    alignItems: "center",
-  },
-  progressSummaryStatValue: {
-    fontSize: 24,
-    fontWeight: "800",
-    color: "#0EA5E9",
-    marginBottom: 4,
-  },
-  progressSummaryStatLabel: {
-    fontSize: 12,
-    color: "#6B7280",
-    textAlign: "center",
-    fontWeight: "500",
-  },
-  progressSummaryStatDivider: {
-    height: 36,
-    width: 1,
-    backgroundColor: "#E5E7EB",
-  },
-  progressCompletionContainer: {
-    marginBottom: 20,
-  },
-  progressCompletionText: {
-    fontSize: 13,
-    color: "#6B7280",
-    marginBottom: 8,
-    fontWeight: "500",
-  },
-  progressCompletionBar: {
-    height: 8,
-    backgroundColor: "#E5E7EB",
-    borderRadius: 4,
-    overflow: "hidden",
-  },
-  progressCompletionFill: {
-    height: 8,
-    backgroundColor: "#0EA5E9",
-    borderRadius: 4,
-  },
-  progressGamesListTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#111827",
-    marginBottom: 12,
-  },
-  progressGameItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#F9FAFB",
-    borderRadius: 14,
-    padding: 14,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: "#F3F4F6",
-  },
-  progressGameIconContainer: {
-    width: 42,
-    height: 42,
-    borderRadius: 13,
-    backgroundColor: "#0EA5E9",
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 12,
-  },
-  progressGameContent: {
-    flex: 1,
-  },
-  progressGameName: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#111827",
-    marginBottom: 5,
-  },
-  progressGameStats: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 6,
-  },
-  progressGameScore: {
-    fontSize: 12,
-    color: "#6B7280",
-  },
-  progressGameScoreValue: {
-    fontWeight: "700",
-    color: "#0EA5E9",
-  },
-  progressGameTime: {
-    fontSize: 12,
-    color: "#6B7280",
-  },
-  progressGameAccuracyContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  progressGameAccuracyBar: {
-    flex: 1,
-    height: 5,
-    backgroundColor: "#E5E7EB",
-    borderRadius: 3,
-    overflow: "hidden",
-    marginRight: 8,
-  },
-  progressGameAccuracyFill: {
-    height: 5,
-    backgroundColor: "#0EA5E9",
-    borderRadius: 3,
-  },
-  progressGameAccuracyText: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#0EA5E9",
-    width: 38,
-    textAlign: "right",
-  },
-  noGamesContainer: {
-    alignItems: "center",
-    paddingVertical: 20,
-  },
-  noGamesText: {
-    fontSize: 14,
-    color: "#6B7280",
-    textAlign: "center",
-    marginBottom: 16,
-    lineHeight: 20,
-  },
-  progressPastDayCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 10,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  progressPastDayHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  progressPastDayBadge: {
-    width: 36,
-    height: 36,
-    borderRadius: 11,
-    backgroundColor: "#0F172A",
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 12,
-  },
-  progressPastDayBadgeText: {
-    color: "#FFFFFF",
-    fontSize: 14,
-    fontWeight: "700",
-  },
-  progressPastDayInfo: {
-    flex: 1,
-  },
-  progressPastDayDate: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#111827",
-    marginBottom: 3,
-  },
-  progressPastDayStats: {
-    fontSize: 12,
-    color: "#6B7280",
-  },
-  progressPastDayCompletion: {
-    marginTop: 6,
-  },
-  progressPastDayCompletionBar: {
-    height: 5,
-    backgroundColor: "#E5E7EB",
-    borderRadius: 3,
-    overflow: "hidden",
-  },
-  progressPastDayCompletionFill: {
-    height: 5,
-    backgroundColor: "#0EA5E9",
-    borderRadius: 3,
-  },
-});
-
-// New dashboard styles for the grid layout
-const dashboardStyles = StyleSheet.create({
-  dashboardContent: {
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 16,
-    gap: 16,
-  },
-  sectionCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    padding: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  sectionHeaderRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  sectionHeaderTitle: {
-    fontSize: 18,
-    fontWeight: "700",
-    color: "#111827",
-  },
-  sectionSubtitle: {
-    fontSize: 12,
-    color: "#6B7280",
-    marginTop: 2,
-  },
-  sectionHeaderActions: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  linkButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    paddingVertical: 6,
-    paddingHorizontal: 10,
-    borderRadius: 12,
-    backgroundColor: "#EFF6FF",
-  },
-  linkText: {
-    color: "#0EA5E9",
-    fontWeight: "600",
-    fontSize: 13,
-  },
-  categoryScroll: {
-    paddingVertical: 4,
-    paddingRight: 6,
-  },
-  categoryCard: {
-    width: 180,
-    padding: 14,
-    borderRadius: 16,
-    backgroundColor: "#F8FAFC",
-    marginRight: 12,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-  },
-  categoryIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  categoryTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#111827",
-  },
-  categoryDescription: {
-    fontSize: 12,
-    color: "#6B7280",
-    marginTop: 4,
-  },
-  categoryMetaRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    marginTop: 10,
-  },
-  categoryCount: {
-    fontSize: 12,
-    fontWeight: "600",
-  },
-  metricsRow: {
-    flexDirection: "row",
-    gap: 10,
-    marginBottom: 12,
-  },
-  metricCard: {
-    flex: 1,
-    backgroundColor: "#F8FAFC",
-    borderRadius: 14,
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    alignItems: "center",
-  },
-  metricLabel: {
-    fontSize: 11,
-    color: "#94A3B8",
-    fontWeight: "600",
-    textTransform: "uppercase",
-  },
-  metricValue: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#0F172A",
-    marginTop: 4,
-  },
-  metricValueSmall: {
-    fontSize: 13,
-  },
-  inlineEmptyCard: {
-    backgroundColor: "#F8FAFC",
-    borderRadius: 16,
-    padding: 16,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-  },
-  inlineEmptyTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#111827",
-    marginBottom: 6,
-    textAlign: "center",
-  },
-  inlineEmptyText: {
-    fontSize: 12,
-    color: "#6B7280",
-    textAlign: "center",
-    marginBottom: 12,
-    lineHeight: 18,
-  },
-  inlineEmptyButton: {
-    backgroundColor: "#0EA5E9",
-    paddingVertical: 10,
-    paddingHorizontal: 18,
-    borderRadius: 12,
-  },
-  inlineEmptyButtonText: {
-    color: "#FFFFFF",
-    fontWeight: "700",
-    fontSize: 13,
-  },
-  inlineLoading: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    paddingVertical: 10,
-  },
-  inlineLoadingText: {
-    fontSize: 12,
-    color: "#6B7280",
-  },
-  queryStatsRow: {
-    flexDirection: "row",
-    gap: 10,
-    marginBottom: 12,
-  },
-  queryStatCard: {
-    flex: 1,
-    backgroundColor: "#F8FAFC",
-    borderRadius: 14,
-    paddingVertical: 12,
-    paddingHorizontal: 10,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    alignItems: "center",
-  },
-  queryStatLabel: {
-    fontSize: 11,
-    color: "#94A3B8",
-    fontWeight: "600",
-    textTransform: "uppercase",
-  },
-  queryStatValue: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#0F172A",
-    marginTop: 4,
-  },
-  queryItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#F8FAFC",
-    borderRadius: 14,
-    padding: 12,
-    marginBottom: 8,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-  },
-  queryStatusDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginRight: 10,
-  },
-  queryContent: {
-    flex: 1,
-  },
-  queryHeaderRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 6,
-  },
-  queryStatusText: {
-    fontSize: 11,
-    color: "#64748B",
-    fontWeight: "600",
-    textTransform: "uppercase",
-  },
-  queryDate: {
-    fontSize: 11,
-    color: "#94A3B8",
-  },
-  queryQuestion: {
-    fontSize: 13,
-    color: "#0F172A",
-    fontWeight: "600",
-  },
-  visitRecordCardInline: {
-    marginHorizontal: 0,
-  },
-  dashboardGrid: {
-    flexDirection: "row",
-    flexWrap: "wrap",
-    justifyContent: "space-between",
-    paddingHorizontal: 16,
-    paddingVertical: 16,
-    gap: 12,
-  },
-  dashboardItem: {
-    width: "47%",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 18,
-    padding: 18,
-    marginBottom: 4,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    display: "flex",
-    flexDirection: "column",
-    justifyContent: "space-between",
-    alignItems: "center",
-    elevation: 2,
-  },
-  itemIcon: {
-    width: 56,
-    height: 56,
-    borderRadius: 16,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  itemTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#111827",
-    marginBottom: 6,
-    textAlign: "center",
-  },
-  itemDescription: {
-    fontSize: 12,
-    color: "#6B7280",
-    lineHeight: 17,
-    textAlign: "center",
-  },
-  loadingText: {
-    fontSize: 14,
-    color: "#6B7280",
-    marginTop: 12,
-    textAlign: "center",
-  },
-  emptyStateContainer: {
-    padding: 32,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    margin: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  emptyStateTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#111827",
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  emptyStateMessage: {
-    fontSize: 14,
-    color: "#6B7280",
-    textAlign: "center",
-    marginBottom: 20,
-    lineHeight: 20,
-  },
-  emptyStateButton: {
-    backgroundColor: "#0EA5E9",
-    paddingVertical: 13,
-    paddingHorizontal: 24,
-    borderRadius: 14,
-    marginTop: 8,
-    shadowColor: "#0EA5E9",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  emptyStateButtonText: {
-    color: "#FFFFFF",
-    fontWeight: "700",
-    fontSize: 14,
-  },
-  backLink: {
-    color: "#0EA5E9",
-    fontWeight: "600",
-    fontSize: 14,
-  },
-  progressDateGroup: {
-    marginBottom: 16,
-    paddingHorizontal: 16,
-  },
-  progressDateHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 10,
-  },
-  progressDateBadge: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    backgroundColor: "#0F172A",
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 12,
-  },
-  progressDateBadgeText: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#FFFFFF",
-  },
-  progressDateText: {
-    fontSize: 15,
-    color: "#111827",
-    fontWeight: "600",
-  },
-  progressCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  progressGameIcon: {
-    width: 46,
-    height: 46,
-    borderRadius: 14,
-    backgroundColor: "#0EA5E9",
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 14,
-  },
-  progressCardContent: {
-    flex: 1,
-  },
-  progressGameTitle: {
-    fontSize: 15,
-    fontWeight: "700",
-    color: "#111827",
-    marginBottom: 6,
-  },
-  progressDetails: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 6,
-    gap: 12,
-  },
-  progressTimeText: {
-    fontSize: 12,
-    fontWeight: "500",
-    color: "#6B7280",
-  },
-  progressScoreText: {
-    fontSize: 12,
-    color: "#6B7280",
-  },
-  visitRecordCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    marginBottom: 12,
-    padding: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
-    marginHorizontal: 16,
-  },
-  visitRecordHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  visitDateContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-  },
-  visitDate: {
-    fontSize: 14,
-    color: "#374151",
-    fontWeight: "600",
-  },
-  visitRecordDetails: {
-    borderTopWidth: 1,
-    borderTopColor: "#F3F4F6",
-    paddingTop: 12,
-  },
-  visitRecordItem: {
-    marginBottom: 10,
-  },
-  visitRecordLabel: {
-    fontSize: 12,
-    color: "#9CA3AF",
-    marginBottom: 3,
-    fontWeight: "600",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  visitRecordValue: {
-    fontSize: 14,
-    color: "#374151",
-    lineHeight: 20,
-  },
-  noRecordsContainer: {
-    alignItems: "center",
-    justifyContent: "center",
-    padding: 32,
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    margin: 16,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  noRecordsText: {
-    fontSize: 14,
-    color: "#6B7280",
-    marginTop: 12,
-    textAlign: "center",
-  },
-  modalHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 16,
-    paddingBottom: 16,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F3F4F6",
-  },
-  modalScrollContent: {
-    maxHeight: 400,
-    paddingRight: 5,
-  },
-  visitDetailHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 20,
-    gap: 10,
-  },
-  visitDetailDate: {
-    fontSize: 15,
-    color: "#374151",
-    fontWeight: "600",
-  },
-  visitDetailSection: {
-    marginBottom: 20,
-  },
-  visitDetailSectionTitle: {
-    fontSize: 16,
-    fontWeight: "700",
-    color: "#0F172A",
-    marginBottom: 12,
-  },
-  visitDetailItem: {
-    marginBottom: 10,
-  },
-  visitDetailLabel: {
-    fontSize: 12,
-    color: "#9CA3AF",
-    marginBottom: 4,
-    fontWeight: "600",
-    textTransform: "uppercase",
-    letterSpacing: 0.5,
-  },
-  visitDetailValue: {
-    fontSize: 14,
-    color: "#374151",
-    lineHeight: 20,
-  },
-  modalCloseButton: {
-    backgroundColor: "#0EA5E9",
-    borderRadius: 14,
-    padding: 14,
-    alignItems: "center",
-    marginTop: 16,
-    shadowColor: "#0EA5E9",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  modalCloseButtonText: {
-    color: "#FFFFFF",
-    fontSize: 15,
-    fontWeight: "700",
-  },
-});
-
-const chartStyles = StyleSheet.create({
-  chartCard: {
-    backgroundColor: "#F8FAFC",
-    borderRadius: 16,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-  },
-  chartHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 12,
-  },
-  chartTitle: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#0F172A",
-  },
-  chartMeta: {
-    fontSize: 12,
-    color: "#64748B",
-    fontWeight: "600",
-  },
-  chartBars: {
-    flexDirection: "row",
-    alignItems: "flex-end",
-    justifyContent: "space-between",
-    height: 120,
-    paddingHorizontal: 4,
-  },
-  chartBarItem: {
-    flex: 1,
-    alignItems: "center",
-  },
-  chartBar: {
-    width: 12,
-    borderRadius: 6,
-  },
-  chartLabel: {
-    fontSize: 10,
-    color: "#94A3B8",
-    marginTop: 6,
-  },
-  chartValue: {
-    fontSize: 10,
-    color: "#64748B",
-    fontWeight: "600",
-    marginBottom: 6,
-  },
-});
-
-const historyStyles = StyleSheet.create({
-  historyContainer: {
-    marginBottom: 20,
-    paddingHorizontal: 16,
-  },
-  historyDateGroup: {
-    marginBottom: 16,
-  },
-  historyDateHeader: {
-    flexDirection: "row" as "row",
-    alignItems: "center" as "center",
-    marginBottom: 10,
-  },
-  historyDateBadge: {
-    width: 38,
-    height: 38,
-    borderRadius: 12,
-    backgroundColor: "#0F172A",
-    justifyContent: "center" as "center",
-    alignItems: "center" as "center",
-    marginRight: 12,
-  },
-  historyDateBadgeText: {
-    fontSize: 14,
-    fontWeight: "bold" as "bold",
-    color: "#FFFFFF",
-  },
-  historyDateText: {
-    fontSize: 15,
-    color: "#111827",
-    fontWeight: "600" as "600",
-  },
-  historyCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 10,
-    flexDirection: "row" as "row",
-    alignItems: "center" as "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  historyGameIcon: {
-    width: 46,
-    height: 46,
-    borderRadius: 14,
-    backgroundColor: "#0EA5E9",
-    justifyContent: "center" as "center",
-    alignItems: "center" as "center",
-    marginRight: 14,
-  },
-  historyCardContent: {
-    flex: 1,
-  },
-  historyGameTitle: {
-    fontSize: 14,
-    fontWeight: "700" as "bold",
-    color: "#111827",
-    marginBottom: 6,
-  },
-  historyDetails: {
-    flexDirection: "row" as "row",
-    alignItems: "center" as "center",
-    marginBottom: 6,
-    gap: 12,
-  },
-  historyDetailIcon: {
-    marginRight: 4,
-    color: "#0EA5E9",
-  },
-  historyTimeText: {
-    fontSize: 12,
-    color: "#6B7280",
-  },
-  historyScoreText: {
-    fontSize: 12,
-    color: "#6B7280",
-  },
-  historyScoreValue: {
-    fontWeight: "bold" as "bold",
-    color: "#0EA5E9",
-  },
-  historyAccuracy: {
-    marginTop: 6,
-  },
-  historyAccuracyLabel: {
-    fontSize: 11,
-    color: "#9CA3AF",
-    marginBottom: 4,
-    fontWeight: "600" as "600",
-    textTransform: "uppercase" as "uppercase",
-    letterSpacing: 0.5,
-  },
-  historyAccuracyBar: {
-    height: 6,
-    backgroundColor: "#E5E7EB",
-    borderRadius: 3,
-    overflow: "hidden" as "hidden",
-    flex: 1,
-  },
-  historyAccuracyFill: {
-    height: 6,
-    backgroundColor: "#0EA5E9",
-    borderRadius: 3,
-  },
-  historyAccuracyText: {
-    fontSize: 12,
-    fontWeight: "bold" as "bold",
-    color: "#0EA5E9",
-    marginLeft: 8,
-  },
-});
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F3F4F6",
+    backgroundColor: "#FAFAFC",
   },
   scrollContent: {
-    paddingBottom: 120,
-  },
-  welcomeSection: {
-    backgroundColor: "#0F172A",
-    paddingHorizontal: 24,
+    paddingHorizontal: 14,
+    paddingTop: 8,
     paddingBottom: 24,
-    borderBottomLeftRadius: 0,
-    borderBottomRightRadius: 0,
   },
-  welcomeText: {
-    color: "rgba(255,255,255,0.6)",
-    fontSize: 15,
-    marginBottom: 4,
-  },
-  patientName: {
-    color: "#FFFFFF",
-    fontSize: 26,
-    fontWeight: "800",
-    letterSpacing: 0.3,
-  },
-  sectionContent: {
-    padding: 16,
-  },
-  sectionHeader: {
+
+  // 1. App Bar
+  topAppBar: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginTop: 16,
-    marginBottom: 16,
-    paddingHorizontal: 4,
+    marginBottom: 10,
   },
-  sectionTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#111827",
-  },
-  backButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-    backgroundColor: "#FEE2E2",
-    gap: 4,
-  },
-  backButtons: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-    backgroundColor: "#FEE2E2",
-    marginTop: 10,
-    gap: 4,
-  },
-  headerActions: {
+  userTitleGroup: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
+    flex: 1,
   },
-  addButton: {
-    flexDirection: "row",
+  userAvatarCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    backgroundColor: "#F5F3FF",
     alignItems: "center",
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    borderRadius: 20,
-    backgroundColor: "#D1FAE5",
-    gap: 4,
+    justifyContent: "center",
+    borderWidth: 1.5,
+    borderColor: "#E0E7FF",
+    position: "relative",
   },
-  addLink: {
-    color: "#059669",
+  greenOnlineDot: {
+    position: "absolute",
+    bottom: 0,
+    right: 0,
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: "#10B981",
+    borderWidth: 1.5,
+    borderColor: "#FFFFFF",
+  },
+  greetingMiniText: {
+    fontSize: 11,
     fontWeight: "600",
-    fontSize: 14,
+    color: "#78716C",
   },
-  loadingContainer: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    padding: 30,
-    marginTop: 20,
-  },
-  progressBarContainer: {
-    height: 8,
-    backgroundColor: "#E5E7EB",
-    borderRadius: 4,
-    overflow: "hidden",
-    flex: 1,
-  },
-  progressBar: {
-    height: 8,
-    backgroundColor: "#0EA5E9",
-    borderRadius: 4,
-  },
-  remindersList: {
-    marginBottom: 20,
-  },
-  reminderCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 10,
-    flexDirection: "row",
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  reminderIcon: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
-    justifyContent: "center",
-    alignItems: "center",
-    marginRight: 14,
-  },
-  reminderContent: {
-    flex: 1,
-  },
-  reminderTitle: {
+  userNameMiniText: {
     fontSize: 15,
-    fontWeight: "700",
-    color: "#111827",
-    marginBottom: 5,
+    fontWeight: "800",
+    color: "#1E2024",
   },
-  reminderTimeContainer: {
+  appBarActions: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
   },
-  reminderTimeIcon: {
-    marginRight: 4,
-  },
-  reminderDate: {
-    fontSize: 12,
-    color: "#6B7280",
-  },
-  reminderTime: {
-    fontSize: 12,
-    color: "#6B7280",
-  },
-  reminderActions: {
+  langPill: {
     flexDirection: "row",
     alignItems: "center",
     gap: 4,
-  },
-  reminderActionButton: {
-    width: 34,
-    height: 34,
-    borderRadius: 10,
-    backgroundColor: "#F3F4F6",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  noRemindersContainer: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 16,
-    padding: 28,
-    alignItems: "center",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 2,
-    marginTop: 8,
-  },
-  noRemindersText: {
-    fontSize: 15,
-    color: "#6B7280",
-    marginBottom: 16,
-  },
-  addReminderButton: {
-    backgroundColor: "#0EA5E9",
-    paddingVertical: 12,
-    paddingHorizontal: 24,
+    backgroundColor: "#F5F3FF",
+    paddingHorizontal: 8,
+    paddingVertical: 6,
     borderRadius: 14,
-    shadowColor: "#0EA5E9",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
+    borderWidth: 1,
+    borderColor: "#E0E7FF",
   },
-  addReminderButtonText: {
-    color: "#FFFFFF",
+  langEmoji: {
+    fontSize: 13,
+  },
+  langPillText: {
+    fontSize: 11,
     fontWeight: "700",
-    fontSize: 14,
+    color: "#4F46E5",
   },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0,0,0,0.5)",
-    justifyContent: "center",
+  actionIconBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: "#F5F3FF",
     alignItems: "center",
-  },
-  modalContainer: {
-    flex: 1,
     justifyContent: "center",
-    alignItems: "center",
-    position: "absolute",
-    width: "100%",
-    height: "100%",
+    borderWidth: 1,
+    borderColor: "#E0E7FF",
   },
-  modalContent: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 24,
-    padding: 24,
-    width: "92%",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 8 },
-    shadowOpacity: 0.15,
-    shadowRadius: 24,
-    elevation: 8,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: "700",
-    color: "#111827",
-    marginBottom: 20,
-    textAlign: "center",
-  },
-  reminderInput: {
+
+  // 2. Hero AI Companion Box
+  heroCompanionBox: {
+    backgroundColor: "#FAF7FD",
+    borderRadius: 20,
+    padding: 12,
+    marginBottom: 10,
     borderWidth: 1.5,
-    borderColor: "#E5E7EB",
-    borderRadius: 12,
-    paddingVertical: 13,
-    paddingHorizontal: 14,
-    fontSize: 15,
-    backgroundColor: "#F9FAFB",
-    marginBottom: 14,
-    color: "#111827",
+    borderColor: "#EDE8F5",
   },
-  dateTimeButton: {
+  avatarSpeechRow: {
     flexDirection: "row",
     alignItems: "center",
-    borderWidth: 1.5,
-    borderColor: "#E5E7EB",
-    borderRadius: 12,
-    paddingVertical: 13,
-    paddingHorizontal: 14,
-    backgroundColor: "#F9FAFB",
-    marginBottom: 14,
     gap: 10,
   },
-  dateTimeText: {
-    fontSize: 15,
-    color: "#374151",
+  avatarTapWrapper: {
+    position: "relative",
+    alignItems: "center",
+    justifyContent: "center",
   },
-  modalButtons: {
+  tapMicBadge: {
+    position: "absolute",
+    bottom: -2,
+    right: -2,
+    backgroundColor: "#6366F1",
+    width: 20,
+    height: 20,
+    borderRadius: 10,
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1.5,
+    borderColor: "#FFFFFF",
+  },
+  speechBubbleRight: {
+    flex: 1,
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    padding: 10,
+    borderWidth: 1,
+    borderColor: "#EDE8F5",
+  },
+  bubbleTopHeader: {
     flexDirection: "row",
-    gap: 12,
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 2,
+  },
+  avatarNameText: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#4F46E5",
+  },
+  expandMiniBtn: {
+    padding: 2,
+  },
+  avatarSpeechBody: {
+    fontSize: 12.5,
+    color: "#334155",
+    lineHeight: 17,
+  },
+  promptChipsRow: {
+    flexDirection: "row",
+    gap: 6,
     marginTop: 8,
   },
-  cancelButton: {
-    flex: 1,
-    backgroundColor: "#F3F4F6",
-    padding: 14,
-    borderRadius: 14,
+  miniPromptChip: {
+    flexDirection: "row",
     alignItems: "center",
-    borderWidth: 1.5,
-    borderColor: "#E5E7EB",
+    gap: 4,
+    backgroundColor: "#FFFFFF",
+    paddingHorizontal: 8,
+    paddingVertical: 5,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#EDE8F5",
   },
-  cancelButtonText: {
-    color: "#6B7280",
-    fontWeight: "600",
-    fontSize: 15,
+  miniPromptEmoji: {
+    fontSize: 12,
   },
-  saveButton: {
-    flex: 1,
-    backgroundColor: "#0EA5E9",
-    padding: 14,
-    borderRadius: 14,
-    alignItems: "center",
-    shadowColor: "#0EA5E9",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 4,
-  },
-  saveButtonText: {
-    color: "#FFFFFF",
+  miniPromptText: {
+    fontSize: 11,
     fontWeight: "700",
-    fontSize: 15,
+    color: "#4F46E5",
+  },
+
+  // 3. Segment Navigation Container
+  segmentNavContainer: {
+    flexDirection: "row",
+    backgroundColor: "#F4F2EE",
+    borderRadius: 16,
+    padding: 3,
+    marginBottom: 10,
+    gap: 4,
+  },
+  segmentTabItem: {
+    flex: 1,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 4,
+    paddingVertical: 8,
+    borderRadius: 13,
+  },
+  segmentTabActive: {
+    backgroundColor: "#6366F1",
+    shadowColor: "#6366F1",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  segmentTabEmoji: {
+    fontSize: 14,
+  },
+  segmentTabText: {
+    fontSize: 11.5,
+    fontWeight: "700",
+    color: "#64748B",
+  },
+  segmentTabTextActive: {
+    color: "#FFFFFF",
+    fontWeight: "800",
+  },
+  activeFeatureWrapper: {
+    marginBottom: 10,
+  },
+
+  // Calm Corner Banner in Peace Tab
+  calmCornerBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    backgroundColor: "#FAF5FF",
+    borderRadius: 16,
+    padding: 12,
+    borderWidth: 1.5,
+    borderColor: "#E9D5FF",
+  },
+  calmBannerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    flex: 1,
+  },
+  calmBannerTitle: {
+    fontSize: 13.5,
+    fontWeight: "800",
+    color: "#4F46E5",
+  },
+  calmBannerSub: {
+    fontSize: 11,
+    color: "#6366F1",
+    marginTop: 1,
+  },
+
+  // 4. Daily Focus Routine Card
+  dailyFocusCard: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 18,
+    padding: 12,
+    marginBottom: 10,
+    borderWidth: 1,
+    borderColor: "#EAE7E1",
+    shadowColor: "#A8A29E",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.05,
+    shadowRadius: 4,
+    elevation: 1,
+  },
+  focusHeaderRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
+  },
+  focusTitleGroup: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+  },
+  focusCardTitle: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#1E2024",
+  },
+  focusCountPill: {
+    backgroundColor: "#F5F3FF",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+  },
+  focusCountText: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#4F46E5",
+  },
+  waterGlassesTrack: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    marginBottom: 10,
+  },
+  waterCupBubble: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  waterCupFilled: {
+    backgroundColor: "#EEF2FF",
+  },
+  waterCupEmpty: {
+    backgroundColor: "#F8FAFC",
+  },
+  oneTapWaterBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 6,
+    backgroundColor: "#6366F1",
+    paddingVertical: 10,
+    borderRadius: 12,
+  },
+  oneTapWaterBtnText: {
+    fontSize: 13,
+    fontWeight: "800",
+    color: "#FFFFFF",
+  },
+  compactMedRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    backgroundColor: "#F0FDF4",
+    padding: 8,
+    borderRadius: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: "#BBF7D0",
+  },
+  compactMedTitle: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#15803D",
+  },
+  compactMedTakenBtn: {
+    backgroundColor: "#10B981",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
+  },
+  compactMedTakenText: {
+    fontSize: 11,
+    fontWeight: "800",
+    color: "#FFFFFF",
+  },
+
+  // 5. Aesthetic Games Banner
+  aestheticGamesBanner: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FAF7FD",
+    borderRadius: 18,
+    padding: 12,
+    marginBottom: 10,
+    borderWidth: 1.5,
+    borderColor: "#EDE8F5",
+    gap: 10,
+    shadowColor: "#6366F1",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 6,
+    elevation: 2,
+  },
+  gamesBannerIconCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#E0E7FF",
+  },
+  gamesBannerBadgeRow: {
+    marginBottom: 1,
+  },
+  gamesBannerBadgeText: {
+    fontSize: 9.5,
+    fontWeight: "800",
+    color: "#6366F1",
+    letterSpacing: 0.5,
+  },
+  gamesBannerTitle: {
+    fontSize: 13.5,
+    fontWeight: "800",
+    color: "#1E2024",
+  },
+  gamesBannerSub: {
+    fontSize: 11,
+    color: "#64748B",
+    marginTop: 1,
+  },
+  gamesBannerArrowCircle: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "#FFFFFF",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#E0E7FF",
+  },
+
+  // 6. Mobile SOS Button
+  mobileSosButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    backgroundColor: "#FFF1F2",
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    borderColor: "#FECDD3",
+  },
+  mobileSosText: {
+    fontSize: 13.5,
+    fontWeight: "800",
+    color: "#BE123C",
+  },
+  mobileSosSubText: {
+    fontSize: 10.5,
+    fontWeight: "600",
+    color: "#9F1239",
+    marginTop: 1,
+  },
+  sosSentNotification: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#F0FDF4",
+    padding: 10,
+    borderRadius: 12,
+    marginTop: 8,
+    borderWidth: 1,
+    borderColor: "#BBF7D0",
+  },
+  sosSentText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#15803D",
+    flex: 1,
+  },
+
+  // Language Modal
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(15, 23, 42, 0.4)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 16,
+  },
+  langModalBox: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 20,
+    padding: 16,
+    width: "100%",
+    maxWidth: 360,
+    borderWidth: 1,
+    borderColor: "#EAE7E1",
+  },
+  langModalHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 12,
+  },
+  langModalTitle: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#1E2024",
+  },
+  langChoiceCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    backgroundColor: "#FAFAFC",
+    padding: 10,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#EAE7E1",
+  },
+  langChoiceSelected: {
+    backgroundColor: "#F5F3FF",
+    borderColor: "#6366F1",
+  },
+  langChoiceNative: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#1E2024",
+  },
+  langChoiceSub: {
+    fontSize: 11,
+    color: "#64748B",
   },
 });

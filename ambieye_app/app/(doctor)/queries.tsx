@@ -20,6 +20,8 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import Feather from "@expo/vector-icons/Feather";
 import { doctorQueryService, DoctorQuery } from "@/services/api/doctorQueryService";
 
+import { useTranslation, SupportedLanguage } from "@/constants/i18n";
+
 // Query Details Component to be used in modal
 function QueryDetailsModal({
   queryId,
@@ -30,6 +32,7 @@ function QueryDetailsModal({
   onClose: () => void;
   onQueryAnswered: () => void;
 }) {
+  const { t } = useTranslation();
   const [responseText, setResponseText] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -42,7 +45,6 @@ function QueryDetailsModal({
   const slideAnim = useRef(new Animated.Value(30)).current;
 
   useEffect(() => {
-    // Define fetchQueryDetails inside the useEffect to avoid dependency issues
     const fetchQueryDetails = async () => {
       if (!queryId) return;
 
@@ -56,7 +58,6 @@ function QueryDetailsModal({
           setQuery(response.query);
           setPatient(response.patient);
 
-          // Start animations
           Animated.parallel([
             Animated.timing(fadeAnim, {
               toValue: 1,
@@ -149,7 +150,7 @@ function QueryDetailsModal({
   if (!query || !patient) {
     return (
       <View style={modalStyles.errorContainer}>
-        <Text style={modalStyles.errorText}>No query data available</Text>
+        <Text style={modalStyles.errorText}>{t("no_pending_queries_desc")}</Text>
         <TouchableOpacity style={modalStyles.errorButton} onPress={onClose}>
           <Text style={modalStyles.errorButtonText}>Close</Text>
         </TouchableOpacity>
@@ -166,7 +167,7 @@ function QueryDetailsModal({
         <TouchableOpacity style={modalStyles.backButton} onPress={onClose}>
           <Feather name="arrow-left" size={24} color="white" />
         </TouchableOpacity>
-        <Text style={modalStyles.headerTitle}>Query Details</Text>
+        <Text style={modalStyles.headerTitle}>{t("tab_queries")}</Text>
         <View style={{ width: 40 }} />
       </View>
       <StatusBar backgroundColor="#000" barStyle="light-content" />
@@ -220,19 +221,18 @@ function QueryDetailsModal({
                     { color: getUrgencyColor(query.urgency) },
                   ]}
                 >
-                  {query.urgency.charAt(0).toUpperCase() + query.urgency.slice(1)}{" "}
-                  Urgency
+                  {query.urgency === "high" ? t("urgency_high") : query.urgency === "medium" ? t("urgency_medium") : t("urgency_low")}
                 </Text>
               </View>
             )}
 
-            <Text style={modalStyles.queryTitle}>Patient Question</Text>
+            <Text style={modalStyles.queryTitle}>{t("question_label")}</Text>
             <Text style={modalStyles.queryMessage}>{query.question}</Text>
           </Animated.View>
 
           {query.response && (
             <View style={modalStyles.responseHistoryContainer}>
-              <Text style={modalStyles.sectionTitle}>Your Response</Text>
+              <Text style={modalStyles.sectionTitle}>{t("answered_by_doctor")}</Text>
               <View style={modalStyles.previousResponse}>
                 <Text style={modalStyles.responseText}>{query.response}</Text>
                 {formattedAnsweredAt && (
@@ -244,10 +244,10 @@ function QueryDetailsModal({
 
           {query.status !== "answered" && (
             <View style={modalStyles.responseContainer}>
-              <Text style={modalStyles.sectionTitle}>Your Response</Text>
+              <Text style={modalStyles.sectionTitle}>{t("type_reply_placeholder")}</Text>
               <TextInput
                 style={modalStyles.responseInput}
-                placeholder="Type your response here..."
+                placeholder={t("type_reply_placeholder")}
                 placeholderTextColor="#999"
                 multiline
                 value={responseText}
@@ -269,7 +269,7 @@ function QueryDetailsModal({
                   <>
                     <Feather name="send" size={16} color="#fff" />
                     <Text style={modalStyles.submitButtonText}>
-                      Send Response
+                      {t("send_reply")}
                     </Text>
                   </>
                 )}
@@ -296,6 +296,7 @@ function QueryItem({
   onPress: (id: string) => void;
   getUrgencyColor: (urgency?: string) => string;
 }) {
+  const { t } = useTranslation();
   const itemAnimValue = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -373,15 +374,20 @@ function QueryItem({
                   { color: getUrgencyColor(item.urgency) },
                 ]}
               >
-                {item.urgency.charAt(0).toUpperCase() + item.urgency.slice(1)}{" "}
-                Urgency
+                {item.urgency === "high"
+                  ? t("urgency_high")
+                  : item.urgency === "medium"
+                  ? t("urgency_medium")
+                  : t("urgency_low")}
               </Text>
             </View>
           )}
 
           <View style={styles.statusBadge}>
             <Text style={styles.statusText}>
-              {item.status === "pending" ? "Awaiting response" : "Responded"}
+              {item.status === "pending"
+                ? t("pending_queries_tab")
+                : t("answered_queries")}
             </Text>
           </View>
         </View>
@@ -391,6 +397,8 @@ function QueryItem({
 }
 
 const QueriesScreen = () => {
+  const { t, currentLang, changeLanguage, supportedLanguages } = useTranslation();
+  const [langModalVisible, setLangModalVisible] = useState(false);
   const [queries, setQueries] = useState<DoctorQuery[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -501,14 +509,14 @@ const QueriesScreen = () => {
   const renderEmptyList = () => (
     <View style={styles.emptyContainer}>
       <Feather name="inbox" size={50} color="#0284C7" />
-      <Text style={styles.emptyText}>No queries found</Text>
+      <Text style={styles.emptyText}>{t("no_pending_queries_desc")}</Text>
 
       {filter !== "all" && (
         <TouchableOpacity 
           style={styles.emptyViewAllButton} 
           onPress={() => setFilter("all")}
         >
-          <Text style={styles.emptyViewAllButtonText}>View all queries</Text>
+          <Text style={styles.emptyViewAllButtonText}>{t("view_all")}</Text>
         </TouchableOpacity>
       )}
 
@@ -518,7 +526,7 @@ const QueriesScreen = () => {
           onPress={() => setIncludeAll(true)}
         >
           <Text style={styles.emptyIncludeAllButtonText}>
-            {includeAll ? "Show only my queries" : "Include all patient queries"}
+            {includeAll ? t("pending_queries_tab") : t("view_all")}
           </Text>
         </TouchableOpacity>
       )}
@@ -546,13 +554,28 @@ const QueriesScreen = () => {
           ]}
         >
           <View style={styles.headerContent}>
-            <Text style={styles.headerTitle}>Patient Queries</Text>
-            <TouchableOpacity
-              style={styles.refreshButton}
-              onPress={handleRefresh}
-            >
-              <Feather name="refresh-cw" size={20} color="#0284C7" />
-            </TouchableOpacity>
+            <Text style={styles.headerTitle}>{t("tab_queries")}</Text>
+            <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
+              <TouchableOpacity
+                style={styles.langPill}
+                onPress={() => setLangModalVisible(true)}
+              >
+                <Text style={styles.langFlag}>
+                  {supportedLanguages.find((l) => l.code === currentLang)?.flagEmoji}
+                </Text>
+                <Text style={styles.langName}>
+                  {supportedLanguages.find((l) => l.code === currentLang)?.nativeName}
+                </Text>
+                <Feather name="globe" size={13} color="#38BDF8" />
+              </TouchableOpacity>
+              <TouchableOpacity
+                style={styles.refreshButton}
+                onPress={handleRefresh}
+                disabled={isLoading}
+              >
+                <Feather name="refresh-cw" size={20} color="#0EA5E9" />
+              </TouchableOpacity>
+            </View>
           </View>
         </Animated.View>
 
@@ -579,7 +602,7 @@ const QueriesScreen = () => {
                   filter === "all" && styles.activeFilterText,
                 ]}
               >
-                All
+                {t("see_all")}
               </Text>
             </TouchableOpacity>
 
@@ -596,7 +619,7 @@ const QueriesScreen = () => {
                   filter === "pending" && styles.activeFilterText,
                 ]}
               >
-                Pending
+                {t("pending_queries_tab")}
               </Text>
             </TouchableOpacity>
 
@@ -613,7 +636,7 @@ const QueriesScreen = () => {
                   filter === "answered" && styles.activeFilterText,
                 ]}
               >
-                Answered
+                {t("answered_queries")}
               </Text>
             </TouchableOpacity>
 
@@ -626,7 +649,7 @@ const QueriesScreen = () => {
                 size={18} 
                 color={includeAll ? "#0284C7" : "#666"} 
               />
-              <Text style={styles.includeAllText}>All patients</Text>
+              <Text style={styles.includeAllText}>{t("see_all")}</Text>
             </TouchableOpacity>
           </Animated.View>
 
@@ -670,6 +693,56 @@ const QueriesScreen = () => {
           onClose={closeQueryDetails} 
           onQueryAnswered={handleRefresh} 
         />
+      </Modal>
+
+      {/* Language Selector Bottom Sheet Modal */}
+      <Modal
+        visible={langModalVisible}
+        animationType="slide"
+        transparent={true}
+        onRequestClose={() => setLangModalVisible(false)}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalSheet}>
+            <Text style={styles.modalHeaderTitle}>{t("select_language")}</Text>
+            <Text style={styles.modalSubtitle}>
+              Select your preferred North-Eastern regional dialect
+            </Text>
+            {supportedLanguages.map((lang) => {
+              const isSelected = currentLang === lang.code;
+              return (
+                <TouchableOpacity
+                  key={lang.code}
+                  style={[
+                    styles.langOptionCard,
+                    isSelected && styles.langOptionActive,
+                  ]}
+                  onPress={() => {
+                    changeLanguage(lang.code as SupportedLanguage);
+                    setLangModalVisible(false);
+                  }}
+                >
+                  <Text style={styles.langOptionEmoji}>{lang.flagEmoji}</Text>
+                  <View style={{ flex: 1 }}>
+                    <Text style={styles.langOptionNative}>{lang.nativeName}</Text>
+                    <Text style={styles.langOptionRegion}>
+                      {lang.name} • {lang.region}
+                    </Text>
+                  </View>
+                  {isSelected && (
+                    <Feather name="check-circle" size={20} color="#38BDF8" />
+                  )}
+                </TouchableOpacity>
+              );
+            })}
+            <TouchableOpacity
+              style={styles.modalCloseBtn}
+              onPress={() => setLangModalVisible(false)}
+            >
+              <Text style={styles.modalCloseText}>{t("close")}</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
       </Modal>
     </View>
   );
@@ -1113,5 +1186,88 @@ const styles = StyleSheet.create({
     color: "#0EA5E9",
     fontSize: 14,
     fontWeight: "600",
+  },
+  langPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(14, 165, 233, 0.15)",
+    paddingVertical: 5,
+    paddingHorizontal: 10,
+    borderRadius: 20,
+    gap: 5,
+    borderWidth: 1,
+    borderColor: "rgba(14, 165, 233, 0.3)",
+  },
+  langFlag: {
+    fontSize: 13,
+  },
+  langName: {
+    color: "#38BDF8",
+    fontSize: 12,
+    fontWeight: "700",
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    justifyContent: "flex-end",
+  },
+  modalSheet: {
+    backgroundColor: "#0F172A",
+    borderTopLeftRadius: 28,
+    borderTopRightRadius: 28,
+    padding: 24,
+    borderTopWidth: 1,
+    borderColor: "#1E293B",
+  },
+  modalHeaderTitle: {
+    fontSize: 18,
+    fontWeight: "800",
+    color: "#FFFFFF",
+    marginBottom: 4,
+  },
+  modalSubtitle: {
+    fontSize: 13,
+    color: "#94A3B8",
+    marginBottom: 20,
+  },
+  langOptionCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#1E293B",
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 10,
+    borderWidth: 1.5,
+    borderColor: "transparent",
+  },
+  langOptionActive: {
+    backgroundColor: "#0C4A6E",
+    borderColor: "#38BDF8",
+  },
+  langOptionEmoji: {
+    fontSize: 24,
+    marginRight: 14,
+  },
+  langOptionNative: {
+    fontSize: 16,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  langOptionRegion: {
+    fontSize: 12,
+    color: "#94A3B8",
+    marginTop: 2,
+  },
+  modalCloseBtn: {
+    marginTop: 12,
+    backgroundColor: "#1E293B",
+    borderRadius: 14,
+    paddingVertical: 14,
+    alignItems: "center",
+  },
+  modalCloseText: {
+    color: "#94A3B8",
+    fontWeight: "600",
+    fontSize: 15,
   },
 });
