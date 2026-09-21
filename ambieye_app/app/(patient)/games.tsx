@@ -5,6 +5,7 @@ import {
   Text,
   ScrollView,
   TouchableOpacity,
+  useWindowDimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Feather from "@expo/vector-icons/Feather";
@@ -13,465 +14,700 @@ import { useRouter, useLocalSearchParams, useFocusEffect } from "expo-router";
 import { useTranslation } from "@/constants/i18n";
 import { VoiceAssistant } from "@/utils/voiceAssistant";
 import { useAuth } from "@/hooks/useAuth";
-import { Colors, BorderRadius, Shadows } from "@/constants/theme";
+import { AestheticTheme } from "@/constants/theme";
+import {
+  ActivityCategoryId,
+  ActivityCategory,
+  ActivityItem,
+  ACTIVITY_CATEGORIES,
+  ALL_ACTIVITIES,
+  getCoreCategories,
+  getAllCategories,
+  getCategoryById,
+  getCategoryActivities,
+} from "@/constants/activityCategories";
+
+// Visual motif illustration for each game
+interface VisualProps {
+  id: number;
+  color: string;
+  bg: string;
+  emoji: string;
+  isHero?: boolean;
+}
+
+const GameVisualPreview: React.FC<VisualProps> = ({ id, color, bg, emoji, isHero }) => {
+  const containerSize = isHero ? 72 : 60;
+
+  const renderVisualMotif = () => {
+    switch (id) {
+      case 101: // Personalized Family Recall
+        return (
+          <View style={styles.motifPolaroid}>
+            <View style={[styles.motifPolaroidInner, { borderColor: `${color}40` }]}>
+              <Feather name="heart" size={isHero ? 20 : 16} color="#DC2626" />
+              <View style={styles.motifStarsRow}>
+                <Text style={{ fontSize: 10 }}>✨</Text>
+                <Text style={{ fontSize: 12 }}>📸</Text>
+                <Text style={{ fontSize: 10 }}>✨</Text>
+              </View>
+            </View>
+          </View>
+        );
+
+      case 1: // Antakshari Battle
+        return (
+          <View style={styles.motifAudioWave}>
+            <View style={[styles.waveBar, { height: 12, backgroundColor: color }]} />
+            <View style={[styles.waveBar, { height: 26, backgroundColor: color }]} />
+            <View style={[styles.waveBar, { height: 18, backgroundColor: color }]} />
+            <View style={[styles.waveBar, { height: 30, backgroundColor: color }]} />
+            <View style={[styles.waveBar, { height: 14, backgroundColor: color }]} />
+            <MaterialCommunityIcons name="microphone-variant" size={16} color={color} style={{ marginLeft: 3 }} />
+          </View>
+        );
+
+      case 2: // Heritage Motif Match
+        return (
+          <View style={styles.motifMatch}>
+            <View style={[styles.motifDiamond, { backgroundColor: `${color}25`, borderColor: color }]}>
+              <MaterialCommunityIcons name="puzzle" size={16} color={color} />
+            </View>
+            <View style={[styles.motifDiamond, { backgroundColor: `${color}25`, borderColor: color, marginLeft: -8 }]}>
+              <MaterialCommunityIcons name="cards-playing-outline" size={16} color={color} />
+            </View>
+          </View>
+        );
+
+      case 3: // Picture Recall
+        return (
+          <View style={[styles.motifCanvasFrame, { borderColor: color }]}>
+            <Feather name="maximize" size={22} color={color} />
+            <MaterialCommunityIcons name="image-filter-vintage" size={16} color={color} style={styles.motifAbsoluteCenter} />
+          </View>
+        );
+
+      case 4: // Smriti Manthan (Reminiscence)
+        return (
+          <View style={styles.motifSunrise}>
+            <Feather name="sun" size={20} color="#F59E0B" />
+            <View style={[styles.motifRiverLine, { backgroundColor: color }]} />
+            <View style={[styles.motifRiverLine, { width: 26, backgroundColor: `${color}80` }]} />
+          </View>
+        );
+
+      case 12: // Sequence Recall
+        return (
+          <View style={styles.motifSeqRow}>
+            <View style={[styles.seqDot, { backgroundColor: "#EF4444" }]}>
+              <Text style={styles.seqDotText}>1</Text>
+            </View>
+            <Feather name="chevron-right" size={10} color="#94A3B8" />
+            <View style={[styles.seqDot, { backgroundColor: "#3B82F6" }]}>
+              <Text style={styles.seqDotText}>2</Text>
+            </View>
+            <Feather name="chevron-right" size={10} color="#94A3B8" />
+            <View style={[styles.seqDot, { backgroundColor: "#10B981" }]}>
+              <Text style={styles.seqDotText}>3</Text>
+            </View>
+          </View>
+        );
+
+      case 15: // Word Recall
+        return (
+          <View style={[styles.motifBookCard, { borderColor: `${color}50` }]}>
+            <Feather name="book-open" size={18} color={color} />
+            <View style={styles.motifLetterBadges}>
+              <Text style={[styles.miniLetter, { color }]}>A</Text>
+              <Text style={[styles.miniLetter, { color }]}>B</Text>
+              <Text style={[styles.miniLetter, { color }]}>C</Text>
+            </View>
+          </View>
+        );
+
+      case 16: // Picture Association
+        return (
+          <View style={styles.motifAssocRow}>
+            <View style={[styles.assocNode, { borderColor: color }]}>
+              <Text style={{ fontSize: 13 }}>☕</Text>
+            </View>
+            <Feather name="link-2" size={13} color={color} />
+            <View style={[styles.assocNode, { borderColor: color }]}>
+              <Text style={{ fontSize: 13 }}>🥛</Text>
+            </View>
+          </View>
+        );
+
+      case 17: // Daily Orientation
+        return (
+          <View style={[styles.motifCompass, { borderColor: color }]}>
+            <Feather name="compass" size={24} color={color} />
+            <View style={styles.motifClockHands} />
+          </View>
+        );
+
+      case 18: // Who Am I?
+        return (
+          <View style={styles.motifMaskRow}>
+            <MaterialCommunityIcons name="drama-masks" size={22} color={color} />
+            <Feather name="help-circle" size={13} color="#D97706" style={{ marginTop: -6, marginLeft: -4 }} />
+          </View>
+        );
+
+      case 5: // Find the Object
+        return (
+          <View style={styles.motifRadar}>
+            <View style={[styles.radarCircle, { borderColor: color }]} />
+            <Feather name="search" size={18} color={color} />
+            <View style={[styles.radarPing, { backgroundColor: color }]} />
+          </View>
+        );
+
+      case 6: // Daily Steps Routine
+        return (
+          <View style={styles.motifStepsRow}>
+            <View style={[styles.stepPill, { backgroundColor: `${color}20`, borderColor: color }]}>
+              <Text style={[styles.stepNum, { color }]}>①</Text>
+            </View>
+            <Feather name="arrow-right" size={10} color={color} />
+            <View style={[styles.stepPill, { backgroundColor: `${color}20`, borderColor: color }]}>
+              <Text style={[styles.stepNum, { color }]}>②</Text>
+            </View>
+            <Feather name="arrow-right" size={10} color={color} />
+            <View style={[styles.stepPill, { backgroundColor: color }]}>
+              <Feather name="check" size={10} color="#FFF" />
+            </View>
+          </View>
+        );
+
+      case 7: // Word Connection
+        return (
+          <View style={styles.motifNetwork}>
+            <MaterialCommunityIcons name="transit-connection-variant" size={22} color={color} />
+          </View>
+        );
+
+      case 8: // Bajar Hisab (Count)
+        return (
+          <View style={styles.motifCoins}>
+            <View style={[styles.coin, { backgroundColor: "#FBBF24", borderColor: "#D97706" }]}>
+              <Text style={styles.coinText}>₹</Text>
+            </View>
+            <View style={[styles.coin, { backgroundColor: "#FDE68A", borderColor: "#D97706", marginLeft: -8, marginTop: 4 }]}>
+              <Text style={styles.coinText}>₹</Text>
+            </View>
+            <MaterialCommunityIcons name="calculator-variant" size={15} color={color} style={{ marginLeft: 3 }} />
+          </View>
+        );
+
+      case 13: // Odd One Out
+        return (
+          <View style={styles.motifGrid2x2}>
+            <View style={styles.motifMiniRow}>
+              <MaterialCommunityIcons name="circle" size={9} color="#94A3B8" />
+              <MaterialCommunityIcons name="circle" size={9} color="#94A3B8" />
+            </View>
+            <View style={styles.motifMiniRow}>
+              <MaterialCommunityIcons name="circle" size={9} color="#94A3B8" />
+              <MaterialCommunityIcons name="star" size={11} color={color} />
+            </View>
+          </View>
+        );
+
+      case 14: // Number Order
+        return (
+          <View style={styles.motifPodium}>
+            <View style={[styles.podiumBar, { height: 13, backgroundColor: `${color}40` }]}>
+              <Text style={styles.podiumText}>2</Text>
+            </View>
+            <View style={[styles.podiumBar, { height: 20, backgroundColor: `${color}80` }]}>
+              <Text style={styles.podiumText}>5</Text>
+            </View>
+            <View style={[styles.podiumBar, { height: 28, backgroundColor: color }]}>
+              <Text style={[styles.podiumText, { color: "#FFF" }]}>9</Text>
+            </View>
+          </View>
+        );
+
+      case 19: // Treasure Hunt
+        return (
+          <View style={styles.motifTreasure}>
+            <MaterialCommunityIcons name="map-marker-path" size={22} color={color} />
+            <Text style={{ fontSize: 9, color: "#DC2626", fontWeight: "900" }}>✕</Text>
+          </View>
+        );
+
+      case 20: // Rule Switch
+        return (
+          <View style={styles.motifSwitch}>
+            <MaterialCommunityIcons name="swap-horizontal-bold" size={24} color={color} />
+          </View>
+        );
+
+      case 21: // Plan & Do
+        return (
+          <View style={[styles.motifClipboard, { borderColor: color }]}>
+            <MaterialCommunityIcons name="clipboard-check-outline" size={20} color={color} />
+          </View>
+        );
+
+      case 9: // Clockwise Pursuit
+        return (
+          <View style={[styles.motifOrbit, { borderColor: `${color}60` }]}>
+            <MaterialCommunityIcons name="rotate-right" size={24} color={color} />
+            <View style={[styles.orbitTrackerDot, { backgroundColor: color, top: 2, right: 4 }]} />
+          </View>
+        );
+
+      case 10: // Anti-Clockwise Pursuit
+        return (
+          <View style={[styles.motifOrbit, { borderColor: `${color}60` }]}>
+            <MaterialCommunityIcons name="rotate-left" size={24} color={color} />
+            <View style={[styles.orbitTrackerDot, { backgroundColor: color, top: 2, left: 4 }]} />
+          </View>
+        );
+
+      case 11: // Target Direction Saccades
+        return (
+          <View style={styles.motifBullseye}>
+            <MaterialCommunityIcons name="crosshairs-gps" size={24} color={color} />
+            <View style={[styles.bullseyeFlash, { backgroundColor: color }]} />
+          </View>
+        );
+
+      default:
+        return <Text style={{ fontSize: isHero ? 28 : 22 }}>{emoji}</Text>;
+    }
+  };
+
+  return (
+    <View
+      style={[
+        styles.visualContainer,
+        {
+          width: containerSize,
+          height: containerSize,
+          backgroundColor: bg,
+          borderColor: `${color}35`,
+        },
+      ]}
+    >
+      {renderVisualMotif()}
+    </View>
+  );
+};
 
 export default function GamesScreen() {
   const router = useRouter();
   const { username } = useAuth();
   const { t, currentLang } = useTranslation();
   const { category } = useLocalSearchParams<{ category?: string }>();
-  const [activeCategory, setActiveCategory] = useState<"memory" | "attention" | "gaze">("memory");
+  const { width } = useWindowDimensions();
 
+  // Category-First State: null = Category Selection Overview; non-null = Activities in that Category
+  const [selectedCategoryId, setSelectedCategoryId] = useState<ActivityCategoryId | null>(null);
+
+  // Sync category route param if passed from external link (e.g., Home screen widgets)
   useFocusEffect(
     React.useCallback(() => {
       const categoryValue = Array.isArray(category) ? category[0] : category;
       if (!categoryValue) return;
+
       const normalized = categoryValue.toLowerCase();
-      if (normalized === "memory" || normalized === "attention" || normalized === "gaze") {
-        setActiveCategory(normalized as any);
+      // Map legacy or direct category keys
+      if (normalized === "memory" || normalized === "memory_recall") {
+        setSelectedCategoryId("memory_recall");
+      } else if (normalized === "attention" || normalized === "attention_perception") {
+        setSelectedCategoryId("attention_perception");
+      } else if (normalized === "language" || normalized === "language_association") {
+        setSelectedCategoryId("language_association");
+      } else if (normalized === "planning" || normalized === "planning_problem_solving") {
+        setSelectedCategoryId("planning_problem_solving");
+      } else if (normalized === "reminiscence" || normalized === "reminiscence_orientation") {
+        setSelectedCategoryId("reminiscence_orientation");
+      } else if (normalized === "music" || normalized === "music_creative") {
+        setSelectedCategoryId("music_creative");
+      } else if (normalized === "gaze" || normalized === "motor_cognition") {
+        setSelectedCategoryId("motor_cognition");
       }
+
+      return () => {
+        VoiceAssistant.stop();
+      };
     }, [category])
   );
 
-  const categories = [
-    {
-      key: "memory",
-      label: currentLang === "as" ? "স্মৃতি শক্তি" : currentLang === "hi" ? "स्मृति खेल" : "Memory",
-      icon: "brain",
-      activeBg: "#6366F1",
-      activeText: "#FFFFFF",
-      tintBg: "#FAF5FF",
-      border: "#E0E7FF",
-      tintText: "#4F46E5",
-    },
-    {
-      key: "attention",
-      label: currentLang === "as" ? "মনোযোগ" : currentLang === "hi" ? "ध्यान एवं खोज" : "Attention",
-      icon: "eye",
-      activeBg: "#0284C7",
-      activeText: "#FFFFFF",
-      tintBg: "#F0F9FF",
-      border: "#BAE6FD",
-      tintText: "#0369A1",
-    },
-    {
-      key: "gaze",
-      label: currentLang === "as" ? "চকুৰ পৰীক্ষা" : currentLang === "hi" ? "नेत्र ट्रैकिंग" : "Gaze Biomarkers",
-      icon: "camera",
-      activeBg: "#059669",
-      activeText: "#FFFFFF",
-      tintBg: "#F0FDF4",
-      border: "#A7F3D0",
-      tintText: "#15803D",
-    },
-  ];
+  const coreCategories = getCoreCategories();
+  const allCategories = getAllCategories();
+  const extensibleCategories = allCategories.filter((c) => !c.isCore);
 
-  const gamesData = {
-    memory: [
-      {
-        id: 1,
-        title: "Antakshari Battle",
-        titleAs: "অন্তাক্ষৰী সুৰ সমৰ",
-        titleHi: "अंताक्षरी मुकाबला",
-        desc: "Recall golden melodies, listen to your companion, and sing your favorite songs",
-        descAs: "সোণালী সুৰ সুঁৱৰি সংগীৰ লগত আনন্দৰে অন্তাক্ষৰী খেলক",
-        descHi: "सुनहरी यादों के मधुर गीत सुनें और अपने साथी के साथ अंताक्षरी गाएं",
-        link: "games/cognitive/antakshari-battle",
-        emoji: "🎵",
-        color: "#BE123C",
-        bg: "#FFF1F2",
-        badge: "CULTURAL MELODY",
-      },
-      {
-        id: 2,
-        title: "Heritage Motif Match",
-        titleAs: "গামোচা আৰু চাহপাত মিলোৱা",
-        titleHi: "सांस्कृतिक प्रतीक मिलान",
-        desc: "Match traditional Gamosa weaves, Japi, and tea leaves pairs",
-        descAs: "গামোচা, জাপি আৰু চাহপাতৰ যোৰ মিলোৱা খেল",
-        descHi: "पारंपरिक असमिया प्रतीकों के जोड़े बनाएं",
-        link: "games/cognitive/matching",
-        emoji: "🧣",
-        color: "#6366F1",
-        bg: "#FAF5FF",
-        badge: "CULTURAL MOTIFS",
-      },
-      {
-        id: 3,
-        title: "Picture Recall",
-        titleAs: "ছবি মনত ৰখাৰ খেল",
-        titleHi: "तस्वीर स्मरण",
-        desc: "Timed visual memorization & recall test with everyday items",
-        descAs: "দৈনন্দিন চিনাকি বস্তু চাই মনত ৰখাৰ অভ্যাস",
-        descHi: "तस्वीरें देखकर कुछ देर बाद याद करने का अभ्यास",
-        link: "games/cognitive/picture-recall",
-        emoji: "🖼️",
-        color: "#0284C7",
-        bg: "#F0F9FF",
-        badge: "VISUAL MEMORY",
-      },
-      {
-        id: 4,
-        title: "Smriti Monthan (Reminiscence)",
-        titleAs: "স্মৃতি মন্থন",
-        titleHi: "स्मृति मंथन",
-        desc: "Cherished courtyard stories, riverboat travels & festival memories",
-        descAs: "মাজুলী আৰু কামৰূপৰ পুৰণি স্মৃতি সুঁৱৰি মনটো সতেজ কৰক",
-        descHi: "पारिवारिक एवं ऐतिहासिक यादों की मीठी चर्चा",
-        link: "games/cognitive/reminiscence",
-        emoji: "🌅",
-        color: "#B45309",
-        bg: "#FFFBEB",
-        badge: "REMINISCENCE",
-      },
-      {
-        id: 12,
-        title: "Sequence Recall",
-        titleAs: "ক্ৰমিক স্মৃতি খেল",
-        titleHi: "क्रम स्मरण खेल",
-        desc: "Watch familiar items appear in sequence, remember the order, and tap them",
-        descAs: "ক্ৰমত ওলোৱা চিনাকি বস্তুবোৰ মনত ৰাখি সঠিক ক্ৰমত বাছনি কৰক",
-        descHi: "चित्रों का क्रम ध्यान से देखें और उसी क्रम में चुनकर याददाश्त परखें",
-        link: "games/cognitive/sequence-recall",
-        emoji: "🔢",
-        color: "#059669",
-        bg: "#F0FDF4",
-        badge: "SEQUENCE RECALL",
-      },
-      {
-        id: 15,
-        title: "Word Recall",
-        titleAs: "শব্দ মনত ৰখাৰ খেল",
-        titleHi: "शब्द स्मरण खेल",
-        desc: "Memorize words shown one by one, then identify which word appeared",
-        descAs: "ক্ৰমত ওলোৱা শব্দবোৰ মনত ৰাখি সঠিক শব্দটো বাছক",
-        descHi: "एक-एक करके दिखाए गए शब्दों को याद रखें और सही शब्द पहचानें",
-        link: "games/cognitive/word-recall",
-        emoji: "📖",
-        color: "#6366F1",
-        bg: "#FAF5FF",
-        badge: "WORD RECALL",
-      },
-      {
-        id: 16,
-        title: "Picture Association",
-        titleAs: "ছবিৰ যোৰ মিলোৱা",
-        titleHi: "चित्र संबंध",
-        desc: "Match familiar everyday objects with their most natural functional pairs",
-        descAs: "চিনাকি বস্তুবোৰৰ সৈতে আটাইতকৈ উপযুক্ত সম্পৰ্কিত বস্তুটো বাছক",
-        descHi: "दैनिक जीवन की वस्तुओं को उनके सही जोड़ीदार से मिलाएं",
-        link: "games/cognitive/picture-association",
-        emoji: "🧩",
-        color: "#D97706",
-        bg: "#FFFBEB",
-        badge: "ASSOCIATION",
-      },
-      {
-        id: 17,
-        title: "Daily Orientation",
-        titleAs: "দৈনিক সময় আৰু দিহ নিৰ্ণয়",
-        titleHi: "दैनिक समय एवं अभिमुखीकरण",
-        desc: "Gentle awareness questions for today's weekday, month, time of day & location",
-        descAs: "আজিৰ বাৰ, মাহ, দিনৰ সময় আৰু পৰিৱেশৰ চিনাকি প্ৰশ্ন",
-        descHi: "आज का दिन, महीना, समय और स्थान से संबंधित सरल प्रश्न",
-        link: "games/cognitive/orientation",
-        emoji: "🧭",
-        color: "#059669",
-        bg: "#F0FDF4",
-        badge: "ORIENTATION",
-      },
-      {
-        id: 18,
-        title: "Who Am I? (Mystery Roles)",
-        titleAs: "মই কোন? (চিনাকি ব্যক্তি)",
-        titleHi: "मैं कौन हूँ? (भूमिका पहचान)",
-        desc: "Solve 5 mystery community roles through visual icons and descriptive clues",
-        descAs: "সুন্দৰ লক্ষণ আৰু সংকেতৰ সহায়ত সমাজৰ চিনাকি ভূমিকাসমূহ চিনাক্ত কৰক",
-        descHi: "संकेतों और लक्षणों के माध्यम से 5 परिचित सामाजिक भूमिकाएं पहचानें",
-        link: "games/cognitive/who-am-i",
-        emoji: "🎭",
-        color: "#0284C7",
-        bg: "#F0F9FF",
-        badge: "ROLE RECOGNITION",
-      },
-    ],
-    attention: [
-      {
-        id: 5,
-        title: "Find the Object",
-        titleAs: "বস্তু বিচাৰি উলিয়াওক",
-        titleHi: "वस्तु खोजें",
-        desc: "Spot the tea kettle, brass bell, or flower among similar choices",
-        descAs: "বহুতো বস্তুৰ মাজৰ পৰা সঠিক বস্তুটো চিনাক্ত কৰক",
-        descHi: "समान चित्रों में से सही वस्तु पहचानें",
-        link: "games/cognitive/find-characters",
-        emoji: "🔍",
-        color: "#0284C7",
-        bg: "#F0F9FF",
-        badge: "VISUAL SEARCH",
-      },
-      {
-        id: 6,
-        title: "Daily Steps Routine",
-        titleAs: "দৈনিক নিয়মৰ ক্ৰম",
-        titleHi: "दैनिक दिनचर्या क्रम",
-        desc: "Arrange familiar morning tea, bath, and walking steps in order",
-        descAs: "পুৱাৰ চাহ, গা-ধোৱা আৰু খোজকঢ়াৰ সঠিক ক্ৰম সজাওক",
-        descHi: "रोजमर्रा के कार्यों को सही क्रम में व्यवस्थित करें",
-        link: "games/cognitive/daily-steps",
-        emoji: "📋",
-        color: "#059669",
-        bg: "#F0FDF4",
-        badge: "SEQUENCING",
-      },
-      {
-        id: 7,
-        title: "Word Connection",
-        titleAs: "শব্দ সংযোগ",
-        titleHi: "शब्द संबंध",
-        desc: "Pick the word that relates best to the presented family stimulus",
-        descAs: "সম্পৰ্কিত শব্দটো শুদ্ধকৈ বাছনি কৰক",
-        descHi: "पारस्परिक संबंध वाले सही शब्द का चयन करें",
-        link: "games/cognitive/word-connection",
-        emoji: "🔗",
-        color: "#6366F1",
-        bg: "#FAF5FF",
-        badge: "ASSOCIATION",
-      },
-      {
-        id: 8,
-        title: "Bajar Hisab (Count)",
-        titleAs: "বজাৰৰ হিচাপ",
-        titleHi: "गणना खेल",
-        desc: "Gentle traditional market counting and mental agility practice",
-        descAs: "সহজ বজাৰৰ হিচাপ আৰু সংখ্যা গণনা",
-        descHi: "सरल दैनिक बाजार हिसाब और संख्यात्मक अभ्यास",
-        link: "games/cognitive/count",
-        emoji: "🧮",
-        color: "#B45309",
-        bg: "#FFFBEB",
-        badge: "NUMERACY",
-      },
-      {
-        id: 13,
-        title: "Odd One Out",
-        titleAs: "অমিলটো বিচাৰক",
-        titleHi: "अलग चित्र पहचानें",
-        desc: "Spot the single unique item among familiar cards across 5 rounds",
-        descAs: "একেধৰণৰ ছবিবোৰৰ মাজৰ পৰা অমিল বস্তুটো বাছনি কৰক",
-        descHi: "समान चित्रों के समूह में से एक अलग चित्र को पहचानें",
-        link: "games/cognitive/odd-one-out",
-        emoji: "🔎",
-        color: "#0284C7",
-        bg: "#F0F9FF",
-        badge: "ODD ONE OUT",
-      },
-      {
-        id: 14,
-        title: "Number Order",
-        titleAs: "সংখ্যাৰ ক্ৰম",
-        titleHi: "संख्या क्रम",
-        desc: "Tap the numbers in order from smallest to largest across 5 rounds",
-        descAs: "সৰুৰ পৰা ডাঙৰলৈ ক্ৰমত সংখ্যাবোৰ বাছনি কৰক",
-        descHi: "छोटी से बड़ी संख्याओं को सही क्रम में लगाएं",
-        link: "games/cognitive/number-order",
-        emoji: "🔢",
-        color: "#059669",
-        bg: "#F0FDF4",
-        badge: "NUMBER ORDER",
-      },
-      {
-        id: 19,
-        title: "Treasure Hunt (Visual Search)",
-        titleAs: "ৰত্ন সন্ধান (মনোযোগ খেল)",
-        titleHi: "खजाना खोज (दृश्य ध्यान)",
-        desc: "Spot and tap all matching target items in a colorful grid across 5 rounds",
-        descAs: "ৰঙীন তালিকাৰ মাজৰ পৰা সকলো লক্ষ্য বস্তু বিচাৰি টেপ কৰক",
-        descHi: "रंग-बिरंगी ग्रिड में से सभी लक्षित वस्तुओं को खोजें और चुनें",
-        link: "games/cognitive/treasure-hunt",
-        emoji: "🗺️",
-        color: "#EC4899",
-        bg: "#FDF2F8",
-        badge: "VISUAL ATTENTION",
-      },
-      {
-        id: 20,
-        title: "Change Your Mind (Rule Switch)",
-        titleAs: "নিয়ম সলনি খেল",
-        titleHi: "नियम बदलो खेल",
-        desc: "Adapt to changing selection rules across colors, shapes, and categories",
-        descAs: "প্ৰতি পৰ্যায়ত সলনি হোৱা নিয়ম অনুসৰি সঠিক বস্তুবোৰ বাছক",
-        descHi: "रंग, आकार और श्रेणी के बदलते नियमों के अनुसार वस्तुएं चुनें",
-        link: "games/cognitive/rule-switch",
-        emoji: "🔄",
-        color: "#7C3AED",
-        bg: "#FAF5FF",
-        badge: "COGNITIVE FLEXIBILITY",
-      },
-      {
-        id: 21,
-        title: "Plan & Do",
-        titleAs: "পৰিকল্পনা আৰু ক্ৰম",
-        titleHi: "योजना एवं क्रम",
-        desc: "Sequence everyday actions to accomplish familiar goals like tea, park, or bedtime",
-        descAs: "দৈনন্দিন পৰিকল্পনাবোৰ সঠিক ক্ৰমত সজাই কামটো সম্পূৰ্ণ কৰক",
-        descHi: "दैनिक कार्यों को लक्ष्य प्राप्ति के सही क्रम में लगाएं",
-        link: "games/cognitive/plan-and-do",
-        emoji: "🎯",
-        color: "#2563EB",
-        bg: "#EFF6FF",
-        badge: "EXECUTIVE FUNCTION",
-      },
-    ],
-    gaze: [
-      {
-        id: 9,
-        title: "Clockwise Smooth Pursuit",
-        titleAs: "ঘড়ীৰ কাঁটাৰ দিশত চকুৰ গতি",
-        titleHi: "दक्षिणावर्त नेत्र गति",
-        desc: "Circular ocular pursuit tracking calibrated by phone front camera",
-        descAs: "কেমেৰাৰে চকুৰ ঘূৰ্ণন আৰু মসৃণ গতি পৰীক্ষা",
-        descHi: "वृत्ताकार दिशा में आंखें घुमाकर ट्रैकिंग जांचें",
-        link: "games/movement/clockwise",
-        emoji: "🔄",
-        color: "#6366F1",
-        bg: "#FAF5FF",
-        badge: "OPENCV BIOMARKER",
-      },
-      {
-        id: 10,
-        title: "Anti-Clockwise Pursuit",
-        titleAs: "বিপৰীত দিশত চকুৰ গতি",
-        titleHi: "वामावर्त नेत्र गति",
-        desc: "Counter-rotation smooth ocular tracking for cognitive stability",
-        descAs: "ঘড়ীৰ ওলোটা দিশত চকুৰ গতিশীলতা নিৰীক্ষণ",
-        descHi: "विपरीत दिशा में आंखों का सुगम संचालन",
-        link: "games/movement/anti-clockwise",
-        emoji: "🔃",
-        color: "#059669",
-        bg: "#F0FDF4",
-        badge: "SMOOTH PURSUIT",
-      },
-      {
-        id: 11,
-        title: "Target Direction Saccades",
-        titleAs: "লক্ষ্যলৈ চকুৰ ক্ষিপ্ৰ দৃষ্টি",
-        titleHi: "लक्ष्य दिशा निर्धारण",
-        desc: "Rapid gaze shift fixation test to assess saccadic reaction velocity",
-        descAs: "হঠাতে ওলোৱা বিন্দুৰ ফালে চকুৰ ক্ষিপ্ৰ প্ৰতিক্ৰিয়া",
-        descHi: "त्वरित नेत्र प्रतिक्रिया एवं स्थिरता परीक्षण",
-        link: "games/movement/target-direction",
-        emoji: "🎯",
-        color: "#D97706",
-        bg: "#FFF7ED",
-        badge: "SACCADIC FIXATION",
-      },
-    ],
-  };
+  const selectedCategory = selectedCategoryId ? getCategoryById(selectedCategoryId) : null;
+  const currentCategoryActivities = selectedCategoryId ? getCategoryActivities(selectedCategoryId) : [];
 
   const handleLaunchGame = (link: string, title?: string) => {
     if (title) VoiceAssistant.speak(title, currentLang);
     router.push(`/(patient)/(stack)/${link}` as any);
   };
-  const handleNavigateToGame = (gameLink: string) => handleLaunchGame(gameLink);
 
-  const currentCategoryGames = gamesData[activeCategory];
+  const handleSelectCategory = (cat: ActivityCategory) => {
+    setSelectedCategoryId(cat.id);
+    const catTitle = currentLang === "as" ? cat.titleAs : currentLang === "hi" ? cat.titleHi : cat.title;
+    VoiceAssistant.speak(catTitle, currentLang);
+  };
+
+  const handleBackToCategories = () => {
+    setSelectedCategoryId(null);
+    const backMsg = currentLang === "as" ? "শিতানসমূহ" : currentLang === "hi" ? "सभी श्रेणियां" : "All Categories";
+    VoiceAssistant.speak(backMsg, currentLang);
+  };
+
+  const getPlayButtonText = () => {
+    if (currentLang === "as") return "খেলক";
+    if (currentLang === "hi") return "खेलें";
+    return "Play";
+  };
+
+  const getLocalizedTitle = (item: { title: string; titleAs: string; titleHi: string }) => {
+    if (currentLang === "as") return item.titleAs;
+    if (currentLang === "hi") return item.titleHi;
+    return item.title;
+  };
+
+  const getLocalizedDesc = (item: { desc?: string; descAs?: string; descHi?: string; description?: string; descriptionAs?: string; descriptionHi?: string }) => {
+    if (currentLang === "as") return item.descAs || item.descriptionAs || "";
+    if (currentLang === "hi") return item.descHi || item.descriptionHi || "";
+    return item.desc || item.description || "";
+  };
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
+      <View style={styles.ambientAuraTop} pointerEvents="none" />
+      <View style={styles.ambientAuraBottom} pointerEvents="none" />
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Header Bar */}
-        <View style={styles.header}>
-          <View style={styles.headerTagPill}>
-            <Text style={styles.headerTagText}>NEURO-COGNITIVE WELLNESS</Text>
-          </View>
-          <Text style={styles.headerTitle}>
-            {currentLang === "as" ? "মগজু আৰু স্মৃতিৰ খেল" : currentLang === "hi" ? "मस्तिष्क एवं स्मृति खेल" : "Mind & Memory Games"}
-          </Text>
-          <Text style={styles.headerSubtitle}>
-            {currentLang === "as"
-              ? "দৈনিক স্মৃতি শক্তি, মনোযোগ আৰু চকুৰ গতিশীলতা পৰীক্ষা"
-              : currentLang === "hi"
-              ? "दैनिक स्मृति, ध्यान एवं नेत्र गतिशीलता के मनोरंजक खेल"
-              : "Daily cognitive recall, visual attention & ocular biomarker exercises"}
-          </Text>
-        </View>
+        {/* =========================================================================
+            STATE 1: SELECTED CATEGORY VIEW (Activities inside selected category)
+           ========================================================================= */}
+        {selectedCategory ? (
+          <View>
+            {/* Elderly-Friendly Large "Back to Categories" Button */}
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={handleBackToCategories}
+              activeOpacity={0.8}
+              accessibilityRole="button"
+              accessibilityLabel="Back to Categories"
+            >
+              <Feather name="arrow-left" size={22} color="#0F172A" />
+              <Text style={styles.backButtonText}>
+                {currentLang === "as"
+                  ? "← শিতানসমূহলৈ উভতি যাওক"
+                  : currentLang === "hi"
+                  ? "← सभी श्रेणियां"
+                  : "← Back to Categories"}
+              </Text>
+            </TouchableOpacity>
 
-        {/* 3 Large Aesthetic Category Pills */}
-        <View style={styles.categoryPills}>
-          {categories.map((cat) => {
-            const isSelected = activeCategory === cat.key;
-            return (
-              <TouchableOpacity
-                key={cat.key}
-                style={[
-                  styles.categoryPill,
-                  isSelected
-                    ? { backgroundColor: cat.activeBg, borderColor: cat.activeBg }
-                    : { backgroundColor: cat.tintBg, borderColor: cat.border },
-                ]}
-                onPress={() => setActiveCategory(cat.key as any)}
-                activeOpacity={0.8}
-              >
-                <MaterialCommunityIcons
-                  name={cat.icon as any}
-                  size={18}
-                  color={isSelected ? cat.activeText : cat.tintText}
-                />
-                <Text
+            {/* Category Header Banner */}
+            <View
+              style={[
+                styles.categoryBanner,
+                {
+                  backgroundColor: selectedCategory.bgColor,
+                  borderColor: selectedCategory.borderColor,
+                },
+              ]}
+            >
+              <View style={styles.categoryBannerTop}>
+                <View
                   style={[
-                    styles.categoryPillText,
-                    { color: isSelected ? cat.activeText : cat.tintText },
+                    styles.categoryBannerIconBox,
+                    { backgroundColor: "#FFFFFF", borderColor: selectedCategory.borderColor },
                   ]}
-                  numberOfLines={1}
                 >
-                  {cat.label}
-                </Text>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
-
-        {/* Game Cards List */}
-        <View style={styles.gamesList}>
-          {currentCategoryGames.map((game) => {
-            const title = currentLang === "as" ? game.titleAs : currentLang === "hi" ? game.titleHi : game.title;
-            const desc = currentLang === "as" ? game.descAs : currentLang === "hi" ? game.descHi : game.desc;
-            return (
-              <TouchableOpacity
-                key={game.id}
-                style={styles.gameCard}
-                onPress={() => handleLaunchGame(game.link, title)}
-                activeOpacity={0.85}
-              >
-                <View style={[styles.gameEmojiBg, { backgroundColor: game.bg, borderColor: `${game.color}30` }]}>
-                  <Text style={styles.gameEmoji}>{game.emoji}</Text>
+                  <Text style={{ fontSize: 32 }}>{selectedCategory.icon}</Text>
                 </View>
 
-                <View style={styles.gameInfo}>
-                  <View style={[styles.badgeWrapper, { backgroundColor: game.bg }]}>
-                    <Text style={[styles.badgeText, { color: game.color }]}>{game.badge}</Text>
-                  </View>
-                  <Text style={styles.gameTitle} numberOfLines={1}>
-                    {title}
+                <View style={{ flex: 1 }}>
+                  <Text style={[styles.categoryBannerTitle, { color: selectedCategory.tintText }]}>
+                    {getLocalizedTitle(selectedCategory)}
                   </Text>
-                  <Text style={styles.gameDesc} numberOfLines={2}>
-                    {desc}
-                  </Text>
-
-                  <View style={styles.playRow}>
-                    <Text style={[styles.playNowText, { color: game.color }]}>
-                      {currentLang === "as" ? "এতিয়াই খেলক" : currentLang === "hi" ? "खेल शुरू करें" : "Play Exercise"}
+                  <View style={[styles.countPill, { backgroundColor: "#FFFFFF" }]}>
+                    <Text style={[styles.countPillText, { color: selectedCategory.tintText }]}>
+                      {currentCategoryActivities.length}{" "}
+                      {currentLang === "as" ? "টা খেল উপলব্ধ" : currentLang === "hi" ? "गतिविधियां" : "Activities"}
                     </Text>
-                    <Feather name="arrow-right" size={14} color={game.color} />
                   </View>
                 </View>
-              </TouchableOpacity>
-            );
-          })}
-        </View>
+              </View>
 
-        <View style={{ height: 100 }} />
+              <Text style={styles.categoryBannerDesc}>
+                {getLocalizedDesc(selectedCategory)}
+              </Text>
+            </View>
+
+            {/* Activities Section Header */}
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionTitle}>
+                {currentLang === "as"
+                  ? "এই শিতানৰ কাৰ্য্যসূচী"
+                  : currentLang === "hi"
+                  ? "उपलब्ध गतिविधियां"
+                  : "Available Activities"}
+              </Text>
+              <Text style={styles.sectionCountText}>
+                {currentCategoryActivities.length} {currentLang === "as" ? "খেল" : currentLang === "hi" ? "खेल" : "activities"}
+              </Text>
+            </View>
+
+            {/* Activity Cards List - Elderly Accessible */}
+            <View style={styles.activityList}>
+              {currentCategoryActivities.map((activity) => {
+                const title = getLocalizedTitle(activity);
+                const desc = getLocalizedDesc(activity);
+
+                return (
+                  <View
+                    key={activity.id}
+                    style={[
+                      styles.activityCard,
+                      { borderColor: `${activity.color}35` },
+                    ]}
+                  >
+                    <View style={styles.activityCardHeader}>
+                      <GameVisualPreview
+                        id={activity.id}
+                        color={activity.color}
+                        bg={activity.bg}
+                        emoji={activity.emoji}
+                      />
+
+                      <View style={styles.activityMeta}>
+                        <View
+                          style={[
+                            styles.activityBadge,
+                            { backgroundColor: activity.bg, borderColor: `${activity.color}40` },
+                          ]}
+                        >
+                          <Text style={[styles.activityBadgeText, { color: activity.color }]}>
+                            {activity.badge}
+                          </Text>
+                        </View>
+                        <Text style={styles.activityTitle} numberOfLines={2}>
+                          {title}
+                        </Text>
+                      </View>
+                    </View>
+
+                    {/* Simple, Non-Medical Description */}
+                    <Text style={styles.activityDesc}>
+                      {desc}
+                    </Text>
+
+                    {/* Prominent Tactile Play Button (min 48px height) */}
+                    <TouchableOpacity
+                      style={[styles.largePlayButton, { backgroundColor: activity.color }]}
+                      onPress={() => handleLaunchGame(activity.link, title)}
+                      activeOpacity={0.88}
+                      accessibilityRole="button"
+                      accessibilityLabel={`Play ${title}`}
+                    >
+                      <Feather name="play" size={18} color="#FFFFFF" />
+                      <Text style={styles.largePlayButtonText}>
+                        {getPlayButtonText()} • {title}
+                      </Text>
+                      <Feather name="arrow-right" size={18} color="#FFFFFF" />
+                    </TouchableOpacity>
+                  </View>
+                );
+              })}
+            </View>
+          </View>
+        ) : (
+          /* =========================================================================
+             STATE 2: CATEGORY-FIRST OVERVIEW (5 Core Domains + Extensible Modules)
+             ========================================================================= */
+          <View>
+            {/* MindCare Header */}
+            <View style={styles.header}>
+              <View style={styles.headerTagPill}>
+                <Text style={styles.headerTagText}>🧠 MINDCARE COGNITIVE GYM</Text>
+              </View>
+              <Text style={styles.headerTitle}>
+                {currentLang === "as"
+                  ? "মগজু আৰু স্মৃতিৰ খেল"
+                  : currentLang === "hi"
+                  ? "मस्तिष्क एवं स्मृति खेल"
+                  : "Cognitive Activities"}
+              </Text>
+              <Text style={styles.headerSubtitle}>
+                {currentLang === "as"
+                  ? "আৰম্ভ কৰিবলৈ যিকোনো এটা শিতান বাছক"
+                  : currentLang === "hi"
+                  ? "शुरू करने के लिए एक श्रेणी चुनें"
+                  : "Choose an activity area to exercise your mind"}
+              </Text>
+            </View>
+
+            {/* SECTION 1: 5 CORE COGNITIVE CATEGORIES */}
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionTitle}>
+                {currentLang === "as"
+                  ? "প্ৰধান শিতানসমূহ (৫টা ভাগ)"
+                  : currentLang === "hi"
+                  ? "मुख्य श्रेणियां (5 भाग)"
+                  : "Cognitive Categories"}
+              </Text>
+              <Text style={styles.sectionCountText}>
+                5 {currentLang === "as" ? "টা শিতান" : currentLang === "hi" ? "श्रेणियां" : "categories"}
+              </Text>
+            </View>
+
+            <View style={styles.categoryCardList}>
+              {coreCategories.map((cat) => {
+                const catTitle = getLocalizedTitle(cat);
+                const catDesc = getLocalizedDesc(cat);
+                const activities = getCategoryActivities(cat.id);
+
+                return (
+                  <TouchableOpacity
+                    key={cat.id}
+                    style={[
+                      styles.categoryCard,
+                      {
+                        backgroundColor: "#FFFFFF",
+                        borderColor: cat.borderColor,
+                      },
+                    ]}
+                    onPress={() => handleSelectCategory(cat)}
+                    activeOpacity={0.88}
+                    accessibilityRole="button"
+                    accessibilityLabel={catTitle}
+                  >
+                    {/* Top Row: Icon, Title & Count */}
+                    <View style={styles.categoryCardTopRow}>
+                      <View
+                        style={[
+                          styles.categoryIconCircle,
+                          { backgroundColor: cat.bgColor, borderColor: cat.borderColor },
+                        ]}
+                      >
+                        <Text style={{ fontSize: 28 }}>{cat.icon}</Text>
+                      </View>
+
+                      <View style={{ flex: 1, marginLeft: 12 }}>
+                        <Text style={styles.categoryCardTitle}>
+                          {catTitle}
+                        </Text>
+                        <View style={[styles.activityCountTag, { backgroundColor: cat.bgColor }]}>
+                          <Text style={[styles.activityCountTagText, { color: cat.tintText }]}>
+                            {activities.length}{" "}
+                            {currentLang === "as" ? "টা খেল" : currentLang === "hi" ? "खेल उपलब्ध" : "activities"}
+                          </Text>
+                        </View>
+                      </View>
+
+                      <View style={[styles.categoryChevronCircle, { backgroundColor: cat.bgColor }]}>
+                        <Feather name="chevron-right" size={20} color={cat.tintText} />
+                      </View>
+                    </View>
+
+                    {/* Friendly Non-Medical Description */}
+                    <Text style={styles.categoryCardDesc}>
+                      {catDesc}
+                    </Text>
+
+                    {/* Preview Pills of Activities in this Category */}
+                    <View style={styles.activityPreviewPillsRow}>
+                      {activities.slice(0, 3).map((act) => (
+                        <View key={act.id} style={styles.previewPill}>
+                          <Text style={styles.previewPillEmoji}>{act.emoji}</Text>
+                          <Text style={styles.previewPillText} numberOfLines={1}>
+                            {getLocalizedTitle(act)}
+                          </Text>
+                        </View>
+                      ))}
+                      {activities.length > 3 && (
+                        <View style={[styles.previewPill, { backgroundColor: "#F1F5F9" }]}>
+                          <Text style={[styles.previewPillText, { color: "#64748B" }]}>
+                            +{activities.length - 3}
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+
+                    {/* Tactile "Open Category" Button */}
+                    <View style={[styles.openCategoryButton, { backgroundColor: cat.bgColor, borderColor: cat.borderColor }]}>
+                      <Text style={[styles.openCategoryButtonText, { color: cat.tintText }]}>
+                        {currentLang === "as" ? "এই শিতানৰ খেলসমূহ খোলক" : currentLang === "hi" ? "इस श्रेणी के खेल खोलें" : "Explore Activities"}
+                      </Text>
+                      <Feather name="arrow-right" size={16} color={cat.tintText} />
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* SECTION 2: EXTENSIBLE MODULES (Music & Eye Tracking) */}
+            {extensibleCategories.length > 0 && (
+              <View style={{ marginTop: 24 }}>
+                <View style={styles.sectionHeaderRow}>
+                  <Text style={styles.sectionTitle}>
+                    {currentLang === "as"
+                      ? "অধিক আনন্দদায়ক কাৰ্য্যসূচী"
+                      : currentLang === "hi"
+                      ? "अन्य विशेष गतिविधियां"
+                      : "More Fun Activities"}
+                  </Text>
+                </View>
+
+                <View style={styles.extensibleGrid}>
+                  {extensibleCategories.map((cat) => {
+                    const catTitle = getLocalizedTitle(cat);
+                    const catDesc = getLocalizedDesc(cat);
+                    const activities = getCategoryActivities(cat.id);
+
+                    return (
+                      <TouchableOpacity
+                        key={cat.id}
+                        style={[
+                          styles.extensibleCard,
+                          { backgroundColor: cat.bgColor, borderColor: cat.borderColor },
+                        ]}
+                        onPress={() => handleSelectCategory(cat)}
+                        activeOpacity={0.88}
+                      >
+                        <View style={styles.extensibleHeader}>
+                          <Text style={{ fontSize: 26 }}>{cat.icon}</Text>
+                          <View style={[styles.activityCountTag, { backgroundColor: "#FFFFFF" }]}>
+                            <Text style={[styles.activityCountTagText, { color: cat.tintText }]}>
+                              {activities.length} {currentLang === "as" ? "খেল" : currentLang === "hi" ? "खेल" : "games"}
+                            </Text>
+                          </View>
+                        </View>
+
+                        <Text style={[styles.extensibleTitle, { color: cat.tintText }]}>
+                          {catTitle}
+                        </Text>
+                        <Text style={styles.extensibleDesc} numberOfLines={2}>
+                          {catDesc}
+                        </Text>
+
+                        <View style={[styles.extensibleButton, { backgroundColor: "#FFFFFF" }]}>
+                          <Text style={[styles.extensibleButtonText, { color: cat.tintText }]}>
+                            {currentLang === "as" ? "চাওক" : currentLang === "hi" ? "देखें" : "Explore"}
+                          </Text>
+                          <Feather name="arrow-right" size={14} color={cat.tintText} />
+                        </View>
+                      </TouchableOpacity>
+                    );
+                  })}
+                </View>
+              </View>
+            )}
+          </View>
+        )}
+
+        <View style={{ height: 110 }} />
       </ScrollView>
     </SafeAreaView>
   );
@@ -480,128 +716,639 @@ export default function GamesScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#FAFAFC",
+    backgroundColor: AestheticTheme.canvas,
+    position: "relative",
+  },
+  ambientAuraTop: {
+    position: "absolute",
+    top: -80,
+    right: -60,
+    width: 240,
+    height: 240,
+    borderRadius: 120,
+    backgroundColor: AestheticTheme.ambientLavender,
+  },
+  ambientAuraBottom: {
+    position: "absolute",
+    top: 540,
+    left: -80,
+    width: 260,
+    height: 260,
+    borderRadius: 130,
+    backgroundColor: AestheticTheme.ambientRose,
   },
   scrollContent: {
-    paddingHorizontal: 14,
-    paddingTop: 10,
+    paddingHorizontal: 16,
+    paddingTop: 12,
     paddingBottom: 24,
   },
+
+  /* HEADER */
   header: {
-    marginBottom: 12,
+    marginBottom: 16,
   },
   headerTagPill: {
     alignSelf: "flex-start",
-    backgroundColor: "#F5F3FF",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 6,
+    backgroundColor: "#EFF6FF",
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 8,
     borderWidth: 1,
-    borderColor: "#E0E7FF",
+    borderColor: "#BFDBFE",
     marginBottom: 6,
   },
   headerTagText: {
-    fontSize: 9.5,
+    fontSize: 10,
     fontWeight: "800",
-    color: "#4F46E5",
-    letterSpacing: 0.5,
+    color: "#2563EB",
+    letterSpacing: 0.6,
   },
   headerTitle: {
-    fontSize: 20,
+    fontSize: 23,
     fontWeight: "800",
-    color: "#1E2024",
-    letterSpacing: -0.3,
+    color: "#0F172A",
+    letterSpacing: -0.4,
   },
   headerSubtitle: {
-    fontSize: 12.5,
+    fontSize: 13,
     color: "#64748B",
     marginTop: 3,
     lineHeight: 18,
   },
-  categoryPills: {
+
+  /* SECTION HEADERS */
+  sectionHeaderRow: {
     flexDirection: "row",
-    gap: 8,
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 12,
+    paddingHorizontal: 2,
   },
-  categoryPill: {
-    flex: 1,
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#1E293B",
+  },
+  sectionCountText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#94A3B8",
+  },
+
+  /* BACK BUTTON (Elderly-Accessible) */
+  backButton: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    borderRadius: 14,
-    paddingVertical: 10,
-    paddingHorizontal: 4,
+    backgroundColor: AestheticTheme.cardSurface,
+    borderRadius: 16,
     borderWidth: 1.5,
-    gap: 4,
+    borderColor: AestheticTheme.cardBorder,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    marginBottom: 14,
+    gap: 8,
+    ...AestheticTheme.cardShadow,
+    minHeight: 50,
   },
-  categoryPillText: {
-    fontSize: 11.5,
+  backButtonText: {
+    fontSize: 15,
     fontWeight: "700",
-    textAlign: "center",
+    color: "#0F172A",
   },
-  gamesList: {
-    gap: 10,
-  },
-  gameCard: {
-    flexDirection: "row",
-    backgroundColor: "#FFFFFF",
-    borderRadius: 18,
-    padding: 12,
+
+  /* CATEGORY BANNER (Inside Category View) */
+  categoryBanner: {
+    borderRadius: 20,
     borderWidth: 1.5,
-    borderColor: "#EAE7E1",
-    shadowColor: "#A8A29E",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 5,
-    elevation: 2,
-    alignItems: "center",
-    gap: 12,
+    padding: 16,
+    marginBottom: 18,
   },
-  gameEmojiBg: {
-    width: 60,
-    height: 60,
+  categoryBannerTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  categoryBannerIconBox: {
+    width: 54,
+    height: 54,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    justifyContent: "center",
+    alignItems: "center",
+    marginRight: 12,
+  },
+  categoryBannerTitle: {
+    fontSize: 19,
+    fontWeight: "800",
+    marginBottom: 4,
+  },
+  categoryBannerDesc: {
+    fontSize: 13,
+    color: "#475569",
+    lineHeight: 18,
+  },
+  countPill: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  countPillText: {
+    fontSize: 11,
+    fontWeight: "700",
+  },
+
+  /* CATEGORY-FIRST CARDS */
+  categoryCardList: {
+    gap: 14,
+  },
+  categoryCard: {
+    borderRadius: 20,
+    borderWidth: 1.5,
+    padding: 16,
+    shadowColor: "#0F172A",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  categoryCardTopRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  categoryIconCircle: {
+    width: 50,
+    height: 50,
+    borderRadius: 16,
+    borderWidth: 1.5,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  categoryCardTitle: {
+    fontSize: 17,
+    fontWeight: "800",
+    color: "#0F172A",
+    marginBottom: 4,
+  },
+  activityCountTag: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  activityCountTagText: {
+    fontSize: 10.5,
+    fontWeight: "700",
+  },
+  categoryChevronCircle: {
+    width: 32,
+    height: 32,
     borderRadius: 16,
     justifyContent: "center",
     alignItems: "center",
+  },
+  categoryCardDesc: {
+    fontSize: 13,
+    color: "#475569",
+    lineHeight: 18,
+    marginTop: 10,
+    marginBottom: 10,
+  },
+  activityPreviewPillsRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 6,
+    marginBottom: 12,
+  },
+  previewPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#F8FAFC",
+    paddingHorizontal: 8,
+    paddingVertical: 3.5,
+    borderRadius: 8,
     borderWidth: 1,
+    borderColor: "#E2E8F0",
+    gap: 4,
   },
-  gameEmoji: {
-    fontSize: 30,
+  previewPillEmoji: {
+    fontSize: 11,
   },
-  gameInfo: {
+  previewPillText: {
+    fontSize: 11,
+    fontWeight: "600",
+    color: "#334155",
+    maxWidth: 130,
+  },
+  openCategoryButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    gap: 6,
+    minHeight: 44,
+  },
+  openCategoryButtonText: {
+    fontSize: 13,
+    fontWeight: "700",
+  },
+
+  /* EXTENSIBLE MODULES (Music & Eye Tracking) */
+  extensibleGrid: {
+    flexDirection: "row",
+    gap: 10,
+  },
+  extensibleCard: {
     flex: 1,
+    borderRadius: 18,
+    borderWidth: 1.5,
+    padding: 14,
+    justifyContent: "space-between",
+    minHeight: 150,
   },
-  badgeWrapper: {
-    alignSelf: "flex-start",
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: 6,
-    marginBottom: 3,
+  extensibleHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 8,
   },
-  badgeText: {
-    fontSize: 9,
+  extensibleTitle: {
+    fontSize: 14,
     fontWeight: "800",
-    letterSpacing: 0.4,
+    marginBottom: 4,
   },
-  gameTitle: {
-    fontSize: 14.5,
-    fontWeight: "800",
-    color: "#1E2024",
-    marginBottom: 2,
-  },
-  gameDesc: {
+  extensibleDesc: {
     fontSize: 11.5,
     color: "#64748B",
     lineHeight: 16,
-    marginBottom: 6,
+    marginBottom: 10,
   },
-  playRow: {
+  extensibleButton: {
     flexDirection: "row",
     alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 6,
+    borderRadius: 10,
+    gap: 4,
+    minHeight: 34,
+  },
+  extensibleButtonText: {
+    fontSize: 11.5,
+    fontWeight: "700",
+  },
+
+  /* ACTIVITY CARDS (Inside Category View) */
+  activityList: {
+    gap: 14,
+  },
+  activityCard: {
+    backgroundColor: AestheticTheme.cardSurface,
+    borderRadius: 20,
+    borderWidth: 1.5,
+    borderColor: AestheticTheme.cardBorder,
+    padding: 16,
+    ...AestheticTheme.cardShadow,
+  },
+  activityCardHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  activityMeta: {
+    flex: 1,
+    marginLeft: 12,
+  },
+  activityBadge: {
+    alignSelf: "flex-start",
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    borderRadius: 6,
+    borderWidth: 1,
+    marginBottom: 4,
+  },
+  activityBadgeText: {
+    fontSize: 9.5,
+    fontWeight: "800",
+    letterSpacing: 0.4,
+  },
+  activityTitle: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#0F172A",
+  },
+  activityDesc: {
+    fontSize: 13,
+    color: "#64748B",
+    lineHeight: 18,
+    marginBottom: 14,
+  },
+  largePlayButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 14,
+    gap: 8,
+    minHeight: 48,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.12,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  largePlayButtonText: {
+    color: "#FFFFFF",
+    fontSize: 14,
+    fontWeight: "800",
+    flexShrink: 1,
+  },
+
+  /* VISUAL PREVIEW CONTAINER & MOTIFS */
+  visualContainer: {
+    borderRadius: 16,
+    borderWidth: 1.2,
+    justifyContent: "center",
+    alignItems: "center",
+    overflow: "hidden",
+  },
+
+  // 101 Polaroid
+  motifPolaroid: {
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  motifPolaroidInner: {
+    padding: 3,
+    borderRadius: 8,
+    borderWidth: 1,
+    alignItems: "center",
+  },
+  motifStarsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  // 1 Antakshari
+  motifAudioWave: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+  },
+  waveBar: {
+    width: 3.5,
+    borderRadius: 2,
+  },
+
+  // 2 Motif Match
+  motifMatch: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  motifDiamond: {
+    width: 26,
+    height: 26,
+    borderRadius: 6,
+    borderWidth: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  // 3 Picture Recall
+  motifCanvasFrame: {
+    width: 34,
+    height: 34,
+    borderRadius: 8,
+    borderWidth: 1.5,
+    justifyContent: "center",
+    alignItems: "center",
+    position: "relative",
+  },
+  motifAbsoluteCenter: {
+    position: "absolute",
+  },
+
+  // 4 Smriti Manthan
+  motifSunrise: {
+    alignItems: "center",
+    gap: 2,
+  },
+  motifRiverLine: {
+    width: 34,
+    height: 2.5,
+    borderRadius: 2,
+  },
+
+  // 12 Sequence Recall
+  motifSeqRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 2,
+  },
+  seqDot: {
+    width: 15,
+    height: 15,
+    borderRadius: 7.5,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  seqDotText: {
+    color: "#FFF",
+    fontSize: 9,
+    fontWeight: "900",
+  },
+
+  // 15 Word Recall
+  motifBookCard: {
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 2,
+  },
+  motifLetterBadges: {
+    flexDirection: "row",
+    gap: 2,
+  },
+  miniLetter: {
+    fontSize: 9,
+    fontWeight: "800",
+  },
+
+  // 16 Picture Assoc
+  motifAssocRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+  },
+  assocNode: {
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#FFF",
+  },
+
+  // 17 Daily Orientation
+  motifCompass: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  motifClockHands: {
+    position: "absolute",
+  },
+
+  // 18 Who Am I
+  motifMaskRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  // 5 Find Object
+  motifRadar: {
+    justifyContent: "center",
+    alignItems: "center",
+    position: "relative",
+  },
+  radarCircle: {
+    position: "absolute",
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    borderWidth: 1,
+    borderStyle: "dashed",
+    opacity: 0.5,
+  },
+  radarPing: {
+    position: "absolute",
+    top: 2,
+    right: 2,
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
+  },
+
+  // 6 Daily Steps
+  motifStepsRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 3,
+  },
+  stepPill: {
+    width: 16,
+    height: 16,
+    borderRadius: 8,
+    borderWidth: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  stepNum: {
+    fontSize: 9.5,
+    fontWeight: "900",
+  },
+
+  // 7 Word Connection
+  motifNetwork: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  // 8 Bajar Hisab
+  motifCoins: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  coin: {
+    width: 18,
+    height: 18,
+    borderRadius: 9,
+    borderWidth: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  coinText: {
+    fontSize: 9.5,
+    fontWeight: "900",
+    color: "#78350F",
+  },
+
+  // 13 Odd One Out
+  motifGrid2x2: {
+    gap: 3,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  motifMiniRow: {
+    flexDirection: "row",
     gap: 4,
   },
-  playNowText: {
-    fontSize: 12,
+
+  // 14 Number Order
+  motifPodium: {
+    flexDirection: "row",
+    alignItems: "flex-end",
+    gap: 3,
+  },
+  podiumBar: {
+    width: 10,
+    borderRadius: 3,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  podiumText: {
+    fontSize: 7.5,
     fontWeight: "800",
+    color: "#0F172A",
+  },
+
+  // 19 Treasure Hunt
+  motifTreasure: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+
+  // 20 Rule Switch
+  motifSwitch: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  // 21 Plan & Do
+  motifClipboard: {
+    justifyContent: "center",
+    alignItems: "center",
+  },
+
+  // 9 & 10 Gaze Orbit
+  motifOrbit: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    borderWidth: 1.5,
+    justifyContent: "center",
+    alignItems: "center",
+    position: "relative",
+  },
+  orbitTrackerDot: {
+    position: "absolute",
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+
+  // 11 Saccades Bullseye
+  motifBullseye: {
+    justifyContent: "center",
+    alignItems: "center",
+    position: "relative",
+  },
+  bullseyeFlash: {
+    position: "absolute",
+    width: 5,
+    height: 5,
+    borderRadius: 2.5,
   },
 });

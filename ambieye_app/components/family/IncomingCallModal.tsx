@@ -161,7 +161,10 @@ export function IncomingCallModal({
             {/* Decline Button */}
             <TouchableOpacity
               style={styles.declineButton}
-              onPress={() => onDecline(incomingCall)}
+              onPress={() => {
+                VoiceAssistant.stop();
+                onDecline(incomingCall);
+              }}
               activeOpacity={0.85}
               accessibilityRole="button"
               accessibilityLabel="Decline Call"
@@ -181,7 +184,10 @@ export function IncomingCallModal({
             {/* Accept Button */}
             <TouchableOpacity
               style={styles.acceptButton}
-              onPress={() => onAccept(incomingCall)}
+              onPress={() => {
+                VoiceAssistant.stop();
+                onAccept(incomingCall);
+              }}
               activeOpacity={0.85}
               accessibilityRole="button"
               accessibilityLabel="Accept Call"

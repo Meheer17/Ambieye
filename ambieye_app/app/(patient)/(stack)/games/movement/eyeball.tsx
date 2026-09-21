@@ -72,7 +72,7 @@ export default function EyeballMovementGame() {
 
   const handleBack = useCallback(async () => {
     await stopEverything();
-    router.back();
+    router.replace("/(patient)/games" as any);
   }, [stopEverything, router]);
 
   const endGame = useCallback(async () => {
@@ -207,7 +207,7 @@ export default function EyeballMovementGame() {
             chunksAnalysed={chunksAnalysed}
             liveVerdict={liveVerdict}
           />
-          <TouchableOpacity style={[styles.primaryBtn, { marginTop: 32 }]} onPress={() => router.back()}>
+          <TouchableOpacity style={[styles.primaryBtn, { marginTop: 32 }]} onPress={() => router.replace("/(patient)/games" as any)}>
             <Text style={styles.primaryBtnText}>Done</Text>
           </TouchableOpacity>
         </ScrollView>

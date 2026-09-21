@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   StyleSheet,
   View,
@@ -25,6 +25,12 @@ export function GharorBartaPostcards({ items }: Props) {
   const { currentLang } = useTranslation();
   const [playingId, setPlayingId] = useState<string | null>(null);
   const [lovedIds, setLovedIds] = useState<Record<string, boolean>>({});
+
+  useEffect(() => {
+    return () => {
+      VoiceAssistant.stop();
+    };
+  }, []);
 
   const handleListenPostcard = (item: FamilySentItem) => {
     setPlayingId(item.id);

@@ -458,6 +458,7 @@ export default function PictureAssociationScreen() {
 
     return () => {
       isMounted = false;
+      VoiceAssistant.stop();
       // Early exit abandonment
       if (!isCompletedRef.current && !isAbandonedRef.current && sessionIdRef.current) {
         isAbandonedRef.current = true;
@@ -880,7 +881,7 @@ export default function PictureAssociationScreen() {
 
             <TouchableOpacity
               style={styles.backHomeBtn}
-              onPress={() => router.back()}
+              onPress={() => router.replace("/(patient)/games" as any)}
               activeOpacity={0.8}
             >
               <Feather name="home" size={20} color="#0F172A" />
@@ -905,7 +906,7 @@ export default function PictureAssociationScreen() {
       <View style={styles.topBar}>
         <TouchableOpacity
           style={styles.backIconButton}
-          onPress={() => router.back()}
+          onPress={() => router.replace("/(patient)/games" as any)}
           activeOpacity={0.7}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         >

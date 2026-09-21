@@ -1,4 +1,4 @@
-import { Platform } from "react-native";
+import { Platform, NativeModules } from "react-native";
 
 export interface WebRTCCallbacks {
   onRemoteTrack?: (stream: any) => void;
@@ -15,15 +15,20 @@ const DEFAULT_ICE_SERVERS = [
 /**
  * Cross-platform WebRTC Module Loader
  * Dynamically resolves `react-native-webrtc` for native Android/iOS
- * and standard browser APIs for web.
+ * when native module binaries are available (development build),
+ * and falls back safely in Expo Go or standard browser APIs on web.
  */
 function getWebRTCModule(): any {
-  if (Platform.OS !== "web") {
+  if (
+    Platform.OS !== "web" &&
+    NativeModules &&
+    (NativeModules.WebRTCModule || (NativeModules as any).WebRTC)
+  ) {
     try {
       const webrtc = require("react-native-webrtc");
       return webrtc;
-    } catch (e) {
-      console.warn("[WebRTC] react-native-webrtc require failed:", e);
+    } catch {
+      return null;
     }
   }
   return null;

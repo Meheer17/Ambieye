@@ -66,6 +66,12 @@ export default function CulturalMatchingGame() {
   const animationRef = useRef<Animated.CompositeAnimation | null>(null);
   const roundCompleted = useRef(false);
 
+  useEffect(() => {
+    return () => {
+      VoiceAssistant.stop();
+    };
+  }, []);
+
   const getPairsCount = () => {
     switch (difficulty) {
       case "easy": return 3;
@@ -214,7 +220,7 @@ export default function CulturalMatchingGame() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.headerBar}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <TouchableOpacity onPress={() => router.replace("/(patient)/games" as any)} style={styles.backBtn}>
             <Feather name="arrow-left" size={24} color="#0F172A" />
           </TouchableOpacity>
           <Text style={styles.headerBarTitle}>{t("game_motif_match")}</Text>
@@ -330,7 +336,7 @@ export default function CulturalMatchingGame() {
 
           <TouchableOpacity
             style={styles.secondaryBtn}
-            onPress={() => router.back()}
+            onPress={() => router.replace("/(patient)/games" as any)}
             activeOpacity={0.8}
           >
             <Text style={styles.secondaryBtnText}>{t("back_to_games")}</Text>
@@ -345,7 +351,7 @@ export default function CulturalMatchingGame() {
     <SafeAreaView style={styles.container}>
       {/* Top Status Bar */}
       <View style={styles.topStatsBar}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.exitBtn}>
+        <TouchableOpacity onPress={() => router.replace("/(patient)/games" as any)} style={styles.exitBtn}>
           <Feather name="x" size={22} color="#0F172A" />
         </TouchableOpacity>
 

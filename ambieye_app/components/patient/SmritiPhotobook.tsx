@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   StyleSheet,
   View,
@@ -102,6 +102,12 @@ export const SmritiPhotobook: React.FC<SmritiPhotobookProps> = ({ onAskCompanion
   const { currentLang } = useTranslation();
   const [selectedPhotoId, setSelectedPhotoId] = useState<string>("mem-majuli");
   const [isSpeaking, setIsSpeaking] = useState(false);
+
+  useEffect(() => {
+    return () => {
+      VoiceAssistant.stop();
+    };
+  }, []);
 
   const activePhoto = PHOTO_MEMORIES.find((p) => p.id === selectedPhotoId) || PHOTO_MEMORIES[0];
 

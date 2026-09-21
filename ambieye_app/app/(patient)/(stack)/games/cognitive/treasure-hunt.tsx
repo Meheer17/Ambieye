@@ -401,6 +401,7 @@ export default function TreasureHuntScreen() {
 
     return () => {
       isMounted = false;
+      VoiceAssistant.stop();
       // Early exit abandonment
       if (!isCompletedRef.current && !isAbandonedRef.current && sessionIdRef.current) {
         isAbandonedRef.current = true;
@@ -791,7 +792,7 @@ export default function TreasureHuntScreen() {
 
               <TouchableOpacity
                 style={styles.secondaryButton}
-                onPress={() => router.back()}
+                onPress={() => router.replace("/(patient)/games" as any)}
                 activeOpacity={0.8}
               >
                 <Feather name="arrow-left" size={18} color="#475569" />
@@ -819,7 +820,7 @@ export default function TreasureHuntScreen() {
       <View style={styles.navBar}>
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => router.back()}
+          onPress={() => router.replace("/(patient)/games" as any)}
           activeOpacity={0.7}
         >
           <Feather name="chevron-left" size={26} color="#0F172A" />

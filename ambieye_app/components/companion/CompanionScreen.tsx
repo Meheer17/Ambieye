@@ -22,7 +22,9 @@ import {
   REMINISCENCE_TOPICS,
   ReminiscenceTopic,
   PatientContinuousContext,
-} from "@/services/companion/companionService";
+  companionVoiceService,
+} from "@/services/companion";
+import { VoiceAssistant } from "@/utils/voiceAssistant";
 
 interface CompanionScreenProps {
   onClose?: () => void;
@@ -40,6 +42,7 @@ export const CompanionScreen: React.FC<CompanionScreenProps> = ({
   const [persona, setPersona] = useState<AvatarPersona>("mitr");
   const [avatarState, setAvatarState] = useState<AvatarState>("idle");
   const [patientCtx, setPatientCtx] = useState<PatientContinuousContext | null>(null);
+  const [liveTranscript, setLiveTranscript] = useState<string>("");
 
   const [messages, setMessages] = useState<CompanionMessage[]>([
     {
@@ -55,6 +58,22 @@ export const CompanionScreen: React.FC<CompanionScreenProps> = ({
   const [showTypeModal, setShowTypeModal] = useState(false);
   const [isProcessing, setIsProcessing] = useState(false);
   const scrollViewRef = useRef<ScrollView>(null);
+
+  // Clean up any ongoing listening or speech on unmount
+  useEffect(() => {
+    return () => {
+      companionVoiceService.cancelListening();
+      companionService.stopSpeech();
+      VoiceAssistant.stop();
+    };
+  }, []);
+
+  const handleClose = () => {
+    companionVoiceService.cancelListening();
+    companionService.stopSpeech();
+    VoiceAssistant.stop();
+    if (onClose) onClose();
+  };
 
   useEffect(() => {
     companionService.getPatientContext().then((ctx) => {
@@ -101,7 +120,7 @@ export const CompanionScreen: React.FC<CompanionScreenProps> = ({
     setIsProcessing(true);
 
     setTimeout(() => {
-      // 3. Avatar enters Speaking state and plays voice
+      // 3. Avatar displays response without voiceover
       const avatarMsg: CompanionMessage = {
         id: `avatar-${Date.now()}`,
         sender: "avatar",
@@ -110,25 +129,18 @@ export const CompanionScreen: React.FC<CompanionScreenProps> = ({
         comfortEmoji: topic.emoji,
       };
       setMessages((prev) => [...prev, avatarMsg]);
-      setAvatarState("speaking");
+      setAvatarState("idle");
       setIsProcessing(false);
-
-      companionService.speakResponse(starterText, currentLang as any);
-
-      // Reset to idle after realistic speech duration
-      const durationMs = Math.max(3000, starterText.length * 68);
-      setTimeout(() => {
-        setAvatarState("idle");
-      }, durationMs);
-    }, 800);
+    }, 400);
   };
 
   const handleSendMessage = async (textToSend: string) => {
-    if (!textToSend.trim()) return;
+    if (!textToSend || !textToSend.trim()) return;
 
     const trimmed = textToSend.trim();
     setCurrentText("");
     setShowTypeModal(false);
+    setLiveTranscript("");
 
     // 1. Add Elder message
     const elderMsg: CompanionMessage = {
@@ -143,10 +155,10 @@ export const CompanionScreen: React.FC<CompanionScreenProps> = ({
     setAvatarState("thinking");
     setIsProcessing(true);
 
-    // 3. Process with validation therapy & continuous telemetry
-    const result = await companionService.processElderInput(trimmed, currentLang as any);
+    try {
+      // 3. Process with validation therapy & continuous telemetry
+      const result = await companionService.processElderInput(trimmed, currentLang as any);
 
-    setTimeout(() => {
       const avatarMsg: CompanionMessage = {
         id: `avatar-${Date.now()}`,
         sender: "avatar",
@@ -155,48 +167,97 @@ export const CompanionScreen: React.FC<CompanionScreenProps> = ({
         comfortEmoji: result.isDistressed ? "🌸" : "💖",
       };
       setMessages((prev) => [...prev, avatarMsg]);
-      setAvatarState(result.isDistressed ? "comforting" : "speaking");
+      setAvatarState(result.isDistressed ? "comforting" : "idle");
       setIsProcessing(false);
 
-      companionService.speakResponse(result.responseText, currentLang as any);
+      if (result.isDistressed) {
+        setTimeout(() => {
+          setAvatarState("idle");
+        }, 3000);
+      }
+    } catch (err) {
+      console.error("[CompanionScreen] Error processing elder message:", err);
+      const fallbackText =
+        currentLang === "as"
+          ? "মই সদায় আপোনাৰ কাষতেই আছোঁ। কওকচোন আপোনাৰ মনত কি কথা আছে?"
+          : currentLang === "hi"
+          ? "मैं हमेशा आपके साथ हूँ। बताइए आज आप क्या सोच रहे हैं?"
+          : "I am always right here by your side. Tell me more about what is on your mind!";
 
-      const durationMs = Math.max(3000, result.responseText.length * 68);
-      setTimeout(() => {
-        setAvatarState("idle");
-      }, durationMs);
-    }, 750);
+      const avatarMsg: CompanionMessage = {
+        id: `avatar-${Date.now()}`,
+        sender: "avatar",
+        text: fallbackText,
+        timestamp: "Just now",
+        comfortEmoji: "🌸",
+      };
+      setMessages((prev) => [...prev, avatarMsg]);
+      setAvatarState("idle");
+      setIsProcessing(false);
+    }
   };
 
   const handleVoiceTap = () => {
-    if (avatarState === "speaking") {
-      companionService.stopSpeech();
-      setAvatarState("idle");
-      return;
-    }
-
     if (avatarState === "listening") {
-      setAvatarState("idle");
+      // Patient tapped "Tap to stop"
+      companionVoiceService.stopListening();
       return;
     }
 
-    // Enter listening state simulation
+    // Start real voice recognition & speech activity listening
     setAvatarState("listening");
-    setTimeout(() => {
-      // Simulate elder speaking natural query
-      handleSendMessage("How did I do in Antakshari today?");
-    }, 3000);
+    setLiveTranscript("");
+
+    companionVoiceService.startListening({
+      language: currentLang as SupportedLanguage,
+      onInterimTranscript: (text) => {
+        setLiveTranscript(text);
+      },
+      onSpeechEnd: (finalTranscript) => {
+        setLiveTranscript("");
+        handleSendMessage(finalTranscript);
+      },
+      onError: (err) => {
+        console.warn("[CompanionScreen] Voice recognition notice:", err);
+      },
+    });
   };
 
-  const latestAvatarMessage =
-    [...messages].reverse().find((m) => m.sender === "avatar")?.text ||
-    "Hello! Tap the microphone to talk with me.";
+  const getSpeechBubbleContent = () => {
+    if (avatarState === "listening") {
+      if (liveTranscript) {
+        return `“${liveTranscript}”`;
+      }
+      return currentLang === "as"
+        ? "মই শুনি আছোঁ, কওকচোন..."
+        : currentLang === "hi"
+        ? "मैं सुन रहा हूँ, कहिए..."
+        : "I am listening to you, please speak...";
+    }
+
+    if (avatarState === "thinking") {
+      return currentLang === "as"
+        ? "আপোনাৰ কথা মন দি ভাবি আছোঁ..."
+        : currentLang === "hi"
+        ? "आपके लिए विचार कर रहा हूँ..."
+        : "Thinking with care...";
+    }
+
+    return (
+      [...messages].reverse().find((m) => m.sender === "avatar")?.text ||
+      "Hello! Tap the microphone to talk with me."
+    );
+  };
+
+  const latestAvatarMessage = getSpeechBubbleContent();
+
 
   return (
     <SafeAreaView style={styles.container} edges={["top", "bottom"]}>
       {/* ── Top App Bar ──────────────────────────────────────────────────────── */}
       <View style={styles.topBar}>
         {onClose ? (
-          <TouchableOpacity onPress={onClose} style={styles.iconBtn} activeOpacity={0.8}>
+          <TouchableOpacity onPress={handleClose} style={styles.iconBtn} activeOpacity={0.8}>
             <Feather name="arrow-left" size={24} color={WarmPalette.charcoalWarm} />
           </TouchableOpacity>
         ) : (
@@ -277,27 +338,18 @@ export const CompanionScreen: React.FC<CompanionScreenProps> = ({
             style={[
               styles.bigVoiceBtn,
               avatarState === "listening" && styles.bigVoiceBtnListening,
-              avatarState === "speaking" && styles.bigVoiceBtnSpeaking,
             ]}
             onPress={handleVoiceTap}
             activeOpacity={0.85}
           >
             <Feather
-              name={
-                avatarState === "speaking"
-                  ? "volume-x"
-                  : avatarState === "listening"
-                  ? "radio"
-                  : "mic"
-              }
+              name={avatarState === "listening" ? "radio" : "mic"}
               size={34}
               color="#FFFFFF"
             />
           </TouchableOpacity>
           <Text style={styles.voiceBtnLabel}>
-            {avatarState === "speaking"
-              ? "Tap to pause voice"
-              : avatarState === "listening"
+            {avatarState === "listening"
               ? "Listening... Tap to stop"
               : "Tap to Speak with Mitr"}
           </Text>
@@ -320,7 +372,7 @@ export const CompanionScreen: React.FC<CompanionScreenProps> = ({
             </View>
             <View style={styles.telemetryBadge}>
               <Text style={styles.telemetryBadgeEmoji}>🏡</Text>
-              <Text style={styles.telemetryBadgeText}>Kamrup Geofence Safe</Text>
+              <Text style={styles.telemetryBadgeText}>Safe at Home</Text>
             </View>
           </View>
         )}

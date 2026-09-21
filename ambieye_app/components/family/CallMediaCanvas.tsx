@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { StyleSheet, View, Text, Platform, Animated } from "react-native";
+import { StyleSheet, View, Text, Platform, Animated, NativeModules } from "react-native";
 import Feather from "@expo/vector-icons/Feather";
 import { CameraView } from "expo-camera";
 
@@ -19,10 +19,14 @@ interface CallMediaCanvasProps {
 }
 
 let NativeRTCView: any = null;
-if (Platform.OS !== "web") {
+if (
+  Platform.OS !== "web" &&
+  NativeModules &&
+  (NativeModules.WebRTCModule || (NativeModules as any).WebRTC)
+) {
   try {
     const webrtc = require("react-native-webrtc");
-    NativeRTCView = webrtc.RTCView;
+    NativeRTCView = webrtc?.RTCView || null;
   } catch {
     NativeRTCView = null;
   }

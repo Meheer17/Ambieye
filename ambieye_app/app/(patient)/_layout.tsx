@@ -3,12 +3,16 @@ import { View, StyleSheet, Platform } from "react-native";
 import Feather from "@expo/vector-icons/Feather";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { Tabs } from "expo-router";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useTranslation } from "@/constants/i18n";
 
 const ICON_SIZE = 24;
 
 export default function PatientTabLayout() {
   const { t } = useTranslation();
+  const insets = useSafeAreaInsets();
+  const bottomInset = Math.max(insets.bottom, Platform.OS === "android" ? 14 : 0);
+  const tabHeight = 64 + bottomInset;
 
   return (
     <Tabs
@@ -18,12 +22,13 @@ export default function PatientTabLayout() {
         tabBarStyle: {
           position: "absolute",
           bottom: 0,
-          width: "100%",
+          left: 0,
+          right: 0,
           backgroundColor: "#FFFFFF",
           borderTopWidth: 1,
           borderTopColor: "#EAE7E1",
-          height: Platform.OS === "ios" ? 90 : 78,
-          paddingBottom: Platform.OS === "ios" ? 28 : 16,
+          height: tabHeight,
+          paddingBottom: bottomInset + 2,
           paddingTop: 8,
           elevation: 20,
           shadowColor: "#A8A29E",
@@ -78,10 +83,10 @@ export default function PatientTabLayout() {
       <Tabs.Screen
         name="queries"
         options={{
-          title: "Tele-Care",
+          title: "Help",
           tabBarIcon: ({ color, focused }) => (
             <View style={focused ? styles.activeIconBg : styles.iconBg}>
-              <MaterialCommunityIcons name="doctor" size={24} color={color} />
+              <MaterialCommunityIcons name="hand-heart" size={24} color={color} />
             </View>
           ),
         }}

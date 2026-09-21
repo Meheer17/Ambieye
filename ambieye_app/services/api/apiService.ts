@@ -12,16 +12,20 @@ const apiClient = axios.create({
   timeout: 5000,
 });
 
-// Add request interceptor to automatically add authentication token to requests
+import { Platform } from "react-native";
+
+// Add request interceptor to automatically add authentication token and dynamic dev host
 apiClient.interceptors.request.use(
   async (config) => {
     try {
+      const devHost = API_CONFIG.getDevHostIp ? API_CONFIG.getDevHostIp() : API_CONFIG.LOCAL_IP;
+      config.baseURL = `http://${devHost}:8000/api`;
       const token = await AsyncStorage.getItem("access_token");
       if (token) {
         config.headers.Authorization = `Bearer ${token}`;
       }
     } catch (error) {
-      console.error("Error getting token for request:", error);
+      console.error("Error preparing request:", error);
     }
     return config;
   },

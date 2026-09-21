@@ -11,6 +11,7 @@ import {
   StatusBar,
   Modal,
   Alert,
+  Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "@/hooks/useAuth";
@@ -595,6 +596,34 @@ export default function DoctorDashboard() {
                     )}
                   </View>
                 </View>
+                {patient.phone && (
+                  <TouchableOpacity
+                    style={{
+                      width: 34,
+                      height: 34,
+                      borderRadius: 17,
+                      backgroundColor: "#F0FDF4",
+                      borderWidth: 1,
+                      borderColor: "#BBF7D0",
+                      justifyContent: "center",
+                      alignItems: "center",
+                      marginRight: 6,
+                    }}
+                    onPress={(e) => {
+                      e.stopPropagation();
+                      const cleanPhone = (patient.phone || "").replace(/[\s\-()]/g, "");
+                      if (Platform.OS !== "web" && cleanPhone) {
+                        Linking.openURL(`tel:${cleanPhone}`).catch(() => {});
+                      } else {
+                        Alert.alert("Official Phone Line", `Dial: ${patient.phone || "No phone registered"}`);
+                      }
+                    }}
+                    activeOpacity={0.75}
+                    accessibilityLabel={`Call ${patient.fullName}`}
+                  >
+                    <Feather name="phone-call" size={15} color="#059669" />
+                  </TouchableOpacity>
+                )}
                 <Feather name="chevron-right" size={16} color={Colors.textLight} />
               </TouchableOpacity>
             ))

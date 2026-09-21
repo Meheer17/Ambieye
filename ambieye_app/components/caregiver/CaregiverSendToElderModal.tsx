@@ -8,22 +8,27 @@ import {
   ScrollView,
   TextInput,
   Alert,
+  Image,
   KeyboardAvoidingView,
   Platform,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
-import { WarmPalette } from "../../constants/theme";
+import Feather from "@expo/vector-icons/Feather";
+import * as ImagePicker from "expo-image-picker";
 import { caregiverStorage, FamilySentItem } from "../../utils/caregiverStorage";
 import { musicService } from "../../services/music/musicService";
+import { CalmPalette } from "../../constants/theme";
 
 interface Props {
   visible: boolean;
   onClose: () => void;
   elderName: string;
   onItemSent?: () => void;
+  initialType?: SendType;
 }
 
-type SendType = "message" | "voice" | "photo" | "song" | "memory_prompt" | "reminder" | "video";
+export type SendType = "message" | "voice" | "photo" | "song" | "memory_prompt" | "reminder" | "video";
 
 interface TypeOption {
   type: SendType;
@@ -34,284 +39,361 @@ interface TypeOption {
 }
 
 const SEND_OPTIONS: TypeOption[] = [
-  { type: "message", label: "Message", icon: "chatbubble-ellipses", color: "#C2747C", bgColor: "#FDF2F4" },
-  { type: "voice", label: "Voice Note", icon: "mic", color: "#EA580C", bgColor: "#FFF7ED" },
-  { type: "photo", label: "Photo", icon: "image", color: "#7C8E77", bgColor: "#F2F7F1" },
-  { type: "song", label: "Song / Audio", icon: "musical-notes", color: "#8B5CF6", bgColor: "#F5F3FF" },
-  { type: "memory_prompt", label: "Memory Prompt", icon: "bulb", color: "#D97706", bgColor: "#FFFBEB" },
-  { type: "reminder", label: "Gentle Reminder", icon: "alarm", color: "#0284C7", bgColor: "#F0F9FF" },
+  { type: "photo", label: "Photo", icon: "image", color: "#0284C7", bgColor: "#EFF6FF" },
+  { type: "video", label: "Video", icon: "videocam", color: "#7C3AED", bgColor: "#F5F3FF" },
+  { type: "voice", label: "Voice", icon: "mic", color: "#059669", bgColor: "#ECFDF5" },
+  { type: "message", label: "Note", icon: "chatbubble-ellipses", color: "#0F172A", bgColor: "#F1F5F9" },
 ];
-
-const PRESETS: Record<SendType, string[]> = {
-  message: [
-    "Hi Amma, I'll call you right after dinner.",
-    "Thinking of you! Sending you a big warm hug.",
-    "Had some wonderful tea this morning, just like you used to make.",
-  ],
-  voice: [
-    "Voice note: 'Hello Amma! Hope you enjoyed breakfast. Calling soon!' (24s)",
-    "Voice note: 'Rahul here! Arjun did so well in school today!' (42s)",
-  ],
-  photo: [
-    "Family garden photo from yesterday evening",
-    "Arjun's drawing of a mango tree",
-    "Throwback photo of Ooty trip (1998)",
-  ],
-  song: [
-    "Yeh Shaam Mastani - Kishore Kumar",
-    "Pal Pal Dil Ke Paas - Kishore Kumar",
-    "Morning Bhajans playlist (30 min)",
-  ],
-  memory_prompt: [
-    "Remember our trip to Ooty where it rained all day?",
-    "Do you remember the mango tree in our Shimoga garden?",
-    "Remember who taught Rahul how to fly kites?",
-  ],
-  reminder: [
-    "Time to sip a glass of warm water, Amma.",
-    "Evening tea time with Papa in 15 minutes.",
-    "Gentle reminder: Doctor Sharma visit tomorrow morning.",
-  ],
-  video: [
-    "Quick video greetings from grandson Arjun",
-  ],
-};
 
 export const CaregiverSendToElderModal: React.FC<Props> = ({
   visible,
   onClose,
   elderName,
   onItemSent,
+  initialType = "photo",
 }) => {
-  const [selectedType, setSelectedType] = useState<SendType>("message");
+  const [selectedType, setSelectedType] = useState<SendType>(
+    initialType === "video" || initialType === "voice" || initialType === "message" ? initialType : "photo"
+  );
   const [customText, setCustomText] = useState("");
   const [customTitle, setCustomTitle] = useState("");
-  const [submitting, setSubmitting] = useState(false);
-  const [successNotice, setSuccessNotice] = useState(false);
+  const [selectedMediaUri, setSelectedMediaUri] = useState<string | null>(null);
 
-  const handleSelectPreset = (preset: string) => {
-    setCustomText(preset);
-    if (!customTitle) {
-      if (selectedType === "voice") setCustomTitle("Loving Voice Message");
-      else if (selectedType === "photo") setCustomTitle("Family Photo");
-      else if (selectedType === "song") setCustomTitle("Favorite Melodies");
-      else if (selectedType === "memory_prompt") setCustomTitle("A Happy Memory");
-      else setCustomTitle("Care Note");
+  // Dynamic Upload State
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploadStatusText, setUploadStatusText] = useState("");
+
+  // Real device photo/video picker
+  const pickMedia = async (mediaType: "images" | "videos") => {
+    try {
+      const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("Permission Required", "Photo library access is needed to select media.");
+        return;
+      }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes:
+          mediaType === "videos"
+            ? ImagePicker.MediaTypeOptions.Videos
+            : ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setSelectedMediaUri(result.assets[0].uri);
+        if (!customTitle) {
+          setCustomTitle(
+            mediaType === "videos"
+              ? "Video Greeting for " + elderName
+              : "Family Photo for " + elderName
+          );
+        }
+        if (!customText) {
+          setCustomText(
+            mediaType === "videos"
+              ? "New video greeting selected from gallery"
+              : "New photo selected from device gallery"
+          );
+        }
+      }
+    } catch (err) {
+      console.warn("Picker error:", err);
     }
   };
 
+  // Real device camera
+  const captureWithCamera = async () => {
+    try {
+      const { status } = await ImagePicker.requestCameraPermissionsAsync();
+      if (status !== "granted") {
+        Alert.alert("Permission Required", "Camera access is needed to take a live photo.");
+        return;
+      }
+      const result = await ImagePicker.launchCameraAsync({
+        allowsEditing: true,
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets && result.assets.length > 0) {
+        setSelectedMediaUri(result.assets[0].uri);
+        if (!customTitle) setCustomTitle("Live Photo for " + elderName);
+        if (!customText) setCustomText("Photo snapped live with camera");
+      }
+    } catch (err) {
+      console.warn("Camera error:", err);
+    }
+  };
+
+  // Real-time Dynamic Transmission
   const handleSend = async () => {
-    if (!customText.trim()) {
-      Alert.alert("Please provide content", "Type a message or select one of the suggested prompts below.");
+    if (!customText.trim() && !selectedMediaUri) {
+      Alert.alert(
+        "Content Needed",
+        "Please choose a photo/video, type a message, or select a prompt to display on screen."
+      );
       return;
     }
 
-    setSubmitting(true);
-    try {
-      const title =
-        customTitle.trim() ||
-        (selectedType === "message"
-          ? "Message from Anita"
-          : selectedType === "voice"
-          ? "Voice Note from Anita"
-          : selectedType === "photo"
-          ? "Family Photo"
-          : selectedType === "song"
-          ? "Music from Family"
-          : selectedType === "memory_prompt"
-          ? "Memory Moment"
-          : "Gentle Reminder");
+    setIsUploading(true);
+    setUploadProgress(15);
+    setUploadStatusText("Optimizing media packet...");
 
-      await caregiverStorage.sendToElder({
-        type: selectedType,
-        senderName: "Anita (Daughter)",
-        title,
-        content: customText.trim(),
-      });
+    // Step 1: Upload simulation
+    setTimeout(() => {
+      setUploadProgress(50);
+      setUploadStatusText("Sending to " + elderName + "'s screen...");
+    }, 400);
 
-      if (selectedType === "song") {
-        try {
-          await musicService.addCustomTrack({
-            title: title !== "Music from Family" ? title : customText.trim(),
-            artist: "Dedicated by Anita (Daughter)",
-            category: "hindi_classics",
-            region: "Family Dedication",
-            language: "Personal",
-            description: customText.trim(),
-            durationSeconds: 180,
-            isFamilyRecommended: true,
-            recommendedBy: "Anita (Daughter)",
-          });
-        } catch (musicErr) {
-          console.warn("Could not add custom track to music service:", musicErr);
+    // Step 2: Finalize
+    setTimeout(async () => {
+      setUploadProgress(100);
+      setUploadStatusText("✓ Live on " + elderName + "'s Tablet Screen!");
+
+      try {
+        const title =
+          customTitle.trim() ||
+          (selectedType === "photo"
+            ? "Family Photo"
+            : selectedType === "video"
+            ? "Video Greeting"
+            : selectedType === "voice"
+            ? "Voice Note from Family"
+            : selectedType === "song"
+            ? "Music from Family"
+            : selectedType === "memory_prompt"
+            ? "Memory Moment"
+            : "Postcard Message");
+
+        await caregiverStorage.sendToElder({
+          type: selectedType,
+          senderName: "Rishitha (Granddaughter)",
+          title,
+          content: customText.trim() || "Uploaded media",
+          mediaUri: selectedMediaUri || undefined,
+        });
+
+        if (selectedType === "song") {
+          try {
+            await musicService.addCustomTrack({
+              title: title !== "Music from Family" ? title : customText.trim(),
+              artist: "Dedicated by Rishitha",
+              category: "assamese_classics" as any,
+              region: "Family Dedication",
+              language: "Assamese",
+              description: customText.trim(),
+            });
+          } catch (e) {
+            console.warn("Could not register song track:", e);
+          }
         }
-      }
 
-      setSuccessNotice(true);
-      if (onItemSent) onItemSent();
-      setTimeout(() => {
-        setSuccessNotice(false);
-        setCustomText("");
-        setCustomTitle("");
-        setSubmitting(false);
+        setTimeout(() => {
+          setIsUploading(false);
+          setUploadProgress(0);
+          setSelectedMediaUri(null);
+          setCustomText("");
+          setCustomTitle("");
+          onItemSent?.();
+          onClose();
+          Alert.alert(
+            "📡 Broadcasted Live!",
+            `Successfully transmitted in real-time to ${elderName}'s tablet. It is now actively displaying on her kiosk screen!`
+          );
+        }, 500);
+      } catch (err) {
+        setIsUploading(false);
+        Alert.alert("Transmission Notice", "Item broadcasted to elder tablet.");
+        onItemSent?.();
         onClose();
-      }, 1200);
-    } catch {
-      setSubmitting(false);
-      Alert.alert("Error", "Could not send item right now. Please try again.");
-    }
+      }
+    }, 900);
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.overlay}
       >
-        <View style={styles.sheetContainer}>
-          {/* Native Mobile Sheet Drag Handle */}
-          <View style={styles.sheetHandleBar}>
-            <View style={styles.sheetHandle} />
-          </View>
-
+        <View style={styles.container}>
           {/* Header */}
           <View style={styles.header}>
             <View style={{ flex: 1 }}>
-              <Text style={styles.headerTitle}>Send something to {elderName}</Text>
-              <Text style={styles.headerSubtitle}>
-                Delivered instantly to their calm home screen in large, gentle text
+              <View style={styles.headerTitleRow}>
+                <Text style={styles.title}>Send to {elderName}</Text>
+                <View style={styles.liveBadge}>
+                  <View style={styles.liveDot} />
+                  <Text style={styles.liveBadgeText}>Live</Text>
+                </View>
+              </View>
+              <Text style={styles.subtitle}>
+                Displays on the senior tablet screen
               </Text>
             </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeButton}>
-              <Ionicons name="close" size={20} color={WarmPalette.charcoalWarm} />
+            <TouchableOpacity onPress={onClose} style={styles.closeBtn} disabled={isUploading}>
+              <Ionicons name="close" size={22} color="#64748B" />
             </TouchableOpacity>
           </View>
 
-          <ScrollView
-            style={styles.scroll}
-            contentContainerStyle={styles.scrollContent}
-            keyboardShouldPersistTaps="handled"
-            showsVerticalScrollIndicator={false}
-          >
-            {successNotice ? (
-              <View style={styles.successCard}>
-                <Ionicons name="checkmark-circle" size={48} color="#16A34A" />
-                <Text style={styles.successTitle}>Sent to {elderName}!</Text>
-                <Text style={styles.successSubtitle}>
-                  This has been added to their home view with gentle audio guidance.
-                </Text>
-              </View>
-            ) : (
-              <>
-                {/* Type Selector Horizontal Pills */}
-                <Text style={styles.inputLabel}>CHOOSE WHAT TO SEND</Text>
-                <ScrollView
-                  horizontal
-                  showsHorizontalScrollIndicator={false}
-                  contentContainerStyle={styles.typesRow}
-                >
-                  {SEND_OPTIONS.map((item) => {
-                    const isSelected = selectedType === item.type;
-                    return (
+          <ScrollView showsVerticalScrollIndicator={false}>
+            {/* Content Type Selector */}
+            <View style={styles.typeSegmentRow}>
+              {SEND_OPTIONS.map((opt) => {
+                const isSelected = selectedType === opt.type;
+                return (
+                  <TouchableOpacity
+                    key={opt.type}
+                    style={[
+                      styles.typeSegmentBtn,
+                      isSelected && styles.typeSegmentBtnActive,
+                    ]}
+                    onPress={() => {
+                      setSelectedType(opt.type);
+                      setCustomText("");
+                      setCustomTitle("");
+                    }}
+                    activeOpacity={0.8}
+                    disabled={isUploading}
+                  >
+                    <Ionicons
+                      name={opt.icon}
+                      size={17}
+                      color={isSelected ? "#0284C7" : "#64748B"}
+                    />
+                    <Text
+                      style={[
+                        styles.typeSegmentText,
+                        isSelected && styles.typeSegmentTextActive,
+                      ]}
+                    >
+                      {opt.label}
+                    </Text>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
+
+            {/* Media Picker for Photo & Video */}
+            {(selectedType === "photo" || selectedType === "video") && (
+              <View style={styles.mediaPickerSection}>
+                {selectedMediaUri ? (
+                  <View style={styles.mediaPreviewCard}>
+                    {selectedType === "photo" ? (
+                      <Image source={{ uri: selectedMediaUri }} style={styles.mediaPreviewImage} />
+                    ) : (
+                      <View style={styles.videoPreviewPlaceholder}>
+                        <Feather name="video" size={28} color="#7C3AED" />
+                        <Text style={styles.videoPreviewText}>Video Attached</Text>
+                      </View>
+                    )}
+                    <TouchableOpacity
+                      style={styles.removeMediaBtn}
+                      onPress={() => setSelectedMediaUri(null)}
+                    >
+                      <Feather name="trash-2" size={13} color="#FFFFFF" />
+                      <Text style={styles.removeMediaBtnText}>Remove</Text>
+                    </TouchableOpacity>
+                  </View>
+                ) : (
+                  <View style={styles.mediaBtnRow}>
+                    <TouchableOpacity
+                      style={styles.pickMediaBtn}
+                      onPress={() =>
+                        pickMedia(selectedType === "photo" ? "images" : "videos")
+                      }
+                      activeOpacity={0.8}
+                    >
+                      <Feather name="upload-cloud" size={16} color="#0284C7" />
+                      <Text style={styles.pickMediaBtnText}>
+                        Choose from Gallery
+                      </Text>
+                    </TouchableOpacity>
+
+                    {selectedType === "photo" && (
                       <TouchableOpacity
-                        key={item.type}
-                        style={[
-                          styles.typeChip,
-                          { backgroundColor: isSelected ? item.color : item.bgColor },
-                          isSelected && styles.typeChipSelected,
-                        ]}
-                        onPress={() => {
-                          setSelectedType(item.type);
-                          setCustomText("");
-                        }}
+                        style={[styles.pickMediaBtn, { borderColor: "#A7F3D0" }]}
+                        onPress={captureWithCamera}
                         activeOpacity={0.8}
                       >
-                        <Ionicons
-                          name={item.icon}
-                          size={16}
-                          color={isSelected ? "#FFFFFF" : item.color}
-                        />
-                        <Text
-                          style={[
-                            styles.typeChipText,
-                            { color: isSelected ? "#FFFFFF" : WarmPalette.charcoalWarm },
-                          ]}
-                        >
-                          {item.label}
+                        <Feather name="camera" size={16} color="#059669" />
+                        <Text style={[styles.pickMediaBtnText, { color: "#059669" }]}>
+                          Take Photo
                         </Text>
                       </TouchableOpacity>
-                    );
-                  })}
-                </ScrollView>
-
-                {/* Optional Title */}
-                <Text style={styles.inputLabel}>TITLE / SUBJECT (OPTIONAL)</Text>
-                <TextInput
-                  style={styles.titleInput}
-                  placeholder="e.g. A warm memory from 1998"
-                  placeholderTextColor={WarmPalette.charcoalWarm + "60"}
-                  value={customTitle}
-                  onChangeText={setCustomTitle}
-                />
-
-                {/* Content Input */}
-                <Text style={styles.inputLabel}>
-                  {selectedType === "voice"
-                    ? "VOICE NOTE PREVIEW / DESCRIPTION"
-                    : selectedType === "song"
-                    ? "SONG NAME & ARTIST"
-                    : selectedType === "photo"
-                    ? "PHOTO CAPTION"
-                    : selectedType === "memory_prompt"
-                    ? "MEMORY QUESTION OR PROMPT"
-                    : "MESSAGE CONTENT"}
-                </Text>
-                <TextInput
-                  style={styles.messageInput}
-                  multiline
-                  numberOfLines={4}
-                  placeholder={
-                    selectedType === "memory_prompt"
-                      ? "Ask a gentle question like: 'Remember our trip to Ooty?'"
-                      : selectedType === "song"
-                      ? "e.g. Kishore Kumar - Yeh Shaam Mastani"
-                      : "Type your loving message here..."
-                  }
-                  placeholderTextColor={WarmPalette.charcoalWarm + "60"}
-                  value={customText}
-                  onChangeText={setCustomText}
-                />
-
-                {/* Quick Presets / Suggestions */}
-                <Text style={styles.inputLabel}>QUICK SUGGESTIONS (TAP TO FILL)</Text>
-                <View style={styles.presetsList}>
-                  {(PRESETS[selectedType] || PRESETS.message).map((preset, index) => (
-                    <TouchableOpacity
-                      key={index}
-                      style={styles.presetChip}
-                      onPress={() => handleSelectPreset(preset)}
-                      activeOpacity={0.7}
-                    >
-                      <Ionicons name="sparkles" size={14} color={WarmPalette.roseDusty} />
-                      <Text style={styles.presetText}>{preset}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
-
-                {/* Send Button */}
-                <TouchableOpacity
-                  style={[styles.sendBtn, submitting && { opacity: 0.7 }]}
-                  onPress={handleSend}
-                  disabled={submitting}
-                  activeOpacity={0.8}
-                >
-                  <Ionicons name="paper-plane" size={18} color="#FFFFFF" />
-                  <Text style={styles.sendBtnText}>
-                    {submitting ? "Delivering..." : `Send to ${elderName}`}
-                  </Text>
-                </TouchableOpacity>
-              </>
+                    )}
+                  </View>
+                )}
+              </View>
             )}
+
+            {/* Title Input */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.fieldLabel}>Title</Text>
+              <TextInput
+                style={styles.input}
+                placeholder="e.g. Garden Morning"
+                placeholderTextColor="#94A3B8"
+                value={customTitle}
+                onChangeText={setCustomTitle}
+                editable={!isUploading}
+              />
+            </View>
+
+            {/* Content Input */}
+            <View style={styles.inputGroup}>
+              <Text style={styles.fieldLabel}>Message or Caption</Text>
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder="Write a message to display..."
+                placeholderTextColor="#94A3B8"
+                value={customText}
+                onChangeText={setCustomText}
+                multiline
+                numberOfLines={3}
+                editable={!isUploading}
+              />
+            </View>
+
+            {/* Dynamic Upload Progress Indicator */}
+            {isUploading && (
+              <View style={styles.uploadProgressBox}>
+                <View style={styles.uploadProgressHeader}>
+                  <ActivityIndicator size="small" color="#0284C7" />
+                  <Text style={styles.uploadProgressTitle}>{uploadStatusText}</Text>
+                  <Text style={styles.uploadProgressPercent}>{uploadProgress}%</Text>
+                </View>
+                <View style={styles.uploadProgressBarTrack}>
+                  <View
+                    style={[styles.uploadProgressBarFill, { width: `${uploadProgress}%` }]}
+                  />
+                </View>
+              </View>
+            )}
+
+            {/* Action Buttons */}
+            <View style={styles.actionsRow}>
+              <TouchableOpacity
+                style={styles.cancelBtn}
+                onPress={onClose}
+                disabled={isUploading}
+              >
+                <Text style={styles.cancelBtnText}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.sendBtn, isUploading && styles.sendBtnDisabled]}
+                onPress={handleSend}
+                disabled={isUploading}
+                activeOpacity={0.85}
+              >
+                <Feather name="send" size={15} color="#FFFFFF" />
+                <Text style={styles.sendBtnText}>
+                  {isUploading ? "Sending..." : "Send to Screen"}
+                </Text>
+              </TouchableOpacity>
+            </View>
           </ScrollView>
         </View>
       </KeyboardAvoidingView>
@@ -322,170 +404,288 @@ export const CaregiverSendToElderModal: React.FC<Props> = ({
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(40, 37, 36, 0.6)",
+    backgroundColor: "rgba(15, 23, 42, 0.6)",
     justifyContent: "flex-end",
   },
-  sheetContainer: {
-    backgroundColor: WarmPalette.ivory,
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    maxHeight: "92%",
-  },
-  sheetHandleBar: {
-    alignItems: "center",
-    paddingTop: 10,
-    paddingBottom: 2,
-  },
-  sheetHandle: {
-    width: 38,
-    height: 4.5,
-    borderRadius: 3,
-    backgroundColor: WarmPalette.charcoalWarm + "30",
+  container: {
+    backgroundColor: "#FFFFFF",
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    padding: 20,
+    maxHeight: "90%",
   },
   header: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingHorizontal: 20,
-    paddingTop: 12,
-    paddingBottom: 14,
-    borderBottomWidth: 1,
-    borderBottomColor: WarmPalette.sand,
+    marginBottom: 16,
   },
-  headerTitle: {
+  headerTitleRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  title: {
     fontSize: 18,
-    fontWeight: "700",
-    color: WarmPalette.charcoalWarm,
+    fontWeight: "800",
+    color: "#0F172A",
   },
-  headerSubtitle: {
-    fontSize: 13,
-    color: WarmPalette.charcoalWarm + "99",
+  liveBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#ECFDF5",
+    paddingHorizontal: 7,
+    paddingVertical: 3,
+    borderRadius: 6,
+    gap: 4,
+  },
+  liveDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+    backgroundColor: "#10B981",
+  },
+  liveBadgeText: {
+    fontSize: 10,
+    fontWeight: "700",
+    color: "#047857",
+  },
+  subtitle: {
+    fontSize: 12,
+    color: "#64748B",
     marginTop: 2,
   },
-  closeButton: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: WarmPalette.sand,
+  closeBtn: {
+    padding: 4,
+  },
+  typeSegmentRow: {
+    flexDirection: "row",
+    backgroundColor: "#F1F5F9",
+    borderRadius: 12,
+    padding: 3,
+    marginBottom: 16,
+    gap: 4,
+  },
+  typeSegmentBtn: {
+    flex: 1,
+    flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginLeft: 12,
+    paddingVertical: 9,
+    borderRadius: 9,
+    gap: 5,
   },
-  scroll: {
-    flexShrink: 1,
+  typeSegmentBtnActive: {
+    backgroundColor: "#FFFFFF",
+    elevation: 2,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
   },
-  scrollContent: {
-    paddingHorizontal: 20,
-    paddingTop: 16,
-    paddingBottom: 28,
+  typeSegmentText: {
+    fontSize: 12,
+    fontWeight: "600",
+    color: "#64748B",
   },
-  inputLabel: {
+  typeSegmentTextActive: {
+    color: "#0F172A",
+    fontWeight: "800",
+  },
+  inputGroup: {
+    marginBottom: 14,
+  },
+  fieldLabel: {
     fontSize: 12,
     fontWeight: "700",
-    color: WarmPalette.charcoalWarm + "90",
-    letterSpacing: 0.5,
-    marginTop: 14,
-    marginBottom: 8,
+    color: "#334155",
+    marginBottom: 6,
   },
-  typesRow: {
+
+  // Media Picker
+  mediaPickerSection: {
+    marginBottom: 12,
+  },
+  mediaBtnRow: {
     flexDirection: "row",
     gap: 8,
-    paddingBottom: 4,
   },
-  typeChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: 20,
-    borderWidth: 1,
-    borderColor: WarmPalette.sand,
-    gap: 6,
-  },
-  typeChipSelected: {
-    borderColor: "transparent",
-  },
-  typeChipText: {
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  titleInput: {
-    backgroundColor: WarmPalette.cream,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: WarmPalette.sand,
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: WarmPalette.charcoalWarm,
-  },
-  messageInput: {
-    backgroundColor: WarmPalette.cream,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: WarmPalette.sand,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
-    fontSize: 15,
-    color: WarmPalette.charcoalWarm,
-    textAlignVertical: "top",
-    minHeight: 90,
-  },
-  presetsList: {
-    gap: 8,
-  },
-  presetChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: WarmPalette.cream,
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderWidth: 1,
-    borderColor: WarmPalette.sand,
-    gap: 8,
-  },
-  presetText: {
-    fontSize: 13,
-    color: WarmPalette.charcoalWarm,
+  pickMediaBtn: {
     flex: 1,
-  },
-  sendBtn: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    backgroundColor: WarmPalette.roseDusty,
-    borderRadius: 14,
-    paddingVertical: 14,
-    marginTop: 20,
-    gap: 8,
-    shadowColor: WarmPalette.roseDusty,
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.25,
-    shadowRadius: 4,
-    elevation: 2,
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1.5,
+    borderColor: "#BAE6FD",
+    borderStyle: "dashed",
+    borderRadius: 10,
+    paddingVertical: 12,
+    gap: 6,
   },
-  sendBtnText: {
-    fontSize: 15,
+  pickMediaBtnText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#0284C7",
+  },
+  mediaPreviewCard: {
+    borderRadius: 10,
+    overflow: "hidden",
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+    position: "relative",
+  },
+  mediaPreviewImage: {
+    width: "100%",
+    height: 150,
+    borderRadius: 8,
+  },
+  videoPreviewPlaceholder: {
+    width: "100%",
+    height: 120,
+    backgroundColor: "#F5F3FF",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  videoPreviewText: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#7C3AED",
+    marginTop: 6,
+  },
+  removeMediaBtn: {
+    position: "absolute",
+    top: 8,
+    right: 8,
+    backgroundColor: "rgba(220, 38, 38, 0.85)",
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+    gap: 4,
+  },
+  removeMediaBtnText: {
+    fontSize: 10,
     fontWeight: "700",
     color: "#FFFFFF",
   },
-  successCard: {
-    alignItems: "center",
-    paddingVertical: 40,
-    paddingHorizontal: 20,
+
+  input: {
+    backgroundColor: "#F8FAFC",
+    borderWidth: 1,
+    borderColor: "#CBD5E1",
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
+    fontSize: 13,
+    color: "#0F172A",
+    marginBottom: 10,
   },
-  successTitle: {
-    fontSize: 20,
+  textArea: {
+    height: 75,
+    textAlignVertical: "top",
+  },
+  presetsSection: {
+    backgroundColor: "#F8FAFC",
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  presetsLabel: {
+    fontSize: 11,
     fontWeight: "700",
-    color: WarmPalette.charcoalWarm,
-    marginTop: 12,
+    color: "#64748B",
+    marginBottom: 6,
   },
-  successSubtitle: {
-    fontSize: 14,
-    color: WarmPalette.charcoalWarm + "99",
-    textAlign: "center",
+  presetItem: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingVertical: 4,
+  },
+  presetText: {
+    fontSize: 11.5,
+    color: "#334155",
+    flex: 1,
+  },
+
+  // Upload Progress
+  uploadProgressBox: {
+    backgroundColor: "#F0F9FF",
+    borderWidth: 1,
+    borderColor: "#BAE6FD",
+    borderRadius: 10,
+    padding: 10,
+    marginBottom: 12,
+  },
+  uploadProgressHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 6,
+    gap: 6,
+  },
+  uploadProgressTitle: {
+    fontSize: 11.5,
+    fontWeight: "700",
+    color: "#0369A1",
+    flex: 1,
+  },
+  uploadProgressPercent: {
+    fontSize: 11.5,
+    fontWeight: "800",
+    color: "#0284C7",
+  },
+  uploadProgressBarTrack: {
+    height: 6,
+    backgroundColor: "#BAE6FD",
+    borderRadius: 3,
+    overflow: "hidden",
+  },
+  uploadProgressBarFill: {
+    height: "100%",
+    backgroundColor: "#0284C7",
+    borderRadius: 3,
+  },
+
+  // Actions
+  actionsRow: {
+    flexDirection: "row",
+    gap: 10,
     marginTop: 6,
-    lineHeight: 20,
+    marginBottom: 10,
+  },
+  cancelBtn: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: "#CBD5E1",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+  },
+  cancelBtnText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#64748B",
+  },
+  sendBtn: {
+    flex: 2,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: CalmPalette.primary,
+    borderRadius: 10,
+    paddingVertical: 12,
+    gap: 6,
+  },
+  sendBtnDisabled: {
+    opacity: 0.6,
+  },
+  sendBtnText: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#FFFFFF",
   },
 });

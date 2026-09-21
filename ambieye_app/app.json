@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Ambi Eye",
-    "slug": "ambi-eye",
+    "name": "MindCare",
+    "slug": "mindcare",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/logo.png",
-    "scheme": "ambi-eye",
+    "icon": "./assets/images/mindcare_logo_circle.png",
+    "scheme": "mindcare",
     "userInterfaceStyle": "automatic",
     "ios": {
       "supportsTablet": true,
@@ -16,15 +16,15 @@
     },
     "android": {
       "adaptiveIcon": {
-        "foregroundImage": "./assets/images/logowithbg.png",
-        "backgroundColor": "#0D0145"
+        "foregroundImage": "./assets/images/mindcare_logo_circle.png",
+        "backgroundColor": "#0A1128"
       },
       "package": "com.meheer17.ambieye"
     },
     "web": {
       "bundler": "metro",
       "output": "single",
-      "favicon": "./assets/images/logo.png"
+      "favicon": "./assets/images/mindcare_logo_circle.png"
     },
     "plugins": [
       "expo-router",
@@ -32,16 +32,16 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow Ambi Eye to access your camera for eye movement recording during exercises.",
-          "microphonePermission": "Allow Ambi Eye to access your microphone for video recording during exercises.",
+          "cameraPermission": "Allow MindCare to access your camera for eye movement recording during exercises.",
+          "microphonePermission": "Allow MindCare to access your microphone for voice recording during exercises.",
           "recordAudioAndroid": true
         }
       ],
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#0D0145",
-          "image": "assets/images/logowithbg.png",
+          "backgroundColor": "#0A1128",
+          "image": "assets/images/mindcare_logo_circle.png",
           "imageWidth": 320,
           "imageResizeMode": "contain"
         }

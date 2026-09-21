@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   StyleSheet,
   View,
@@ -96,6 +96,12 @@ export default function ReminiscenceGame() {
   const [completed, setCompleted] = useState(false);
   const [gameStartTime] = useState(Date.now());
 
+  useEffect(() => {
+    return () => {
+      VoiceAssistant.stop();
+    };
+  }, []);
+
   const currentStory = REMINISCENCE_STORIES[currentIndex];
 
   const handleReadStory = () => {
@@ -168,7 +174,7 @@ export default function ReminiscenceGame() {
 
           <TouchableOpacity
             style={styles.secondaryBtn}
-            onPress={() => router.back()}
+            onPress={() => router.replace("/(patient)/games" as any)}
           >
             <Text style={styles.secondaryBtnText}>{t("back_to_games")}</Text>
           </TouchableOpacity>
@@ -181,7 +187,7 @@ export default function ReminiscenceGame() {
     <SafeAreaView style={styles.container}>
       {/* Top Bar */}
       <View style={styles.headerBar}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+        <TouchableOpacity onPress={() => router.replace("/(patient)/games" as any)} style={styles.backBtn}>
           <Feather name="arrow-left" size={24} color="#0F172A" />
         </TouchableOpacity>
         <Text style={styles.headerBarTitle}>

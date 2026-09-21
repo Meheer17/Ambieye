@@ -3,15 +3,25 @@
  * Safe wrapper around expo-av to prevent "Cannot find native module 'ExponentAV'"
  * crashes on Web, Expo Go, or platforms where ExponentAV is not compiled in.
  */
-import { Platform } from "react-native";
+import { Platform, NativeModules } from "react-native";
 
 let ExpoAV: any = null;
 let AudioModule: any = null;
 
 try {
-  // Try dynamic require so module load time doesn't throw if native module is absent
-  ExpoAV = require("expo-av");
-  AudioModule = ExpoAV?.Audio;
+  // Only attempt requiring expo-av if the native module is present in the runtime
+  const hasNativeAV =
+    Platform.OS !== "web" &&
+    !!(
+      NativeModules?.ExponentAV ||
+      (global as any)?.expo?.modules?.ExponentAV ||
+      (global as any)?.__expo_modules__?.ExponentAV
+    );
+
+  if (hasNativeAV) {
+    ExpoAV = require("expo-av");
+    AudioModule = ExpoAV?.Audio;
+  }
 } catch (err) {
   AudioModule = null;
 }
@@ -142,6 +152,13 @@ class FallbackRecording {
   }
 
   setOnRecordingStatusUpdate(callback: any) {}
+
+  static async createAsync(options: any = {}) {
+    const rec = new FallbackRecording();
+    await rec.prepareToRecordAsync(options);
+    await rec.startAsync();
+    return { recording: rec, status: await rec.getStatusAsync() };
+  }
 }
 
 export const SafeAudio = {
@@ -191,3 +208,6 @@ export namespace SafeAudio {
   export type Sound = FallbackSound | any;
   export type Recording = FallbackRecording | any;
 }
+
+export const SafeSound = SafeAudio.Sound;
+export const SafeRecording = SafeAudio.Recording;

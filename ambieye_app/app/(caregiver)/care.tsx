@@ -5,7 +5,7 @@ import { WarmPalette } from "@/constants/theme";
 
 export default function CaregiverCareTabScreen() {
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: WarmPalette.ivory }} edges={["top"]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#F8FAFC" }} edges={["top"]}>
       <CaregiverCareScreen />
     </SafeAreaView>
   );

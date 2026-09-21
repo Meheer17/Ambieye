@@ -9,9 +9,10 @@ import {
   Alert,
   RefreshControl,
   Linking,
+  Image,
 } from "react-native";
 import Feather from "@expo/vector-icons/Feather";
-import { WarmPalette } from "../../constants/theme";
+import { WarmPalette, AestheticTheme } from "../../constants/theme";
 import {
   caregiverStorage,
   PatientProfile,
@@ -21,12 +22,11 @@ import {
   ShiftHandoffRecord,
 } from "../../utils/caregiverStorage";
 
-import { CaregiverSendToElderModal } from "./CaregiverSendToElderModal";
 import { CaregiverMemoryBankModal } from "./CaregiverMemoryBankModal";
 import { CaregiverShiftHandoffModal } from "./CaregiverShiftHandoffModal";
 
 export const CaregiverFamilyScreen: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<"send" | "memory" | "circle">("send");
+  const [activeTab, setActiveTab] = useState<"circle" | "safezone" | "memory">("circle");
 
   const [profile, setProfile] = useState<PatientProfile | null>(null);
   const [sentItems, setSentItems] = useState<FamilySentItem[]>([]);
@@ -36,7 +36,6 @@ export const CaregiverFamilyScreen: React.FC = () => {
   const [refreshing, setRefreshing] = useState(false);
 
   // Modals
-  const [showSendModal, setShowSendModal] = useState(false);
   const [showMemoryModal, setShowMemoryModal] = useState(false);
   const [showShiftModal, setShowShiftModal] = useState(false);
 
@@ -100,23 +99,37 @@ export const CaregiverFamilyScreen: React.FC = () => {
 
   return (
     <View style={styles.screenWrapper}>
+      {/* Aesthetic ambient backdrops */}
+      <View style={styles.ambientAuraTop} pointerEvents="none" />
+      <View style={styles.ambientAuraBottom} pointerEvents="none" />
+
       {/* ── SCREEN TITLE ─────────────────────────────────────────────── */}
       <View style={styles.topBar}>
-        <Text style={styles.topBarTitle}>Family & Kiosk Connection</Text>
+        <Text style={styles.topBarTitle}>Care Circle & Safe Zone</Text>
         <Text style={styles.topBarSubtitle}>
-          Send affection to {profile?.name || "loved one"} & manage memory albums
+          Multi-caregiver handoff, perimeter safety & emergency network
         </Text>
       </View>
 
       {/* ── 3-WAY SEGMENTED CONTROL ───────────────────────────────────── */}
       <View style={styles.segmentContainer}>
         <TouchableOpacity
-          style={[styles.segmentBtn, activeTab === "send" && styles.segmentBtnActive]}
-          onPress={() => setActiveTab("send")}
+          style={[styles.segmentBtn, activeTab === "circle" && styles.segmentBtnActive]}
+          onPress={() => setActiveTab("circle")}
           activeOpacity={0.8}
         >
-          <Text style={[styles.segmentBtnText, activeTab === "send" && styles.segmentBtnTextActive]}>
-            Send to Elder
+          <Text style={[styles.segmentBtnText, activeTab === "circle" && styles.segmentBtnTextActive]}>
+            Care Circle
+          </Text>
+        </TouchableOpacity>
+
+        <TouchableOpacity
+          style={[styles.segmentBtn, activeTab === "safezone" && styles.segmentBtnActive]}
+          onPress={() => setActiveTab("safezone")}
+          activeOpacity={0.8}
+        >
+          <Text style={[styles.segmentBtnText, activeTab === "safezone" && styles.segmentBtnTextActive]}>
+            Safe Zone
           </Text>
         </TouchableOpacity>
 
@@ -126,17 +139,7 @@ export const CaregiverFamilyScreen: React.FC = () => {
           activeOpacity={0.8}
         >
           <Text style={[styles.segmentBtnText, activeTab === "memory" && styles.segmentBtnTextActive]}>
-            Memory Bank
-          </Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.segmentBtn, activeTab === "circle" && styles.segmentBtnActive]}
-          onPress={() => setActiveTab("circle")}
-          activeOpacity={0.8}
-        >
-          <Text style={[styles.segmentBtnText, activeTab === "circle" && styles.segmentBtnTextActive]}>
-            Care Circle
+            Heritage Archive
           </Text>
         </TouchableOpacity>
       </View>
@@ -155,133 +158,7 @@ export const CaregiverFamilyScreen: React.FC = () => {
           />
         }
       >
-        {/* ══════════ 1. SEND TO ELDER SUB-VIEW ══════════ */}
-        {activeTab === "send" && (
-          <View>
-            <View style={styles.heroSendCard}>
-              <View style={styles.heroTextGroup}>
-                <Text style={styles.heroSendTitle}>Direct to Senior Kiosk</Text>
-                <Text style={styles.heroSendSub}>
-                  Whatever you send displays instantly in comforting high-contrast print or audio on {profile?.name || "the elder"}'s tablet.
-                </Text>
-              </View>
-              <TouchableOpacity
-                style={styles.heroSendActionBtn}
-                onPress={() => setShowSendModal(true)}
-                activeOpacity={0.85}
-              >
-                <Feather name="send" size={16} color="#FFFFFF" />
-                <Text style={styles.heroSendActionBtnText}>Send Something Special</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Fast Trigger Grid */}
-            <View style={styles.triggersGrid}>
-              <TouchableOpacity
-                style={styles.triggerCard}
-                onPress={() => setShowSendModal(true)}
-                activeOpacity={0.8}
-              >
-                <View style={[styles.triggerIcon, { backgroundColor: "#FFF1F2" }]}>
-                  <Feather name="mic" size={24} color="#E11D48" />
-                </View>
-                <Text style={styles.triggerTitle}>Voice Note</Text>
-                <Text style={styles.triggerDesc}>Plays in your voice</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.triggerCard}
-                onPress={() => setShowSendModal(true)}
-                activeOpacity={0.8}
-              >
-                <View style={[styles.triggerIcon, { backgroundColor: "#EFF6FF" }]}>
-                  <Feather name="image" size={24} color="#2563EB" />
-                </View>
-                <Text style={styles.triggerTitle}>Family Photo</Text>
-                <Text style={styles.triggerDesc}>Large picture display</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.triggerCard}
-                onPress={() => setShowSendModal(true)}
-                activeOpacity={0.8}
-              >
-                <View style={[styles.triggerIcon, { backgroundColor: "#F5F3FF" }]}>
-                  <Feather name="music" size={24} color="#7C3AED" />
-                </View>
-                <Text style={styles.triggerTitle}>Play Song</Text>
-                <Text style={styles.triggerDesc}>Folk tune or prayer</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={styles.triggerCard}
-                onPress={() => setShowSendModal(true)}
-                activeOpacity={0.8}
-              >
-                <View style={[styles.triggerIcon, { backgroundColor: "#ECFDF5" }]}>
-                  <Feather name="heart" size={24} color="#059669" />
-                </View>
-                <Text style={styles.triggerTitle}>Warm Note</Text>
-                <Text style={styles.triggerDesc}>Loving reassurance</Text>
-              </TouchableOpacity>
-            </View>
-
-            {/* Sent History */}
-            <View style={[styles.sectionHeaderRow, { marginTop: 18 }]}>
-              <Text style={styles.sectionHeaderTitle}>RECENTLY SENT TO KIOSK</Text>
-            </View>
-
-            <View style={styles.listSection}>
-              {sentItems.map((item) => (
-                <View key={item.id} style={styles.sentItemCard}>
-                  <View style={styles.sentItemHeader}>
-                    <View style={styles.sentTypeRow}>
-                      <Feather name="check-circle" size={16} color="#16A34A" />
-                      <Text style={styles.sentType}>{item.type.toUpperCase()}</Text>
-                    </View>
-                    <Text style={styles.sentTime}>{item.timestamp}</Text>
-                  </View>
-                  <Text style={styles.sentContent}>{item.content}</Text>
-                  <View style={styles.sentStatusBadge}>
-                    <Text style={styles.sentStatusText}>✓ Displayed on Senior Tablet</Text>
-                  </View>
-                </View>
-              ))}
-            </View>
-          </View>
-        )}
-
-        {/* ══════════ 2. MEMORY BANK SUB-VIEW ══════════ */}
-        {activeTab === "memory" && (
-          <View>
-            <View style={styles.sectionHeaderRow}>
-              <Text style={styles.sectionHeaderTitle}>FAMILY MEMORY ALBUMS</Text>
-              <TouchableOpacity
-                style={styles.addMemoryPill}
-                onPress={() => setShowMemoryModal(true)}
-                activeOpacity={0.8}
-              >
-                <Feather name="plus" size={14} color={WarmPalette.roseDusty} />
-                <Text style={styles.addMemoryPillText}>Add Memory</Text>
-              </TouchableOpacity>
-            </View>
-
-            <View style={styles.memoryGrid}>
-              {memoryItems.map((m) => (
-                <View key={m.id} style={styles.memoryCard}>
-                  <View style={styles.memoryTagRow}>
-                    <Text style={styles.memoryCategory}>{m.category.toUpperCase()}</Text>
-                    <Text style={styles.memoryDate}>{m.yearOrDate || ""}</Text>
-                  </View>
-                  <Text style={styles.memoryTitle}>{m.title}</Text>
-                  <Text style={styles.memoryDesc}>{m.description}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-        )}
-
-        {/* ══════════ 3. CARE CIRCLE & SHIFT HANDOFF SUB-VIEW ══════════ */}
+        {/* ══════════ 1. CARE CIRCLE & SHIFT HANDOFF SUB-VIEW ══════════ */}
         {activeTab === "circle" && (
           <View>
             {/* ── 1. MULTI-CAREGIVER SHIFT HANDOFF MANAGER CARD ── */}
@@ -335,73 +212,8 @@ export const CaregiverFamilyScreen: React.FC = () => {
               </TouchableOpacity>
             </View>
 
-            {/* ── 2. GRAMIN SURAKSHA & WANDERING PREVENT HUB ── */}
-            <View style={styles.surakshaHubCard}>
-              <View style={styles.surakshaHubHeader}>
-                <View style={styles.surakshaHubIcon}>
-                  <Feather name="shield" size={20} color="#16A34A" />
-                </View>
-                <View style={{ flex: 1, marginLeft: 10 }}>
-                  <Text style={styles.surakshaHubTitle}>Gramin Safe-Zone Geofence</Text>
-                  <Text style={styles.surakshaHubSub}>
-                    150m Home Perimeter · Kamrup Sector
-                  </Text>
-                </View>
-                <View
-                  style={[
-                    styles.surakshaBadge,
-                    safeZone?.activeAlert ? styles.badgeAlert : styles.badgeSafe,
-                  ]}
-                >
-                  <Text
-                    style={[
-                      styles.surakshaBadgeText,
-                      safeZone?.activeAlert ? styles.textAlert : styles.textSafe,
-                    ]}
-                  >
-                    {safeZone?.activeAlert ? "WANDERING ALERT" : "SAFE AT HOME"}
-                  </Text>
-                </View>
-              </View>
-
-              <View style={styles.surakshaGrid}>
-                <View style={styles.surakshaItem}>
-                  <Text style={styles.surakshaItemTitle}>Courtyard</Text>
-                  <Text style={styles.surakshaItemSub}>0 - 150m (Safe)</Text>
-                </View>
-                <View style={styles.surakshaItem}>
-                  <Text style={styles.surakshaItemTitle}>Tea Gate</Text>
-                  <Text style={styles.surakshaItemSub}>300m (Warning)</Text>
-                </View>
-                <View style={styles.surakshaItem}>
-                  <Text style={styles.surakshaItemTitle}>River Road</Text>
-                  <Text style={styles.surakshaItemSub}>600m (Alert)</Text>
-                </View>
-              </View>
-
-              <View style={styles.surakshaActionsRow}>
-                <TouchableOpacity
-                  style={styles.surakshaChimeBtn}
-                  onPress={handleRingKioskChime}
-                  activeOpacity={0.8}
-                >
-                  <Feather name="volume-2" size={15} color="#2563EB" />
-                  <Text style={styles.surakshaChimeText}>Ring Chime</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.surakshaSosBtn}
-                  onPress={handleBroadcastVillageAlert}
-                  activeOpacity={0.8}
-                >
-                  <Feather name="alert-octagon" size={15} color="#FFFFFF" />
-                  <Text style={styles.surakshaSosText}>Village Alert</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-
-            {/* ── 3. FAMILY CAREGIVERS & GUARDIANS ── */}
-            <View style={[styles.sectionHeaderRow, { marginTop: 14 }]}>
+            {/* ── 2. FAMILY CAREGIVERS & GUARDIANS ── */}
+            <View style={[styles.sectionHeaderRow, { marginTop: 16 }]}>
               <Text style={styles.sectionHeaderTitle}>FAMILY CAREGIVERS & HELPERS</Text>
             </View>
 
@@ -480,7 +292,7 @@ export const CaregiverFamilyScreen: React.FC = () => {
                 onPress={() => handleCallNumber("108")}
                 activeOpacity={0.8}
               >
-                <Feather name="truck" size={22} color="#DC2626" />
+                <Feather name="activity" size={22} color="#EA580C" />
                 <Text style={styles.directDialTitle}>108</Text>
                 <Text style={styles.directDialSub}>Ambulance</Text>
               </TouchableOpacity>
@@ -497,15 +309,157 @@ export const CaregiverFamilyScreen: React.FC = () => {
             </View>
           </View>
         )}
+
+        {/* ══════════ 2. SAFE ZONE & GEOFENCE SUB-VIEW ══════════ */}
+        {activeTab === "safezone" && (
+          <View>
+            <View style={styles.surakshaHubCard}>
+              <View style={styles.surakshaHubHeader}>
+                <View style={styles.surakshaHubIcon}>
+                  <Feather name="shield" size={20} color="#16A34A" />
+                </View>
+                <View style={{ flex: 1, marginLeft: 10 }}>
+                  <Text style={styles.surakshaHubTitle}>Gramin Safe-Zone Geofence</Text>
+                  <Text style={styles.surakshaHubSub}>
+                    150m Home Perimeter · Kamrup Sector
+                  </Text>
+                </View>
+                <View
+                  style={[
+                    styles.surakshaBadge,
+                    safeZone?.activeAlert ? styles.badgeAlert : styles.badgeSafe,
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.surakshaBadgeText,
+                      safeZone?.activeAlert ? styles.textAlert : styles.textSafe,
+                    ]}
+                  >
+                    {safeZone?.activeAlert ? "WANDERING ALERT" : "SAFE AT HOME"}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={styles.surakshaGrid}>
+                <View style={styles.surakshaItem}>
+                  <Text style={styles.surakshaItemTitle}>Courtyard</Text>
+                  <Text style={styles.surakshaItemSub}>0 - 150m (Safe)</Text>
+                </View>
+                <View style={styles.surakshaItem}>
+                  <Text style={styles.surakshaItemTitle}>Tea Gate</Text>
+                  <Text style={styles.surakshaItemSub}>300m (Warning)</Text>
+                </View>
+                <View style={styles.surakshaItem}>
+                  <Text style={styles.surakshaItemTitle}>River Road</Text>
+                  <Text style={styles.surakshaItemSub}>600m (Alert)</Text>
+                </View>
+              </View>
+
+              <View style={styles.surakshaActionsRow}>
+                <TouchableOpacity
+                  style={styles.surakshaChimeBtn}
+                  onPress={handleRingKioskChime}
+                  activeOpacity={0.8}
+                >
+                  <Feather name="volume-2" size={15} color="#2563EB" />
+                  <Text style={styles.surakshaChimeText}>Ring Chime</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={styles.surakshaSosBtn}
+                  onPress={handleBroadcastVillageAlert}
+                  activeOpacity={0.8}
+                >
+                  <Feather name="alert-octagon" size={15} color="#FFFFFF" />
+                  <Text style={styles.surakshaSosText}>Village Alert</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+
+            {/* Geofence Live Telemetry Status Card */}
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionHeaderTitle}>PERIMETER TELEMETRY</Text>
+            </View>
+
+            <View style={styles.shiftManagerCard}>
+              <View style={styles.shiftStatsRow}>
+                <View style={styles.shiftStatItem}>
+                  <Text style={[styles.shiftStatCount, { color: "#16A34A" }]}>
+                    {safeZone?.distanceMeters || 14}m
+                  </Text>
+                  <Text style={styles.shiftStatLabel}>Distance from Home</Text>
+                </View>
+                <View style={styles.shiftStatDivider} />
+                <View style={styles.shiftStatItem}>
+                  <Text style={[styles.shiftStatCount, { color: "#2563EB" }]}>
+                    {safeZone?.beaconBatteryPct || 94}%
+                  </Text>
+                  <Text style={styles.shiftStatLabel}>Beacon Battery</Text>
+                </View>
+                <View style={styles.shiftStatDivider} />
+                <View style={styles.shiftStatItem}>
+                  <Text style={[styles.shiftStatCount, { color: "#059669" }]}>Strong</Text>
+                  <Text style={styles.shiftStatLabel}>GPS Signal</Text>
+                </View>
+              </View>
+
+              <View style={{ marginTop: 12, padding: 12, backgroundColor: "#F8FAFC", borderRadius: 12 }}>
+                <Text style={{ fontSize: 13, fontWeight: "600", color: "#1E293B" }}>
+                  📍 Current Area: {safeZone?.currentLocationName || "Courtyard & Tea Veranda"}
+                </Text>
+                <Text style={{ fontSize: 12, color: "#64748B", marginTop: 4 }}>
+                  🕒 {safeZone?.lastMovementTime || "Active 2 mins ago"} · Automatic 150m boundary monitor
+                </Text>
+              </View>
+            </View>
+          </View>
+        )}
+
+        {/* ══════════ 3. HERITAGE ARCHIVE & MEMORY BANK SUB-VIEW ══════════ */}
+        {activeTab === "memory" && (
+          <View>
+            <View style={styles.sectionHeaderRow}>
+              <Text style={styles.sectionHeaderTitle}>FAMILY MEMORY ALBUMS & STORIES</Text>
+              <TouchableOpacity
+                style={styles.addMemoryPill}
+                onPress={() => setShowMemoryModal(true)}
+                activeOpacity={0.8}
+              >
+                <Feather name="plus" size={14} color={WarmPalette.roseDusty} />
+                <Text style={styles.addMemoryPillText}>Add Memory</Text>
+              </TouchableOpacity>
+            </View>
+
+            {memoryItems.length > 0 ? (
+              <View style={styles.memoryGrid}>
+                {memoryItems.map((m) => (
+                  <View key={m.id} style={styles.memoryCard}>
+                    <View style={styles.memoryTagRow}>
+                      <Text style={styles.memoryCategory}>{m.category.toUpperCase()}</Text>
+                      <Text style={styles.memoryDate}>{m.yearOrDate || ""}</Text>
+                    </View>
+                    <Text style={styles.memoryTitle}>{m.title}</Text>
+                    <Text style={styles.memoryDesc}>{m.description}</Text>
+                  </View>
+                ))}
+              </View>
+            ) : (
+              <View style={styles.emptyLiveCard}>
+                <View style={styles.emptyLiveHeader}>
+                  <Feather name="book-open" size={18} color="#7C3AED" />
+                  <Text style={styles.emptyLiveTitle}>Memory Bank Empty</Text>
+                </View>
+                <Text style={styles.emptyLiveSub}>
+                  Tap "+ Add Memory" to preserve cherished family stories, ancestral hometowns, and special life memories.
+                </Text>
+              </View>
+            )}
+          </View>
+        )}
       </ScrollView>
 
       {/* ── MODALS ─────────────────────────────────────────────────── */}
-      <CaregiverSendToElderModal
-        visible={showSendModal}
-        onClose={() => setShowSendModal(false)}
-        elderName={profile?.name || "Bhaben Barman"}
-        onItemSent={loadData}
-      />
 
       <CaregiverMemoryBankModal
         visible={showMemoryModal}
@@ -525,7 +479,26 @@ export const CaregiverFamilyScreen: React.FC = () => {
 const styles = StyleSheet.create({
   screenWrapper: {
     flex: 1,
-    backgroundColor: WarmPalette.ivory,
+    backgroundColor: AestheticTheme.canvas,
+    position: "relative",
+  },
+  ambientAuraTop: {
+    position: "absolute",
+    top: -50,
+    right: -40,
+    width: 240,
+    height: 240,
+    borderRadius: 120,
+    backgroundColor: AestheticTheme.ambientLavender,
+  },
+  ambientAuraBottom: {
+    position: "absolute",
+    bottom: 90,
+    left: -60,
+    width: 260,
+    height: 260,
+    borderRadius: 130,
+    backgroundColor: AestheticTheme.ambientRose,
   },
   topBar: {
     paddingHorizontal: 16,
@@ -545,11 +518,13 @@ const styles = StyleSheet.create({
   },
   segmentContainer: {
     flexDirection: "row",
-    backgroundColor: WarmPalette.sand + "60",
+    backgroundColor: AestheticTheme.pillTrack,
     borderRadius: 16,
     padding: 4,
     marginHorizontal: 16,
     marginVertical: 10,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
   },
   segmentBtn: {
     flex: 1,
@@ -559,7 +534,12 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   segmentBtnActive: {
-    backgroundColor: WarmPalette.roseDusty,
+    backgroundColor: AestheticTheme.pillActive,
+    shadowColor: "#C2747C",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 2,
   },
   segmentBtnText: {
     fontSize: 13,
@@ -579,12 +559,13 @@ const styles = StyleSheet.create({
     paddingBottom: 110,
   },
   heroSendCard: {
-    backgroundColor: WarmPalette.cream,
-    borderRadius: 18,
-    borderWidth: 1.5,
-    borderColor: WarmPalette.sand,
+    backgroundColor: AestheticTheme.cardSurface,
+    borderRadius: 20,
+    borderWidth: 1.2,
+    borderColor: AestheticTheme.cardBorder,
     padding: 16,
     marginBottom: 14,
+    ...AestheticTheme.cardShadow,
   },
   heroTextGroup: {
     marginBottom: 12,
@@ -623,12 +604,13 @@ const styles = StyleSheet.create({
   triggerCard: {
     width: "48%",
     flexGrow: 1,
-    backgroundColor: WarmPalette.cream,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: WarmPalette.sand,
+    backgroundColor: AestheticTheme.cardSurface,
+    borderRadius: 18,
+    borderWidth: 1.2,
+    borderColor: AestheticTheme.cardBorder,
     padding: 14,
     alignItems: "center",
+    ...AestheticTheme.cardShadow,
   },
   triggerIcon: {
     width: 48,
@@ -678,11 +660,12 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   sentItemCard: {
-    backgroundColor: WarmPalette.cream,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: WarmPalette.sand,
+    backgroundColor: AestheticTheme.cardSurface,
+    borderRadius: 18,
+    borderWidth: 1.2,
+    borderColor: AestheticTheme.cardBorder,
     padding: 14,
+    ...AestheticTheme.cardShadow,
   },
   sentItemHeader: {
     flexDirection: "row",
@@ -718,15 +701,108 @@ const styles = StyleSheet.create({
     color: WarmPalette.charcoalWarm + "80",
     fontWeight: "600",
   },
+  sentThumbnail: {
+    width: "100%",
+    height: 140,
+    borderRadius: 10,
+    marginVertical: 8,
+  },
+  liveMirrorCard: {
+    backgroundColor: "#F0FDF4",
+    borderRadius: 18,
+    borderWidth: 1.5,
+    borderColor: "#BBF7D0",
+    padding: 14,
+    marginBottom: 14,
+  },
+  liveMirrorHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginBottom: 10,
+  },
+  liveMirrorDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: "#16A34A",
+    marginRight: 8,
+  },
+  liveMirrorTitle: {
+    fontSize: 13.5,
+    fontWeight: "800",
+    color: "#0F172A",
+    flex: 1,
+  },
+  liveMirrorBadge: {
+    backgroundColor: "#DCFCE7",
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 8,
+  },
+  liveMirrorBadgeText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#166534",
+  },
+  liveScreenPreviewBox: {
+    backgroundColor: "#FFFFFF",
+    borderRadius: 14,
+    borderWidth: 1.5,
+    borderColor: "#E2E8F0",
+    padding: 12,
+    alignItems: "center",
+  },
+  liveScreenGreeting: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: "#2563EB",
+    marginBottom: 8,
+  },
+  liveActiveItem: {
+    width: "100%",
+    alignItems: "center",
+  },
+  liveActiveImage: {
+    width: "100%",
+    height: 160,
+    borderRadius: 10,
+    marginBottom: 8,
+  },
+  liveItemTitle: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#0F172A",
+    textAlign: "center",
+    marginBottom: 4,
+  },
+  liveItemContent: {
+    fontSize: 13,
+    color: "#475569",
+    textAlign: "center",
+    lineHeight: 18,
+    marginBottom: 6,
+  },
+  liveItemSender: {
+    fontSize: 11.5,
+    color: "#94A3B8",
+    fontWeight: "600",
+  },
+  liveScreenEmpty: {
+    fontSize: 13,
+    color: "#94A3B8",
+    fontStyle: "italic",
+    paddingVertical: 12,
+  },
   memoryGrid: {
     gap: 10,
   },
   memoryCard: {
-    backgroundColor: WarmPalette.cream,
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: WarmPalette.sand,
+    backgroundColor: AestheticTheme.cardSurface,
+    borderRadius: 18,
+    borderWidth: 1.2,
+    borderColor: AestheticTheme.cardBorder,
     padding: 14,
+    ...AestheticTheme.cardShadow,
   },
   memoryTagRow: {
     flexDirection: "row",
@@ -1021,5 +1097,33 @@ const styles = StyleSheet.create({
     fontSize: 11.5,
     fontWeight: "600",
     color: WarmPalette.charcoalWarm + "80",
+  },
+  emptyLiveCard: {
+    backgroundColor: WarmPalette.cream,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: WarmPalette.sand,
+    borderStyle: "dashed",
+    padding: 22,
+    alignItems: "center",
+    marginVertical: 6,
+  },
+  emptyLiveHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    marginBottom: 6,
+  },
+  emptyLiveTitle: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: WarmPalette.charcoalWarm,
+  },
+  emptyLiveSub: {
+    fontSize: 12,
+    color: WarmPalette.charcoalWarm + "90",
+    textAlign: "center",
+    lineHeight: 18,
+    paddingHorizontal: 12,
   },
 });

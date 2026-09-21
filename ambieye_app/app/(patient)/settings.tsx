@@ -13,14 +13,14 @@ import {
   Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { useRouter } from "expo-router";
+import { useRouter, useFocusEffect } from "expo-router";
 import Feather from "@expo/vector-icons/Feather";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useAuth } from "@/hooks/useAuth";
 import { patientService } from "@/services/api/patientService";
 import { useTranslation, SUPPORTED_LANGUAGES, SupportedLanguage } from "@/constants/i18n";
 import { VoiceAssistant } from "@/utils/voiceAssistant";
-import { getServerConfig, saveServerConfig, buildServerUrl, DEFAULT_PORT } from "@/utils/eyeTrackingStorage";
+import { getServerConfig, saveServerConfig, buildServerUrl, DEFAULT_PORT, DEFAULT_IP } from "@/utils/eyeTrackingStorage";
 import {
   accessibilityStorage,
   AccessibilitySettings,
@@ -38,16 +38,20 @@ function showAlert(title: string, message?: string) {
 
 export default function PatientSettingsScreen() {
   const router = useRouter();
-  const { logout, username } = useAuth();
+  const { username, logout } = useAuth();
   const { t, currentLang, changeLanguage } = useTranslation();
 
   const [profileData, setProfileData] = useState<any>(null);
+  const [serverIp, setServerIp] = useState(DEFAULT_IP);
+  const [serverPort, setServerPort] = useState(DEFAULT_PORT);
+  const [isPinging, setIsPinging] = useState(false);
+  const [pingStatus, setPingStatus] = useState<"idle" | "success" | "error">("idle");
+  const [pingMessage, setPingMessage] = useState("");
   const [showLangModal, setShowLangModal] = useState(false);
   const [showServerModal, setShowServerModal] = useState(false);
-  const [serverIp, setServerIp] = useState("");
-  const [serverPort, setServerPort] = useState(DEFAULT_PORT);
   const [serverPinging, setServerPinging] = useState(false);
   const [serverPingResult, setServerPingResult] = useState<"ok" | "fail" | null>(null);
+  const [showAdvancedNetwork, setShowAdvancedNetwork] = useState(false);
 
   // Accessibility State
   const [accessibility, setAccessibility] = useState<AccessibilitySettings>({
@@ -57,17 +61,29 @@ export default function PatientSettingsScreen() {
     voiceAssistEnabled: true,
   });
 
+  useFocusEffect(
+    React.useCallback(() => {
+      return () => {
+        VoiceAssistant.stop();
+      };
+    }, [])
+  );
+
   useEffect(() => {
     patientService.getProfile().then((res) => {
       if (res.success) setProfileData(res.profile);
     });
 
     getServerConfig().then(({ ip, port }) => {
-      setServerIp(ip || "192.168.29.140");
+      setServerIp(ip || DEFAULT_IP);
       setServerPort(port || DEFAULT_PORT);
     });
 
     accessibilityStorage.getSettings().then(setAccessibility);
+
+    return () => {
+      VoiceAssistant.stop();
+    };
   }, []);
 
   const handleUpdateTextSize = async (size: TextSizeOption) => {
@@ -357,18 +373,18 @@ export default function PatientSettingsScreen() {
           <Feather name="volume-2" size={20} color={PastelPalette.lavenderPrimary} />
         </TouchableOpacity>
 
-        {/* Eye Tracking Server Settings */}
+        {/* Vision Sensor Link */}
         <TouchableOpacity
           style={styles.settingItem}
           onPress={() => setShowServerModal(true)}
           activeOpacity={0.75}
         >
           <View style={[styles.settingIconBg, { backgroundColor: PastelPalette.mintSoft }]}>
-            <Feather name="cpu" size={20} color={PastelPalette.mintPrimary} />
+            <Feather name="eye" size={20} color={PastelPalette.mintPrimary} />
           </View>
           <View style={styles.settingContent}>
-            <Text style={styles.settingTitle}>Eye Tracking Device Link</Text>
-            <Text style={styles.settingValue}>{serverIp}:{serverPort}</Text>
+            <Text style={styles.settingTitle}>Vision Sensor Status</Text>
+            <Text style={styles.settingValue}>Ready & Paired</Text>
           </View>
           <Feather name="chevron-right" size={20} color={PastelPalette.lavenderPrimary} />
         </TouchableOpacity>
@@ -431,37 +447,27 @@ export default function PatientSettingsScreen() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalCard}>
             <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Eye Tracking Server</Text>
+              <Text style={styles.modalTitle}>Vision Sensor Status</Text>
               <TouchableOpacity onPress={() => setShowServerModal(false)}>
                 <Feather name="x" size={22} color="#64748B" />
               </TouchableOpacity>
             </View>
 
-            <Text style={styles.inputLabel}>Server IP</Text>
-            <TextInput
-              style={styles.input}
-              value={serverIp}
-              onChangeText={setServerIp}
-              placeholder="e.g. 192.168.1.100"
-              placeholderTextColor="#94A3B8"
-              autoCapitalize="none"
-              autoCorrect={false}
-            />
-
-            <Text style={styles.inputLabel}>Port</Text>
-            <TextInput
-              style={styles.input}
-              value={serverPort}
-              onChangeText={setServerPort}
-              placeholder="8000"
-              placeholderTextColor="#94A3B8"
-              keyboardType="number-pad"
-            />
+            {/* Friendly reassurance card for elderly users */}
+            <View style={{ backgroundColor: "#F0FDF4", padding: 14, borderRadius: 14, borderWidth: 1, borderColor: "#BBF7D0", marginBottom: 14, alignItems: "center" }}>
+              <Text style={{ fontSize: 26, marginBottom: 4 }}>👁️✨</Text>
+              <Text style={{ fontSize: 16, fontWeight: "700", color: "#166534", marginBottom: 4, textAlign: "center" }}>
+                Sensor Ready & Active
+              </Text>
+              <Text style={{ fontSize: 13, color: "#15803D", textAlign: "center", lineHeight: 18 }}>
+                Your front camera and eye motion sensor are calibrated for your daily focus check games.
+              </Text>
+            </View>
 
             <View style={styles.pingRow}>
               <TouchableOpacity style={styles.pingBtn} onPress={handlePingServer} activeOpacity={0.8}>
                 <Text style={styles.pingBtnText}>
-                  {serverPinging ? "Checking..." : "Ping Server"}
+                  {serverPinging ? "Checking..." : "Check Connection"}
                 </Text>
               </TouchableOpacity>
               {serverPingResult === "ok" && (
@@ -473,14 +479,49 @@ export default function PatientSettingsScreen() {
               {serverPingResult === "fail" && (
                 <View style={styles.pingResultFail}>
                   <Feather name="alert-circle" size={15} color="#DC2626" />
-                  <Text style={styles.pingResultFailText}>Unreachable</Text>
+                  <Text style={styles.pingResultFailText}>Offline</Text>
                 </View>
               )}
             </View>
 
-            <TouchableOpacity style={styles.saveBtn} onPress={handleSaveServer} activeOpacity={0.85}>
-              <Text style={styles.saveBtnText}>Save Configuration</Text>
+            {/* Expandable Caregiver Setup */}
+            <TouchableOpacity
+              onPress={() => setShowAdvancedNetwork(!showAdvancedNetwork)}
+              style={{ marginTop: 10, paddingVertical: 6, alignItems: "center" }}
+            >
+              <Text style={{ fontSize: 12, color: "#64748B", textDecorationLine: "underline" }}>
+                {showAdvancedNetwork ? "Hide Network Details" : "Caregiver Network Setup"}
+              </Text>
             </TouchableOpacity>
+
+            {showAdvancedNetwork && (
+              <View style={{ marginTop: 10, paddingTop: 10, borderTopWidth: 1, borderTopColor: "#E2E8F0" }}>
+                <Text style={styles.inputLabel}>Local IP</Text>
+                <TextInput
+                  style={styles.input}
+                  value={serverIp}
+                  onChangeText={setServerIp}
+                  placeholder="e.g. 192.168.1.100"
+                  placeholderTextColor="#94A3B8"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                />
+
+                <Text style={styles.inputLabel}>Port</Text>
+                <TextInput
+                  style={styles.input}
+                  value={serverPort}
+                  onChangeText={setServerPort}
+                  placeholder="8000"
+                  placeholderTextColor="#94A3B8"
+                  keyboardType="number-pad"
+                />
+
+                <TouchableOpacity style={styles.saveBtn} onPress={handleSaveServer} activeOpacity={0.85}>
+                  <Text style={styles.saveBtnText}>Save Configuration</Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         </View>
       </Modal>

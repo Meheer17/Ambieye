@@ -127,6 +127,71 @@ export const PastelPalette = {
   mutedText: '#94A3B8',       // Muted caption text
 };
 
+// Calm Balanced Pastel Palette matching Family & Kiosk reference screen
+export const CalmPalette = {
+  // Canvases & Surfaces
+  canvas: '#F8FAFC',          // Soft light off-white / slate canvas
+  surface: '#FFFFFF',         // Pure clean card surface
+  surfaceWarm: '#FFFDF9',     // Warm cream card surface
+  cardBorder: '#F1F5F9',      // Hairline subtle card border
+  cardBorderSubtle: '#E2E8F0',// Subtle divider border
+  
+  // Primary Action Accent (Dusty Rose pill buttons & active segmented control)
+  primary: '#C2747C',         // Dusty Rose accent
+  primaryHover: '#B5656D',    // Slightly deeper rose
+  primaryLight: '#FDF2F4',    // Very soft rose tint
+  primaryBorder: '#FBCFE8',   // Soft rose border
+  
+  // Calm Balanced Category Badges (as seen in the 2x3 trigger grid)
+  skyBg: '#EFF6FF',
+  skyIcon: '#0284C7',
+  skyBorder: '#BAE6FD',
+  
+  purpleBg: '#F5F3FF',
+  purpleIcon: '#7C3AED',
+  purpleBorder: '#DDD6FE',
+  
+  mintBg: '#ECFDF5',
+  mintIcon: '#059669',
+  mintBorder: '#A7F3D0',
+  
+  indigoBg: '#EEF2FF',
+  indigoIcon: '#4F46E5',
+  indigoBorder: '#C7D2FE',
+  
+  tealBg: '#F0FDFA',
+  tealIcon: '#0D9488',
+  tealBorder: '#99F6E4',
+  
+  pinkBg: '#FFF1F2',
+  pinkIcon: '#E11D48',
+  pinkBorder: '#FECDD3',
+  
+  amberBg: '#FFFBEB',
+  amberIcon: '#D97706',
+  amberBorder: '#FDE68A',
+  
+  // Balanced Neutrals
+  textTitle: '#1E293B',       // Slate 800 - comfortable dark charcoal
+  textBody: '#475569',        // Slate 600 - relaxed body text
+  textMuted: '#64748B',       // Slate 500 - secondary / description
+  textCaption: '#94A3B8',     // Slate 400 - small caption
+  
+  // Semantic Status Tones (Gentle & Non-alarmist)
+  successBg: '#ECFDF5',
+  successText: '#047857',
+  successBorder: '#A7F3D0',
+  
+  warningBg: '#FFFBEB',
+  warningText: '#B45309',
+  warningBorder: '#FDE68A',
+  
+  alertBg: '#FFF1F2',
+  alertText: '#BE185D',
+  alertBorder: '#FECDD3',
+};
+
+
 export const Spacing = {
   xs: 4,
   sm: 8,
@@ -185,5 +250,36 @@ export const Shadows = {
     shadowOpacity: 0.12,
     shadowRadius: 16,
     elevation: 6,
+  },
+};
+
+// Very Light Aesthetic Theme for Soft, Calm, Multi-Layered UI
+export const AestheticTheme = {
+  // Screen background: light, soothing aesthetic canvas (not stark white)
+  canvas: '#F4F5F9',             // Calm pale mist canvas
+  canvasAlt: '#F2F4F8',          // Slightly cooler soft mist
+  canvasWarm: '#F6F5F8',         // Slightly warmer soft lavender mist
+  
+  // Ambient glow highlights (faint decorative backdrops)
+  ambientLavender: 'rgba(224, 231, 255, 0.55)', // Soft lavender/sky aura
+  ambientRose: 'rgba(254, 226, 226, 0.45)',     // Soft warm rose/peach aura
+  ambientMint: 'rgba(220, 252, 231, 0.45)',     // Soft sage/mint aura
+  
+  // Crisp card surfaces & borders
+  cardSurface: '#FFFFFF',        // Pure clean white card
+  cardBorder: '#E2E8F0',         // Crisp subtle border
+  cardBorderSubtle: '#F1F5F9',   // Hairline divider
+  
+  // Segmented controls & pills
+  pillTrack: '#E8ECF4',          // Elegant pill track
+  pillActive: '#C2747C',         // Dusty rose primary active
+  
+  // Refined shadows
+  cardShadow: {
+    shadowColor: '#0F172A',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.05,
+    shadowRadius: 8,
+    elevation: 2,
   },
 };

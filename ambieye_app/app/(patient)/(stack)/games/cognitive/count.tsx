@@ -51,6 +51,12 @@ export default function CulturalCountGame() {
   const [wrongSelections, setWrongSelections] = useState(0);
   const [gameStartTime, setGameStartTime] = useState(0);
 
+  useEffect(() => {
+    return () => {
+      VoiceAssistant.stop();
+    };
+  }, []);
+
   const startGame = (diff: "easy" | "medium" | "hard" = "easy") => {
     setDifficulty(diff);
     setGameActive(true);
@@ -152,7 +158,7 @@ export default function CulturalCountGame() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.headerBar}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <TouchableOpacity onPress={() => router.replace("/(patient)/games" as any)} style={styles.backBtn}>
             <Feather name="arrow-left" size={24} color="#0F172A" />
           </TouchableOpacity>
           <Text style={styles.headerBarTitle}>{t("game_count")}</Text>
@@ -247,7 +253,7 @@ export default function CulturalCountGame() {
 
           <TouchableOpacity
             style={styles.secondaryBtn}
-            onPress={() => router.back()}
+            onPress={() => router.replace("/(patient)/games" as any)}
           >
             <Text style={styles.secondaryBtnText}>{t("back_to_games")}</Text>
           </TouchableOpacity>
@@ -261,7 +267,7 @@ export default function CulturalCountGame() {
     <SafeAreaView style={styles.container}>
       {/* Top Bar */}
       <View style={styles.topStatsBar}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.exitBtn}>
+        <TouchableOpacity onPress={() => router.replace("/(patient)/games" as any)} style={styles.exitBtn}>
           <Feather name="x" size={22} color="#0F172A" />
         </TouchableOpacity>
 

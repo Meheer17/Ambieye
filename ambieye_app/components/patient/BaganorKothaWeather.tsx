@@ -30,6 +30,12 @@ export function BaganorKothaWeather() {
   const isNight = hour >= 21 || hour < 6;
 
   useEffect(() => {
+    return () => {
+      VoiceAssistant.stop();
+    };
+  }, []);
+
+  useEffect(() => {
     Animated.loop(
       Animated.sequence([
         Animated.timing(pulseAnim, {

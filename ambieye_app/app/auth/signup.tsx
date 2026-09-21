@@ -266,10 +266,10 @@ export default function SignUpScreen() {
             </TouchableOpacity>
             <View style={styles.logoRow}>
               <View style={[styles.logoBox, { borderColor: `${accentColor}40` }]}>
-                <Image source={require("../../assets/images/logo.png")} style={styles.logo} />
+                <Image source={require("../../assets/images/mindcare_logo_circle.png")} style={styles.logo} />
               </View>
               <View>
-                <Text style={styles.appName}>AmbiEye</Text>
+                <Text style={styles.appName}>MindCare</Text>
                 <View style={[styles.roleBadge, { backgroundColor: `${accentColor}20`, borderColor: `${accentColor}40` }]}>
                   <Feather name={isDoctor ? "activity" : "eye"} size={11} color={accentColor} />
                   <Text style={[styles.roleBadgeText, { color: accentColor }]}>
@@ -429,18 +429,20 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   logoBox: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: "rgba(255,255,255,0.08)",
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "transparent",
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1.5,
+    overflow: 'hidden',
   },
   logo: {
-    width: 28,
-    height: 28,
-    resizeMode: "contain",
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    resizeMode: "cover",
   },
   appName: {
     fontSize: 18,

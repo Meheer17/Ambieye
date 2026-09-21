@@ -1,548 +1,406 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState } from "react";
 import {
   View,
   Text,
   StyleSheet,
   TouchableOpacity,
-  ActivityIndicator,
-  TextInput,
-  Modal,
-  Alert,
   ScrollView,
-  Platform,
-  Dimensions,
+  Modal,
+  Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useRouter } from "expo-router";
 import Feather from "@expo/vector-icons/Feather";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
-import { patientService, Query } from "@/services/api/patientService";
-import { useTranslation } from "@/constants/i18n";
-import { VoiceAssistant } from "@/utils/voiceAssistant";
-import { PastelPalette, Spacing, BorderRadius, Shadows } from "@/constants/theme";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { CalmPalette } from "@/constants/theme";
 import { callService } from "@/services/family/callService";
+import { patientNeedsService, PatientNeedRequest } from "@/services/patientNeeds/patientNeedsService";
+import { useEffect } from "react";
 
-const { width } = Dimensions.get("window");
+interface QuickNeed {
+  id: string;
+  emoji: string;
+  label: string;
+  subLabel: string;
+  bgColor: string;
+  borderColor: string;
+  textColor: string;
+}
 
-const QUICK_PRESETS = [
+const QUICK_NEEDS: QuickNeed[] = [
   {
-    en: "Can I go for a 20-min garden walk today?",
-    as: "আজি মই ২০ মিনিট বাগিচাত ফুৰিবলৈ যাব পাৰোনে?",
-    hi: "क्या मैं आज 20 मिनट बगीचे में टहलने जा सकता हूँ?",
-    emoji: "🌿",
+    id: "water",
+    emoji: "💧",
+    label: "Water",
+    subLabel: "I am thirsty",
+    bgColor: "#EFF6FF",
+    borderColor: "#BFDBFE",
+    textColor: "#1E40AF",
   },
   {
-    en: "Should I take my blood pressure medicine before or after breakfast?",
-    as: "মই ৰাতিপুৱাৰ জলপানৰ আগত নে পিছত ঔষধ খাব লাগে?",
-    hi: "क्या मुझे नाश्ते से पहले या बाद में बीपी की दवा लेनी चाहिए?",
-    emoji: "💊",
+    id: "food",
+    emoji: "🍲",
+    label: "Food",
+    subLabel: "I feel hungry",
+    bgColor: "#FEF3C7",
+    borderColor: "#FDE68A",
+    textColor: "#92400E",
   },
   {
-    en: "Feeling slightly restless this evening, what should I do?",
-    as: "আজি সন্ধিয়া অলপ অশান্তি লাগিছে, মই কি কৰিম?",
-    hi: "आज शाम थोड़ा बेचैनी लग रही है, मुझे क्या करना चाहिए?",
-    emoji: "🍵",
+    id: "washroom",
+    emoji: "🚻",
+    label: "Washroom",
+    subLabel: "Need assistance",
+    bgColor: "#F0FDF4",
+    borderColor: "#BBF7D0",
+    textColor: "#166534",
   },
   {
-    en: "When is my next virtual checkup with Dr. Sharma?",
-    as: "ডাঃ শৰ্মাৰ লগত মোৰ পৰৱৰ্তী ভিডিঅ' পৰামৰ্শ কেতিয়া আছে?",
-    hi: "डॉ. शर्मा के साथ मेरा अगला चेकअप कब है?",
-    emoji: "🩺",
+    id: "rest",
+    emoji: "🛌",
+    label: "Rest",
+    subLabel: "Want to lie down",
+    bgColor: "#FAF5FF",
+    borderColor: "#E9D5FF",
+    textColor: "#6B21A8",
+  },
+  {
+    id: "walk",
+    emoji: "🚶",
+    label: "Walk",
+    subLabel: "Fresh air outside",
+    bgColor: "#FFF7ED",
+    borderColor: "#FED7AA",
+    textColor: "#9A3412",
+  },
+  {
+    id: "company",
+    emoji: "🌸",
+    label: "Talk",
+    subLabel: "Want company",
+    bgColor: "#FDF2F8",
+    borderColor: "#FBCFE8",
+    textColor: "#9D174D",
   },
 ];
 
-const CARE_TEAM = [
+interface FamilyContact {
+  id: string;
+  name: string;
+  relation: string;
+  avatarEmoji: string;
+  phone: string;
+  badge: string;
+  badgeColor: string;
+}
+
+const FAMILY_CONTACTS: FamilyContact[] = [
   {
-    id: "doc-1",
-    name: "Dr. Ananya Sharma",
-    role: "Lead Neurologist · GNRC Guwahati",
-    avatarEmoji: "👩‍⚕️",
-    badge: "Primary Neurologist",
-    bgColor: PastelPalette.lavenderBase,
-    borderColor: PastelPalette.lavenderBorder,
-    accentColor: PastelPalette.lavenderAccent,
-    available: "Available on Video",
-    phone: "+91 98640 11223",
+    id: "fam-1",
+    name: "Rishitha",
+    relation: "Daughter · Primary Caregiver",
+    avatarEmoji: "👩",
+    phone: "+91 98640 12345",
+    badge: "Nearby",
+    badgeColor: "#10B981",
   },
   {
-    id: "asha-1",
-    name: "Geeta Saikia",
-    role: "Community ASHA Didi · Majuli Center",
+    id: "fam-2",
+    name: "Anu",
+    relation: "Sister · Checks in daily",
     avatarEmoji: "🌸",
-    badge: "Home Visit & Vitals",
-    bgColor: PastelPalette.pinkBase,
-    borderColor: PastelPalette.pinkBorder,
-    accentColor: PastelPalette.pinkAccent,
-    available: "Visiting Thursday 11 AM",
-    phone: "+91 94350 44556",
+    phone: "+91 98640 54321",
+    badge: "Available",
+    badgeColor: "#3B82F6",
   },
   {
-    id: "nurse-1",
-    name: "Sister Meena Roy",
-    role: "Dementia Care Nurse · Tele-Care Support",
+    id: "fam-3",
+    name: "Meena",
+    relation: "Care Attendant",
     avatarEmoji: "🩺",
-    badge: "24/7 Helpline",
-    bgColor: PastelPalette.mintBase,
-    borderColor: PastelPalette.mintBorder,
-    accentColor: PastelPalette.mintAccent,
-    available: "Active Line",
-    phone: "+91 98640 99887",
+    phone: "+91 94350 98765",
+    badge: "On Duty",
+    badgeColor: "#8B5CF6",
   },
 ];
 
-export default function PatientTeleCareScreen() {
+export default function PatientHelpScreen() {
   const router = useRouter();
-  const { t, currentLang } = useTranslation();
-
-  const [queries, setQueries] = useState<Query[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [showNewQueryModal, setShowNewQueryModal] = useState(false);
-  const [newQueryText, setNewQueryText] = useState("");
-  const [isSubmitting, setIsSubmitting] = useState(false);
-  const [speakingId, setSpeakingId] = useState<string | null>(null);
-
-  const fetchQueries = useCallback(async () => {
-    setIsLoading(true);
-    try {
-      const response = await patientService.getQueries();
-      if (response.success && response.queries) {
-        setQueries(response.queries);
-      }
-    } catch {
-      console.log("Using cached tele-care queries");
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
+  const [selectedNeed, setSelectedNeed] = useState<QuickNeed | null>(null);
+  const [showAckModal, setShowAckModal] = useState(false);
+  const [activeNeed, setActiveNeed] = useState<PatientNeedRequest | null>(null);
 
   useEffect(() => {
-    fetchQueries();
-  }, [fetchQueries]);
+    const unsubscribe = patientNeedsService.subscribe((currentActive) => {
+      setActiveNeed(currentActive);
+    });
+    return () => unsubscribe();
+  }, []);
 
-  const handleSubmitQuery = async () => {
-    if (!newQueryText.trim()) {
-      Alert.alert(
-        currentLang === "as" ? "প্ৰশ্ন লিখক" : currentLang === "hi" ? "प्रश्न लिखें" : "Please ask a question",
-        currentLang === "as"
-          ? "অনুগ্ৰহ কৰি আপোনাৰ প্ৰশ্ন লিখক বা এটা পৰামৰ্শ বাছক।"
-          : "Please write your question or select one of the suggested topics."
-      );
-      return;
-    }
+  const handleTriggerNeed = async (need: QuickNeed) => {
+    setSelectedNeed(need);
+    setShowAckModal(true);
 
-    setIsSubmitting(true);
     try {
-      await patientService.createQuery(newQueryText.trim(), "medium");
-      setShowNewQueryModal(false);
-      setNewQueryText("");
-      const successMsg =
-        currentLang === "as"
-          ? "ডাঃ শৰ্মালৈ প্ৰশ্ন প্ৰেৰণ কৰা হ'ল। তেওঁলোকে অতি সোনকালে উত্তৰ দিব।"
-          : currentLang === "hi"
-          ? "डॉक्टर को प्रश्न भेज दिया गया है। वे जल्द ही उत्तर देंगे।"
-          : "Question sent to your doctor. You will receive gentle advice shortly.";
-      VoiceAssistant.speak(successMsg, currentLang);
-      fetchQueries();
+      await patientNeedsService.triggerNeed(need, "Bhaben");
     } catch {
-      setShowNewQueryModal(false);
-      setNewQueryText("");
-    } finally {
-      setIsSubmitting(false);
+      // storage fallback
     }
   };
 
-  const handleReadText = (text: string, id: string) => {
-    if (speakingId === id) {
-      VoiceAssistant.stop();
-      setSpeakingId(null);
-    } else {
-      setSpeakingId(id);
-      VoiceAssistant.speak(text, currentLang);
+  const handleDismissActiveNeed = async () => {
+    try {
+      await patientNeedsService.clearActiveNeed();
+    } catch {
+      // fallback
     }
   };
 
-  const handleStartDoctorCall = async (doc: typeof CARE_TEAM[0]) => {
+  const handleStartFamilyCall = async (
+    contact: FamilyContact,
+    type: "video" | "voice"
+  ) => {
     try {
       await callService.startCall({
-        contactId: doc.id,
-        contactName: doc.name,
-        contactAvatar: doc.avatarEmoji,
-        contactRelationship: doc.role,
-        phone: doc.phone,
-        callType: "video",
+        contactId: contact.id,
+        contactName: contact.name,
+        contactAvatar: contact.avatarEmoji,
+        contactRelationship: contact.relation,
+        phone: contact.phone,
+        callType: type === "video" ? "video" : "audio",
       });
       router.push({
         pathname: "/(patient)/(stack)/call",
         params: {
-          contactId: doc.id,
-          contactName: doc.name,
-          contactAvatar: doc.avatarEmoji,
-          contactRelationship: doc.role,
-          callType: "video",
+          contactId: contact.id,
+          contactName: contact.name,
+          contactAvatar: contact.avatarEmoji,
+          contactRelationship: contact.relation,
+          callType: type === "video" ? "video" : "audio",
           initiator: "patient",
         },
       });
-    } catch (e) {
-      console.warn("Could not start doctor call:", e);
+    } catch {
+      if (contact.phone) {
+        Linking.openURL(`tel:${contact.phone}`);
+      }
+    }
+  };
+
+  const handleEmergencyCall = () => {
+    Linking.openURL("tel:112");
+  };
+
+  const getNeedConfirmationMessage = (need: QuickNeed | null) => {
+    if (!need) return "We have notified your caregiver! Someone is on the way to help you.";
+    switch (need.id) {
+      case "walk":
+        return "We notified your caregiver that you'd like to go out for a walk in the fresh air! Someone will accompany you shortly.";
+      case "water":
+        return "We notified your caregiver that you are thirsty! A fresh glass of water is being brought to you.";
+      case "food":
+        return "We notified your caregiver that you feel hungry! A meal or light snack is being arranged.";
+      case "washroom":
+        return "We notified your caregiver that you need washroom assistance! Someone is coming right now to help you.";
+      case "rest":
+        return "We notified your caregiver that you want to lie down and rest. They will help you settle in comfortably.";
+      case "company":
+        return "We notified your caregiver that you'd like company and someone to talk to! They will be with you shortly.";
+      default:
+        return `We notified your caregiver that you requested ${need.label}. Someone is on the way!`;
     }
   };
 
   return (
-    <SafeAreaView style={styles.container} edges={["top"]}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        
-        {/* ── 1. AESTHETIC GREETING HERO CARD (LAVENDER & BABY PINK GRADIENT) ── */}
-        <View style={styles.heroCard}>
-          <View style={styles.heroTopRow}>
-            <View style={styles.heroAvatarCircle}>
-              <Text style={{ fontSize: 32 }}>🌸</Text>
-            </View>
-            <View style={{ flex: 1, marginLeft: 12 }}>
-              <View style={styles.onlinePill}>
-                <View style={styles.onlineDot} />
-                <Text style={styles.onlinePillText}>
-                  {currentLang === "as" ? "সুৰক্ষিত টেলি-কেয়াৰ লাইন সক্ৰিয়" : "Tele-Care Connected"}
-                </Text>
-              </View>
-              <Text style={styles.heroTitle}>
-                {currentLang === "as"
-                  ? "নমস্কাৰ, ভবেন দা 🌿"
-                  : currentLang === "hi"
-                  ? "नमस्ते, भबेन जी 🌿"
-                  : "Hello, Bhaben Da 🌿"}
-              </Text>
-              <Text style={styles.heroSubtitle}>
-                {currentLang === "as"
-                  ? "ডাঃ অনন্যা শৰ্মা আৰু গীতা দিদি আপোনাৰ স্বাস্থ্যৰ যত্ন লৈ আছে।"
-                  : "Dr. Ananya Sharma & Geeta Didi are watching over your health today."}
-              </Text>
-            </View>
+    <SafeAreaView style={styles.safeArea} edges={["top"]}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Top Header */}
+        <View style={styles.header}>
+          <View style={styles.headerIconCircle}>
+            <MaterialCommunityIcons name="hand-heart" size={28} color="#C2747C" />
+          </View>
+          <View style={{ flex: 1, marginLeft: 14 }}>
+            <Text style={styles.headerTitle}>Need Help?</Text>
+            <Text style={styles.headerSubtitle}>
+              Tap any button to call family or request help
+            </Text>
           </View>
         </View>
 
-        {/* ── 2. ELDERLY-FRIENDLY QUICK ACTION TILES ─────────────────────── */}
-        <View style={styles.quickActionsGrid}>
-          {/* Ask Doctor / ASHA Didi Button */}
-          <TouchableOpacity
-            style={[styles.actionTile, { backgroundColor: PastelPalette.lavenderLight, borderColor: PastelPalette.lavenderBorder }]}
-            onPress={() => setShowNewQueryModal(true)}
-            activeOpacity={0.85}
-          >
-            <View style={[styles.actionIconCircle, { backgroundColor: PastelPalette.lavenderBase }]}>
-              <Feather name="mic" size={22} color={PastelPalette.lavenderAccent} />
-            </View>
-            <Text style={[styles.actionTileTitle, { color: PastelPalette.lavenderDeep }]}>
-              {currentLang === "as" ? "ডাঃ ক সোধক" : "Ask Doctor"}
-            </Text>
-            <Text style={styles.actionTileSub}>
-              {currentLang === "as" ? "প্ৰশ্ন বা কণ্ঠবাৰ্তা" : "Voice / Question"}
-            </Text>
-          </TouchableOpacity>
-
-          {/* Call Doctor Video Checkup */}
-          <TouchableOpacity
-            style={[styles.actionTile, { backgroundColor: PastelPalette.pinkLight, borderColor: PastelPalette.pinkBorder }]}
-            onPress={() => handleStartDoctorCall(CARE_TEAM[0])}
-            activeOpacity={0.85}
-          >
-            <View style={[styles.actionIconCircle, { backgroundColor: PastelPalette.pinkBase }]}>
-              <Feather name="video" size={22} color={PastelPalette.pinkAccent} />
-            </View>
-            <Text style={[styles.actionTileTitle, { color: PastelPalette.pinkDeep }]}>
-              {currentLang === "as" ? "ডাঃ শৰ্মা কল" : "Call Doctor"}
-            </Text>
-            <Text style={styles.actionTileSub}>
-              {currentLang === "as" ? "পোনপটীয়া ভিডিঅ'" : "Direct Video"}
-            </Text>
-          </TouchableOpacity>
-
-          {/* ASHA Home Visit */}
-          <TouchableOpacity
-            style={[styles.actionTile, { backgroundColor: PastelPalette.mintLight, borderColor: PastelPalette.mintBorder }]}
-            onPress={() => handleStartDoctorCall(CARE_TEAM[1])}
-            activeOpacity={0.85}
-          >
-            <View style={[styles.actionIconCircle, { backgroundColor: PastelPalette.mintBase }]}>
-              <Feather name="phone-call" size={22} color={PastelPalette.mintAccent} />
-            </View>
-            <Text style={[styles.actionTileTitle, { color: PastelPalette.mintAccent }]}>
-              {currentLang === "as" ? "গীতা দিদি" : "ASHA Didi"}
-            </Text>
-            <Text style={styles.actionTileSub}>
-              {currentLang === "as" ? "ঘৰৰ স্বাস্থ্য সহায়" : "Home Health"}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {/* ── 3. UPCOMING VIRTUAL VISIT CARD ──────────────────────────────── */}
-        <View style={styles.upcomingVisitCard}>
-          <View style={styles.upcomingHeader}>
-            <View style={styles.upcomingIconCircle}>
-              <Feather name="calendar" size={18} color="#7C3AED" />
-            </View>
-            <View style={{ flex: 1, marginLeft: 10 }}>
-              <Text style={styles.upcomingCardTitle}>
-                {currentLang === "as" ? "পৰৱৰ্তী ভিডিঅ' পৰামৰ্শ" : "Upcoming Tele-Consultation"}
-              </Text>
-              <Text style={styles.upcomingDate}>
-                {currentLang === "as" ? "বৃহস্পতিবাৰ, আবেলি ৪:৩০ বজাত" : "Thursday, 4:30 PM"}
-              </Text>
-            </View>
-            <View style={styles.familyJoinPill}>
-              <Text style={styles.familyJoinText}>
-                {currentLang === "as" ? "অনিতাও থাকিব" : "Anita joins"}
-              </Text>
-            </View>
+        {/* ── SECTION 1: CALL FAMILY & CAREGIVER ───────────────────────── */}
+        <View style={styles.sectionCard}>
+          <View style={styles.sectionHeaderRow}>
+            <Feather name="phone-call" size={20} color="#C2747C" />
+            <Text style={styles.sectionTitle}>Call Family & Caregiver</Text>
           </View>
-          <Text style={styles.upcomingNote}>
-            {currentLang === "as"
-              ? "ডাঃ অনন্যা শৰ্মাই ৰাতিপুৱাৰ খোজ কঢ়া আৰু টোপনিৰ নিয়ম পৰীক্ষা কৰিব।"
-              : "Dr. Ananya Sharma will review gentle morning walking and sleep rhythm with you."}
+          <Text style={styles.sectionHint}>
+            One tap connects you right away
           </Text>
-        </View>
 
-        {/* ── 4. DOCTOR'S GENTLE ADVICE & ANSWERS ──────────────────────────── */}
-        <View style={styles.sectionHeaderRow}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-            <Text style={{ fontSize: 18 }}>💌</Text>
-            <Text style={styles.sectionHeaderTitle}>
-              {currentLang === "as" ? "ডাঃ শৰ্মাৰ পৰামৰ্শ" : "Doctor's Gentle Advice"}
-            </Text>
-          </View>
-          <TouchableOpacity
-            style={styles.askNewSmallBtn}
-            onPress={() => setShowNewQueryModal(true)}
-            activeOpacity={0.8}
-          >
-            <Feather name="plus" size={14} color="#7C3AED" />
-            <Text style={styles.askNewSmallBtnText}>
-              {currentLang === "as" ? "নতুন প্ৰশ্ন" : "Ask"}
-            </Text>
-          </TouchableOpacity>
-        </View>
-
-        {isLoading ? (
-          <ActivityIndicator size="large" color="#9333EA" style={{ marginVertical: 24 }} />
-        ) : queries.length > 0 ? (
-          queries.map((q) => {
-            const isSpeaking = speakingId === q.id;
-            return (
-              <View key={q.id} style={styles.queryCard}>
-                {/* Question Row */}
-                <View style={styles.queryTopRow}>
-                  <View style={styles.questionIconCircle}>
-                    <Text style={{ fontSize: 16 }}>🙋‍♂️</Text>
-                  </View>
-                  <View style={{ flex: 1, marginLeft: 10 }}>
-                    <Text style={styles.queryQuestionText}>"{q.question}"</Text>
-                    <Text style={styles.queryDateText}>
-                      {new Date(q.createdAt).toLocaleDateString([], { month: "short", day: "numeric" })}
-                    </Text>
-                  </View>
+          <View style={styles.contactList}>
+            {FAMILY_CONTACTS.map((contact) => (
+              <View key={contact.id} style={styles.contactCard}>
+                <View style={styles.avatarCircle}>
+                  <Text style={{ fontSize: 28 }}>{contact.avatarEmoji}</Text>
                 </View>
 
-                {/* Doctor's Response Box */}
-                {q.response ? (
-                  <View style={styles.responseBox}>
-                    <View style={styles.responseHeaderRow}>
-                      <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                        <Text style={{ fontSize: 18 }}>👩‍⚕️</Text>
-                        <Text style={styles.doctorNameHeading}>
-                          {q.doctorName || "Dr. Ananya Sharma"}
-                        </Text>
-                        <View style={styles.verifiedBadge}>
-                          <Text style={styles.verifiedBadgeText}>Verified</Text>
-                        </View>
-                      </View>
-                      
-                      {/* Audio Read-Out Button */}
-                      <TouchableOpacity
-                        style={[styles.listenBtn, isSpeaking && styles.listenBtnSpeaking]}
-                        onPress={() => handleReadText(q.response || "", q.id)}
-                        activeOpacity={0.8}
-                      >
-                        <Feather
-                          name={isSpeaking ? "volume-x" : "volume-2"}
-                          size={15}
-                          color={isSpeaking ? "#FFFFFF" : "#7C3AED"}
-                        />
-                        <Text style={[styles.listenBtnText, isSpeaking && styles.listenBtnTextSpeaking]}>
-                          {isSpeaking
-                            ? currentLang === "as" ? "বন্ধ কৰক" : "Stop"
-                            : currentLang === "as" ? "শুনক" : "Listen"}
-                        </Text>
-                      </TouchableOpacity>
-                    </View>
+                <View style={styles.contactInfo}>
+                  <View style={styles.nameRow}>
+                    <Text style={styles.contactName}>{contact.name}</Text>
+                    <View
+                      style={[
+                        styles.statusDot,
+                        { backgroundColor: contact.badgeColor },
+                      ]}
+                    />
+                  </View>
+                  <Text style={styles.contactRelation}>{contact.relation}</Text>
+                </View>
 
-                    <Text style={styles.responseText}>{q.response}</Text>
-                  </View>
-                ) : (
-                  <View style={styles.pendingReplyBox}>
-                    <Feather name="clock" size={14} color="#D97706" />
-                    <Text style={styles.pendingReplyText}>
-                      {currentLang === "as"
-                        ? "ডাঃ শৰ্মাই সোনকালে উত্তৰ লিখি আছে..."
-                        : "Dr. Sharma is reviewing and will reply shortly..."}
-                    </Text>
-                  </View>
-                )}
+                <View style={styles.actionButtonsRow}>
+                  <TouchableOpacity
+                    style={styles.voiceBtn}
+                    onPress={() => handleStartFamilyCall(contact, "voice")}
+                    activeOpacity={0.8}
+                    accessibilityLabel={`Call ${contact.name}`}
+                  >
+                    <Feather name="phone" size={18} color="#FFFFFF" />
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={styles.videoBtn}
+                    onPress={() => handleStartFamilyCall(contact, "video")}
+                    activeOpacity={0.8}
+                    accessibilityLabel={`Video call ${contact.name}`}
+                  >
+                    <Feather name="video" size={18} color="#FFFFFF" />
+                  </TouchableOpacity>
+                </View>
               </View>
-            );
-          })
-        ) : (
-          <View style={styles.emptyCard}>
-            <Text style={{ fontSize: 32 }}>🌸</Text>
-            <Text style={styles.emptyTitle}>
-              {currentLang === "as" ? "কোনো প্ৰশ্ন নাই" : "No questions asked yet"}
-            </Text>
-            <Text style={styles.emptySub}>
-              {currentLang === "as"
-                ? "আপোনাৰ মনৰ যিকোনো প্ৰশ্ন ডাঃ শৰ্মাক সহজভাৱে সুধিব পাৰে।"
-                : "Feel free to ask Dr. Sharma or ASHA Didi any health question whenever you want."}
-            </Text>
-          </View>
-        )}
-
-        {/* ── 5. MY TRUSTED CARE CIRCLE ──────────────────────────────────── */}
-        <View style={[styles.sectionHeaderRow, { marginTop: 22 }]}>
-          <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-            <Text style={{ fontSize: 18 }}>🤝</Text>
-            <Text style={styles.sectionHeaderTitle}>
-              {currentLang === "as" ? "মোৰ স্বাস্থ্য সহায়িকা মণ্ডল" : "My Care Team"}
-            </Text>
+            ))}
           </View>
         </View>
 
-        <View style={styles.teamList}>
-          {CARE_TEAM.map((member) => (
+        {/* ── SECTION 2: QUICK NEEDS (NEATLY ORGANIZED BUTTON GRID) ─────── */}
+        <View style={styles.sectionCard}>
+          <View style={styles.sectionHeaderRow}>
+            <MaterialCommunityIcons name="gesture-tap-button" size={22} color="#C2747C" />
+            <Text style={styles.sectionTitle}>What Do You Need?</Text>
+          </View>
+          <Text style={styles.sectionHint}>
+            Tap a button — your caregiver will be notified immediately
+          </Text>
+
+          {/* Active Pending Request Notification Card */}
+          {activeNeed && activeNeed.status !== "completed" && (
             <View
-              key={member.id}
-              style={[styles.teamCard, { backgroundColor: member.bgColor, borderColor: member.borderColor }]}
+              style={[
+                styles.activeRequestCard,
+                activeNeed.status === "attending"
+                  ? styles.activeRequestAttending
+                  : styles.activeRequestPending,
+              ]}
             >
-              <View style={styles.teamAvatarCircle}>
-                <Text style={{ fontSize: 26 }}>{member.avatarEmoji}</Text>
-              </View>
-              <View style={{ flex: 1, marginLeft: 12 }}>
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 6 }}>
-                  <Text style={styles.teamName}>{member.name}</Text>
-                  <View style={[styles.teamBadge, { borderColor: member.accentColor }]}>
-                    <Text style={[styles.teamBadgeText, { color: member.accentColor }]}>
-                      {member.badge}
-                    </Text>
-                  </View>
+              <View style={styles.activeRequestRow}>
+                <Text style={{ fontSize: 26 }}>{activeNeed.emoji}</Text>
+                <View style={{ flex: 1, marginLeft: 10 }}>
+                  <Text style={styles.activeRequestTitle}>
+                    {activeNeed.status === "attending"
+                      ? "Caregiver Coming!"
+                      : `${activeNeed.label} Requested`}
+                  </Text>
+                  <Text style={styles.activeRequestSubtitle}>
+                    {activeNeed.status === "attending"
+                      ? `${activeNeed.caregiverName || "Caregiver"} is on the way to assist with ${activeNeed.label.toLowerCase()}`
+                      : `Notified caregiver at ${activeNeed.displayTime} · Awaiting arrival`}
+                  </Text>
                 </View>
-                <Text style={styles.teamRole}>{member.role}</Text>
-                <Text style={[styles.teamAvailability, { color: member.accentColor }]}>
-                  {member.available}
-                </Text>
+                <TouchableOpacity
+                  onPress={handleDismissActiveNeed}
+                  style={styles.activeRequestDismissBtn}
+                  activeOpacity={0.7}
+                  accessibilityLabel="I am okay now"
+                >
+                  <Feather name="check" size={16} color="#059669" />
+                </TouchableOpacity>
               </View>
-              <TouchableOpacity
-                style={[styles.teamCallBtn, { backgroundColor: member.accentColor }]}
-                onPress={() => handleStartDoctorCall(member)}
-                activeOpacity={0.8}
-              >
-                <Feather name="video" size={16} color="#FFFFFF" />
-              </TouchableOpacity>
             </View>
-          ))}
+          )}
+
+          <View style={styles.needsGrid}>
+            {QUICK_NEEDS.map((need) => (
+              <TouchableOpacity
+                key={need.id}
+                style={[
+                  styles.needBtn,
+                  { backgroundColor: need.bgColor, borderColor: need.borderColor },
+                ]}
+                onPress={() => handleTriggerNeed(need)}
+                activeOpacity={0.75}
+              >
+                <Text style={styles.needEmoji}>{need.emoji}</Text>
+                <Text style={[styles.needLabel, { color: need.textColor }]}>
+                  {need.label}
+                </Text>
+                <Text style={[styles.needSubLabel, { color: need.textColor }]}>
+                  {need.subLabel}
+                </Text>
+              </TouchableOpacity>
+            ))}
+          </View>
         </View>
 
-        <View style={{ height: 100 }} />
+        {/* ── SECTION 3: EMERGENCY SOS ─────────────────────────────────── */}
+        <TouchableOpacity
+          style={styles.sosCard}
+          onPress={handleEmergencyCall}
+          activeOpacity={0.85}
+        >
+          <View style={styles.sosIconCircle}>
+            <Feather name="alert-triangle" size={26} color="#DC2626" />
+          </View>
+          <View style={{ flex: 1, marginLeft: 14 }}>
+            <Text style={styles.sosTitle}>Emergency SOS (112)</Text>
+            <Text style={styles.sosSubtitle}>
+              Tap to call immediate emergency helpline
+            </Text>
+          </View>
+          <View style={styles.sosCallPill}>
+            <Feather name="phone" size={16} color="#FFFFFF" />
+            <Text style={styles.sosCallPillText}>Call</Text>
+          </View>
+        </TouchableOpacity>
+
+        <View style={{ height: 90 }} />
       </ScrollView>
 
-      {/* ── 6. EASY ASK DOCTOR MODAL (PASTEL LAVENDER & BABY PINK) ────────── */}
+      {/* ── ACKNOWLEDGMENT MODAL (WARM & REASSURING) ───────────────────── */}
       <Modal
-        visible={showNewQueryModal}
-        transparent={true}
-        animationType="slide"
-        onRequestClose={() => setShowNewQueryModal(false)}
+        visible={showAckModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowAckModal(false)}
       >
         <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            {/* Modal Drag Handle */}
-            <View style={styles.sheetHandleBar}>
-              <View style={styles.sheetHandle} />
-            </View>
-
-            <View style={styles.modalHeader}>
-              <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                <Text style={{ fontSize: 22 }}>💬</Text>
-                <View>
-                  <Text style={styles.modalTitle}>
-                    {currentLang === "as" ? "ডাঃ ক এটা প্ৰশ্ন সোধক" : "Ask Doctor or ASHA Didi"}
-                  </Text>
-                  <Text style={styles.modalSubtitle}>
-                    {currentLang === "as"
-                      ? "প্ৰশ্নটো লিখক বা তলৰ পৰা বাছক"
-                      : "Type your question or choose a quick prompt"}
-                  </Text>
-                </View>
-              </View>
-              <TouchableOpacity onPress={() => setShowNewQueryModal(false)} style={styles.modalCloseBtn}>
-                <Feather name="x" size={18} color="#475569" />
-              </TouchableOpacity>
-            </View>
-
-            {/* Quick Suggestions */}
-            <Text style={styles.modalSectionLabel}>
-              {currentLang === "as" ? "দ্ৰুত পৰামৰ্শ (টিপক)" : "QUICK TOPICS (TAP TO FILL)"}
+          <View style={styles.modalBox}>
+            <Text style={styles.modalEmoji}>{selectedNeed?.emoji || "✅"}</Text>
+            <Text style={styles.modalTitle}>
+              {selectedNeed?.label} Requested
             </Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.presetsRow}>
-              {QUICK_PRESETS.map((p, idx) => {
-                const text = currentLang === "as" ? p.as : currentLang === "hi" ? p.hi : p.en;
-                return (
-                  <TouchableOpacity
-                    key={idx}
-                    style={styles.presetChip}
-                    onPress={() => setNewQueryText(text)}
-                    activeOpacity={0.75}
-                  >
-                    <Text style={{ fontSize: 16 }}>{p.emoji}</Text>
-                    <Text style={styles.presetChipText} numberOfLines={2}>
-                      {text}
-                    </Text>
-                  </TouchableOpacity>
-                );
-              })}
-            </ScrollView>
-
-            {/* Text Input */}
-            <Text style={styles.modalSectionLabel}>
-              {currentLang === "as" ? "আপোনাৰ বাৰ্তা বা প্ৰশ্ন" : "YOUR MESSAGE OR QUESTION"}
+            <Text style={styles.modalDesc}>
+              {getNeedConfirmationMessage(selectedNeed)}
             </Text>
-            <TextInput
-              style={styles.queryInput}
-              multiline
-              numberOfLines={4}
-              placeholder={
-                currentLang === "as"
-                  ? "আপোনাৰ প্ৰশ্ন ইয়াত লিখক..."
-                  : currentLang === "hi"
-                  ? "अपना प्रश्न यहाँ लिखें..."
-                  : "Type what you'd like to ask Dr. Sharma..."
-              }
-              placeholderTextColor="#94A3B8"
-              value={newQueryText}
-              onChangeText={setNewQueryText}
-            />
 
-            {/* Send Button */}
             <TouchableOpacity
-              style={[styles.sendBtn, isSubmitting && { opacity: 0.7 }]}
-              onPress={handleSubmitQuery}
-              disabled={isSubmitting}
-              activeOpacity={0.85}
+              style={styles.modalCloseBtn}
+              onPress={() => setShowAckModal(false)}
+              activeOpacity={0.8}
             >
-              {isSubmitting ? (
-                <ActivityIndicator color="#FFFFFF" />
-              ) : (
-                <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
-                  <Feather name="send" size={18} color="#FFFFFF" />
-                  <Text style={styles.sendBtnText}>
-                    {currentLang === "as" ? "ডাঃ লৈ বাৰ্তা পঠিয়াওক" : "Send to Care Team"}
-                  </Text>
-                </View>
-              )}
+              <Text style={styles.modalCloseText}>Got It 👍</Text>
             </TouchableOpacity>
           </View>
         </View>
@@ -552,489 +410,313 @@ export default function PatientTeleCareScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
     flex: 1,
-    backgroundColor: "#FAF5FF", // Soft Lavender Mist
+    backgroundColor: CalmPalette.surface,
   },
   scrollContent: {
     paddingHorizontal: 16,
     paddingTop: 12,
-    paddingBottom: 110,
+    paddingBottom: 24,
   },
-  heroCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 24,
-    padding: 16,
-    borderWidth: 1.5,
-    borderColor: PastelPalette.lavenderBorder,
-    shadowColor: "#9333EA",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.06,
-    shadowRadius: 10,
-    elevation: 2,
-    marginBottom: 14,
-  },
-  heroTopRow: {
+  header: {
     flexDirection: "row",
     alignItems: "center",
+    marginBottom: 16,
+    paddingVertical: 4,
   },
-  heroAvatarCircle: {
-    width: 60,
-    height: 60,
-    borderRadius: 30,
-    backgroundColor: PastelPalette.pinkBase,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 2,
-    borderColor: PastelPalette.pinkBorder,
-  },
-  onlinePill: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 6,
-    backgroundColor: "#ECFDF5",
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 12,
-    alignSelf: "flex-start",
-    marginBottom: 4,
+  headerIconCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    backgroundColor: "#FAF4F3",
     borderWidth: 1,
-    borderColor: "#A7F3D0",
-  },
-  onlineDot: {
-    width: 7,
-    height: 7,
-    borderRadius: 3.5,
-    backgroundColor: "#10B981",
-  },
-  onlinePillText: {
-    fontSize: 10.5,
-    fontWeight: "800",
-    color: "#047857",
-  },
-  heroTitle: {
-    fontSize: 19,
-    fontWeight: "800",
-    color: "#1E1B4B",
-    letterSpacing: -0.3,
-  },
-  heroSubtitle: {
-    fontSize: 12.5,
-    color: "#64748B",
-    marginTop: 2,
-    lineHeight: 17,
-  },
-  quickActionsGrid: {
-    flexDirection: "row",
-    gap: 8,
-    marginBottom: 14,
-  },
-  actionTile: {
-    flex: 1,
-    borderRadius: 18,
-    padding: 12,
-    alignItems: "center",
+    borderColor: "#EAD7D8",
     justifyContent: "center",
-    borderWidth: 1.5,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.03,
-    shadowRadius: 4,
-  },
-  actionIconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
     alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 8,
   },
-  actionTileTitle: {
+  headerTitle: {
+    fontSize: 22,
+    fontWeight: "800",
+    color: CalmPalette.textTitle,
+  },
+  headerSubtitle: {
     fontSize: 13,
-    fontWeight: "800",
-    textAlign: "center",
+    color: CalmPalette.textMuted,
+    marginTop: 2,
   },
-  actionTileSub: {
-    fontSize: 10.5,
-    color: "#64748B",
-    marginTop: 1,
-    textAlign: "center",
-  },
-  upcomingVisitCard: {
+  sectionCard: {
     backgroundColor: "#FFFFFF",
     borderRadius: 20,
-    padding: 14,
-    borderWidth: 1,
-    borderColor: PastelPalette.lavenderBorder,
+    padding: 16,
     marginBottom: 16,
-    shadowColor: "#7C3AED",
+    borderWidth: 1,
+    borderColor: CalmPalette.cardBorder,
+    shadowColor: "#000000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.04,
-    shadowRadius: 6,
-  },
-  upcomingHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 8,
-  },
-  upcomingIconCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    backgroundColor: PastelPalette.lavenderBase,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  upcomingCardTitle: {
-    fontSize: 13.5,
-    fontWeight: "800",
-    color: "#1E1B4B",
-  },
-  upcomingDate: {
-    fontSize: 12,
-    fontWeight: "700",
-    color: "#7C3AED",
-    marginTop: 1,
-  },
-  familyJoinPill: {
-    backgroundColor: PastelPalette.pinkBase,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: PastelPalette.pinkBorder,
-  },
-  familyJoinText: {
-    fontSize: 10.5,
-    fontWeight: "700",
-    color: PastelPalette.pinkDeep,
-  },
-  upcomingNote: {
-    fontSize: 12,
-    color: "#475569",
-    lineHeight: 16,
+    shadowRadius: 8,
+    elevation: 2,
   },
   sectionHeaderRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 10,
-    marginTop: 4,
+    gap: 8,
   },
-  sectionHeaderTitle: {
-    fontSize: 15,
+  sectionTitle: {
+    fontSize: 17,
     fontWeight: "800",
-    color: "#1E1B4B",
+    color: CalmPalette.textTitle,
   },
-  askNewSmallBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: PastelPalette.lavenderBase,
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: PastelPalette.lavenderBorder,
-  },
-  askNewSmallBtnText: {
+  sectionHint: {
     fontSize: 12,
-    fontWeight: "800",
-    color: "#7C3AED",
+    color: CalmPalette.textMuted,
+    marginTop: 4,
+    marginBottom: 14,
   },
-  queryCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    padding: 14,
-    marginBottom: 10,
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.03,
-    shadowRadius: 6,
+  contactList: {
+    gap: 12,
   },
-  queryTopRow: {
+  contactCard: {
     flexDirection: "row",
-    alignItems: "flex-start",
-    marginBottom: 10,
-  },
-  questionIconCircle: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    backgroundColor: PastelPalette.peachBase,
     alignItems: "center",
-    justifyContent: "center",
-  },
-  queryQuestionText: {
-    fontSize: 14,
-    fontWeight: "700",
-    color: "#1E1B4B",
-    lineHeight: 19,
-  },
-  queryDateText: {
-    fontSize: 11,
-    color: "#94A3B8",
-    marginTop: 2,
-  },
-  responseBox: {
-    backgroundColor: PastelPalette.lavenderLight,
-    borderRadius: 14,
+    backgroundColor: "#FAFAFA",
+    borderRadius: 16,
     padding: 12,
     borderWidth: 1,
-    borderColor: PastelPalette.lavenderBorder,
+    borderColor: "#F0EFEA",
   },
-  responseHeaderRow: {
-    flexDirection: "row",
+  avatarCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "#FFFFFF",
+    justifyContent: "center",
     alignItems: "center",
-    justifyContent: "space-between",
-    marginBottom: 6,
-  },
-  doctorNameHeading: {
-    fontSize: 12.5,
-    fontWeight: "800",
-    color: "#6B21A8",
-  },
-  verifiedBadge: {
-    backgroundColor: "#ECFDF5",
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    borderRadius: 6,
-    borderWidth: 0.8,
-    borderColor: "#A7F3D0",
-  },
-  verifiedBadgeText: {
-    fontSize: 9.5,
-    fontWeight: "700",
-    color: "#047857",
-  },
-  listenBtn: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    backgroundColor: PastelPalette.lavenderBase,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
     borderWidth: 1,
-    borderColor: PastelPalette.lavenderBorder,
+    borderColor: "#EAE7E1",
   },
-  listenBtnSpeaking: {
-    backgroundColor: "#7C3AED",
-    borderColor: "#7C3AED",
+  contactInfo: {
+    flex: 1,
+    marginLeft: 12,
   },
-  listenBtnText: {
-    fontSize: 11,
-    fontWeight: "700",
-    color: "#7C3AED",
-  },
-  listenBtnTextSpeaking: {
-    color: "#FFFFFF",
-  },
-  responseText: {
-    fontSize: 13,
-    color: "#334155",
-    lineHeight: 18,
-  },
-  pendingReplyBox: {
+  nameRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 6,
-    backgroundColor: "#FFFBEB",
-    padding: 10,
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: "#FDE68A",
   },
-  pendingReplyText: {
-    fontSize: 12,
-    color: "#92400E",
-    fontStyle: "italic",
-  },
-  emptyCard: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    padding: 24,
-    alignItems: "center",
-    justifyContent: "center",
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
-  },
-  emptyTitle: {
-    fontSize: 15,
-    fontWeight: "800",
-    color: "#1E1B4B",
-    marginTop: 8,
-  },
-  emptySub: {
-    fontSize: 12.5,
-    color: "#64748B",
-    textAlign: "center",
-    marginTop: 4,
-    lineHeight: 17,
-    maxWidth: 260,
-  },
-  teamList: {
-    gap: 8,
-  },
-  teamCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderRadius: 18,
-    padding: 12,
-    borderWidth: 1,
-  },
-  teamAvatarCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: "#FFFFFF",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  teamName: {
-    fontSize: 13.5,
-    fontWeight: "800",
-    color: "#1E1B4B",
-  },
-  teamBadge: {
-    paddingHorizontal: 6,
-    paddingVertical: 1,
-    borderRadius: 6,
-    borderWidth: 1,
-    backgroundColor: "#FFFFFF",
-  },
-  teamBadgeText: {
-    fontSize: 9.5,
-    fontWeight: "800",
-  },
-  teamRole: {
-    fontSize: 11.5,
-    color: "#64748B",
-    marginTop: 1,
-  },
-  teamAvailability: {
-    fontSize: 11,
+  contactName: {
+    fontSize: 16,
     fontWeight: "700",
+    color: CalmPalette.textTitle,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+  },
+  contactRelation: {
+    fontSize: 12,
+    color: CalmPalette.textMuted,
     marginTop: 2,
   },
-  teamCallBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+  actionButtonsRow: {
+    flexDirection: "row",
     alignItems: "center",
+    gap: 8,
+  },
+  voiceBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: "#10B981",
     justifyContent: "center",
-    marginLeft: 8,
+    alignItems: "center",
+    shadowColor: "#10B981",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  videoBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: "#C2747C",
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#C2747C",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.25,
+    shadowRadius: 4,
+    elevation: 3,
+  },
+  needsGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 12,
+    justifyContent: "space-between",
+  },
+  needBtn: {
+    width: "48%",
+    borderRadius: 16,
+    paddingVertical: 16,
+    paddingHorizontal: 12,
+    alignItems: "center",
+    borderWidth: 1.5,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 3,
+    elevation: 1,
+  },
+  needEmoji: {
+    fontSize: 34,
+    marginBottom: 6,
+  },
+  needLabel: {
+    fontSize: 16,
+    fontWeight: "800",
+  },
+  needSubLabel: {
+    fontSize: 11,
+    fontWeight: "500",
+    opacity: 0.8,
+    marginTop: 2,
+  },
+  sosCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#FEF2F2",
+    borderRadius: 20,
+    padding: 16,
+    borderWidth: 1.5,
+    borderColor: "#FECACA",
+    shadowColor: "#DC2626",
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    elevation: 2,
+  },
+  sosIconCircle: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    backgroundColor: "#FEE2E2",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  sosTitle: {
+    fontSize: 16,
+    fontWeight: "800",
+    color: "#991B1B",
+  },
+  sosSubtitle: {
+    fontSize: 12,
+    color: "#B91C1C",
+    marginTop: 2,
+  },
+  sosCallPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    backgroundColor: "#DC2626",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    borderRadius: 20,
+  },
+  sosCallPillText: {
+    color: "#FFFFFF",
+    fontSize: 13,
+    fontWeight: "800",
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: "rgba(30, 27, 75, 0.5)",
-    justifyContent: "flex-end",
+    backgroundColor: "rgba(0,0,0,0.45)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 24,
   },
-  modalContent: {
+  modalBox: {
+    width: "100%",
+    maxWidth: 340,
     backgroundColor: "#FFFFFF",
-    borderTopLeftRadius: 28,
-    borderTopRightRadius: 28,
-    paddingHorizontal: 20,
-    paddingTop: 10,
-    paddingBottom: 32,
-    maxHeight: "90%",
-  },
-  sheetHandleBar: {
+    borderRadius: 24,
+    padding: 24,
     alignItems: "center",
-    paddingVertical: 6,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.15,
+    shadowRadius: 16,
+    elevation: 10,
   },
-  sheetHandle: {
-    width: 38,
-    height: 4.5,
-    borderRadius: 3,
-    backgroundColor: "#CBD5E1",
-  },
-  modalHeader: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "space-between",
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: "#F1F5F9",
+  modalEmoji: {
+    fontSize: 54,
+    marginBottom: 12,
   },
   modalTitle: {
-    fontSize: 16,
+    fontSize: 20,
     fontWeight: "800",
-    color: "#1E1B4B",
+    color: CalmPalette.textTitle,
+    textAlign: "center",
   },
-  modalSubtitle: {
-    fontSize: 12,
-    color: "#64748B",
-    marginTop: 1,
+  modalDesc: {
+    fontSize: 14,
+    color: CalmPalette.textMuted,
+    textAlign: "center",
+    marginTop: 8,
+    lineHeight: 20,
   },
   modalCloseBtn: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    backgroundColor: "#F1F5F9",
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  modalSectionLabel: {
-    fontSize: 11,
-    fontWeight: "800",
-    color: "#64748B",
-    letterSpacing: 0.5,
-    marginTop: 14,
-    marginBottom: 6,
-  },
-  presetsRow: {
-    gap: 8,
-    paddingBottom: 4,
-  },
-  presetChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: PastelPalette.lavenderLight,
-    borderWidth: 1,
-    borderColor: PastelPalette.lavenderBorder,
-    borderRadius: 14,
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    gap: 6,
-    maxWidth: 230,
-  },
-  presetChipText: {
-    fontSize: 11.5,
-    fontWeight: "700",
-    color: "#6B21A8",
-    lineHeight: 15,
-  },
-  queryInput: {
-    backgroundColor: "#F8FAFC",
-    borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: "#E2E8F0",
-    paddingHorizontal: 14,
-    paddingVertical: 10,
-    fontSize: 14,
-    color: "#1E1B4B",
-    minHeight: 85,
-    textAlignVertical: "top",
-  },
-  sendBtn: {
-    backgroundColor: "#7C3AED",
+    marginTop: 20,
+    backgroundColor: "#C2747C",
+    paddingHorizontal: 32,
+    paddingVertical: 12,
     borderRadius: 16,
-    paddingVertical: 14,
-    alignItems: "center",
-    justifyContent: "center",
-    marginTop: 18,
-    shadowColor: "#7C3AED",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 3,
   },
-  sendBtnText: {
+  modalCloseText: {
+    color: "#FFFFFF",
     fontSize: 15,
     fontWeight: "800",
-    color: "#FFFFFF",
+  },
+  activeRequestCard: {
+    borderRadius: 16,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1.5,
+  },
+  activeRequestPending: {
+    backgroundColor: "#FFFBEB",
+    borderColor: "#FCD34D",
+  },
+  activeRequestAttending: {
+    backgroundColor: "#ECFDF5",
+    borderColor: "#6EE7B7",
+  },
+  activeRequestRow: {
+    flexDirection: "row",
+    alignItems: "center",
+  },
+  activeRequestTitle: {
+    fontSize: 15,
+    fontWeight: "800",
+    color: "#1E293B",
+  },
+  activeRequestSubtitle: {
+    fontSize: 12.5,
+    color: "#475569",
+    marginTop: 2,
+    lineHeight: 16,
+  },
+  activeRequestDismissBtn: {
+    width: 34,
+    height: 34,
+    borderRadius: 17,
+    backgroundColor: "#DCFCE7",
+    borderWidth: 1,
+    borderColor: "#86EFAC",
+    justifyContent: "center",
+    alignItems: "center",
+    marginLeft: 10,
   },
 });

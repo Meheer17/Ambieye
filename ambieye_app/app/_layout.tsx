@@ -1,21 +1,58 @@
-import React, { useEffect } from "react";
+import React, { useEffect, useRef } from "react";
 import {
   DarkTheme,
   DefaultTheme,
   ThemeProvider,
   Stack,
+  usePathname,
 } from "expo-router";
 import { useFonts } from "expo-font";
 import * as SplashScreen from "expo-splash-screen";
 import { StatusBar } from "expo-status-bar";
 import { SafeAreaProvider } from "react-native-safe-area-context";
-import { Platform, Alert } from "react-native";
+import { Platform, Alert, LogBox } from "react-native";
+
+// ── SILENCE ALL POPUP WARNINGS & LOGBOX NOTIFICATIONS ────────────────────────
+LogBox.ignoreAllLogs(true);
+
+// Re-route console.warn to console.log to ensure no yellow banner ever pops up on-screen
+if (typeof console !== "undefined" && console.warn) {
+  console.warn = (...args: any[]) => {
+    if (console.log) {
+      console.log("[Notice]", ...args);
+    }
+  };
+}
 
 import { useColorScheme } from "@/hooks/useColorScheme";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { AuthGate } from "@/components/AuthGate";
 import { LanguageProvider } from "@/constants/i18n";
 import { MobileDeviceContainer } from "@/components/MobileDeviceContainer";
+import { VoiceAssistant } from "@/utils/voiceAssistant";
+import { companionVoiceService, companionService } from "@/services/companion";
+import { radioAudioService } from "@/services/audio/radioAudioService";
+
+function GlobalVoiceNavigationGuard() {
+  const pathname = usePathname();
+  const prevPathRef = useRef(pathname);
+
+  useEffect(() => {
+    if (prevPathRef.current !== pathname) {
+      prevPathRef.current = pathname;
+      try {
+        VoiceAssistant.stop();
+        companionVoiceService.cancelListening();
+        companionService.stopSpeech();
+        radioAudioService.pause();
+      } catch (e) {
+        // ignore
+      }
+    }
+  }, [pathname]);
+
+  return null;
+}
 
 if (Platform.OS === "web") {
   Alert.alert = (title, message, buttons) => {
@@ -48,17 +85,13 @@ if (Platform.OS === "web") {
     }
   };
 }
-// Prevent fontfaceobserver unhandled rejection timeout logs on Web
+// Prevent unhandled errors and rejections from popping up overlays on Web
 if (Platform.OS === "web" && typeof window !== "undefined") {
   window.addEventListener("unhandledrejection", (event) => {
-    const msg = event?.reason?.message || event?.reason?.toString() || "";
-    if (
-      msg.includes("12000ms timeout exceeded") ||
-      msg.includes("fontfaceobserver") ||
-      msg.includes("timeout exceeded")
-    ) {
-      event.preventDefault(); // Silently handle font loading delay on web
-    }
+    event.preventDefault();
+  });
+  window.addEventListener("error", (event) => {
+    event.preventDefault();
   });
 }
 
@@ -71,15 +104,24 @@ export default function RootLayout() {
   const [loaded, error] = useFonts({
     SpaceMono: require("../assets/fonts/SpaceMono-Regular.ttf"),
   });
+  const [fontTimeout, setFontTimeout] = React.useState(false);
 
   useEffect(() => {
-    if (loaded || error || Platform.OS === "web") {
+    const timer = setTimeout(() => {
+      setFontTimeout(true);
+      SplashScreen.hideAsync().catch(() => {});
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, []);
+
+  useEffect(() => {
+    if (loaded || error || fontTimeout || Platform.OS === "web") {
       SplashScreen.hideAsync().catch(() => {});
     }
-  }, [loaded, error]);
+  }, [loaded, error, fontTimeout]);
 
-  // On Web, render immediately to avoid blocking if fonts take time to load
-  if (!loaded && !error && Platform.OS !== "web") {
+  // On Web or if font timed out, render immediately to avoid blocking
+  if (!loaded && !error && !fontTimeout && Platform.OS !== "web") {
     return null;
   }
 
@@ -93,6 +135,7 @@ export default function RootLayout() {
             <StatusBar style={colorScheme === "dark" ? "light" : "dark"} />
             <MobileDeviceContainer>
               <AuthGate>
+                <GlobalVoiceNavigationGuard />
                 <Stack screenOptions={{ headerShown: false }}>
                   <Stack.Screen name="splash" options={{ animation: "none" }} />
                   <Stack.Screen

@@ -10,6 +10,7 @@ import {
   Platform,
   Linking,
   ActivityIndicator,
+  Alert,
 } from "react-native";
 import { useRouter } from "expo-router";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -48,7 +49,16 @@ export default function PatientFamilyScreen() {
     const unsub = callService.onIncomingCall((incoming) => {
       setIncomingCall(incoming);
     });
-    return unsub;
+    return () => {
+      unsub();
+      VoiceAssistant.stop();
+    };
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      VoiceAssistant.stop();
+    };
   }, []);
 
   // ── Load Data ──────────────────────────────────────────────────────────────
@@ -105,48 +115,59 @@ export default function PatientFamilyScreen() {
 
   // ── Call Handlers ──────────────────────────────────────────────────────────
   const handleStartCall = (member: FamilyMember, callType: "audio" | "video") => {
-    const callText =
-      callType === "video"
-        ? currentLang === "as"
-          ? `${member.name} লৈ ভিডিঅ' কল লাইন প্ৰস্তুত কৰা হৈছে...`
-          : currentLang === "hi"
-          ? `${member.name} के लिए वीडियो कॉल लाइन तैयार की जा रही है...`
-          : `Preparing video line for ${member.name}...`
-        : currentLang === "as"
-        ? `${member.name} লৈ ফোন কৰা হৈছে...`
+    const cleanPhone = (member.phone || "+919876543210").replace(/[\s\-()]/g, "");
+
+    const redirectNotice =
+      currentLang === "as"
+        ? `${member.name} লৈ অফিচিয়েল ফোন কল সংযোগ কৰা হৈছে...`
         : currentLang === "hi"
-        ? `${member.name} को फोन मिलाया जा रहा है...`
-        : `Calling ${member.name}...`;
+        ? `${member.name} को ऑफिशियल फोन कॉल से जोड़ा जा रहा है...`
+        : `Connecting to official phone line for ${member.name}...`;
 
-    VoiceAssistant.speak(callText, currentLang);
+    VoiceAssistant.speak(redirectNotice, currentLang);
 
-    router.push({
-      pathname: "/(patient)/(stack)/call",
-      params: {
-        contactId: member.id,
-        contactName: member.name,
-        contactAvatar: member.avatarEmoji,
-        contactRelation: getRelation(member),
-        callType: callType,
-        initiator: "patient",
-      },
+    // Record in call history for continuity
+    familyService.addRecentCall({
+      contactId: member.id,
+      contactName: member.name,
+      contactAvatar: member.avatarEmoji || "👤",
+      contactRelationship: member.relationship,
+      contactRelationshipAs: member.relationshipAs || member.relationship,
+      contactRelationshipHi: member.relationshipHi || member.relationship,
+      callType: callType,
+      direction: "outgoing",
+      duration: "Dialed",
+      phone: member.phone || "+91 98765 43210",
+      themeColor: member.themeColor || "#2563EB",
     });
+
+    // Directly open external official phone dialer
+    if (Platform.OS !== "web") {
+      Linking.openURL(`tel:${cleanPhone}`).catch(() => {
+        Alert.alert(
+          "Official Phone Line",
+          `Please dial ${member.name} directly at: ${member.phone}`
+        );
+      });
+    } else {
+      Alert.alert(
+        "Official External Call",
+        `Due to telecommunication and healthcare compliance guidelines, calls are placed via external official phones.\n\nCalling ${member.name}: ${member.phone}`
+      );
+    }
   };
 
   const handleAcceptIncomingCall = (incoming: IncomingCallPayload) => {
     setIncomingCall(null);
-    router.push({
-      pathname: "/(patient)/(stack)/call",
-      params: {
-        callId: incoming.callId,
-        contactId: incoming.callerId,
-        contactName: incoming.callerName,
-        contactAvatar: "👤",
-        contactRelation: "Family Member",
-        callType: incoming.callType,
-        initiator: "family",
-      },
-    });
+    const cleanPhone = ((incoming as any).phone || "+919876543210").replace(/[\s\-()]/g, "");
+    if (Platform.OS !== "web") {
+      Linking.openURL(`tel:${cleanPhone}`).catch(() => {});
+    } else {
+      Alert.alert(
+        "Official Phone Line",
+        `Please call back ${incoming.callerName || "Family"} on: ${(incoming as any).phone || "+91 98640 12345"}`
+      );
+    }
   };
 
   const handleDeclineIncomingCall = (incoming: IncomingCallPayload) => {

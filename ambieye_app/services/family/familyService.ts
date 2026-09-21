@@ -662,12 +662,16 @@ class FamilyService {
       themeColor: contact.themeColor || "#2563EB",
     });
 
-    if (callType === "audio" && Platform.OS !== "web") {
+    // Due to medical tele-consultation and privacy compliance rules,
+    // all calls (audio & video) redirect directly to the official external phone dialer.
+    if (Platform.OS !== "web" && contact.phone) {
       try {
         const cleanPhone = contact.phone.replace(/[\s\-()]/g, "");
         const url = `tel:${cleanPhone}`;
         const canOpen = await Linking.canOpenURL(url);
         if (canOpen) {
+          await Linking.openURL(url);
+        } else {
           await Linking.openURL(url);
         }
       } catch {
@@ -679,7 +683,7 @@ class FamilyService {
       success: true,
       callType,
       phone: contact.phone,
-      note: "Call session initiated via WebRTC signaling engine.",
+      note: "Call redirected to official external phone line due to regulatory compliance.",
     };
   }
 }

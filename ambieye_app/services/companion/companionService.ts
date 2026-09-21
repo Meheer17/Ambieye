@@ -164,6 +164,19 @@ export const companionService = {
       lower.includes("lost") ||
       lower.includes("where am i") ||
       lower.includes("bhoy") ||
+      lower.includes("ভয়") ||
+      lower.includes("ভয়") ||
+      lower.includes("দুখ") ||
+      lower.includes("বিষ") ||
+      lower.includes("অকলশৰীয়া") ||
+      lower.includes("অকলশৰীয়া") ||
+      lower.includes("ক'ত আছোঁ") ||
+      lower.includes("ক’ত আছোঁ") ||
+      lower.includes("डर") ||
+      lower.includes("दर्द") ||
+      lower.includes("अकेला") ||
+      lower.includes("कहाँ हूँ") ||
+      lower.includes("कहा हूँ") ||
       lower.includes("dukh")
     ) {
       if (language === "as") {
@@ -342,7 +355,282 @@ export const companionService = {
       };
     }
 
-    // ── 7. Default Friendly Reassurance & Companionship ──────────────────────
+    // ── 7. Greetings, Identity & Everyday Small Talk ────────────────────────
+    if (
+      lower.includes("hello") ||
+      lower.includes("hi") ||
+      lower.includes("namaste") ||
+      lower.includes("नमस्ते") ||
+      lower.includes("namaskar") ||
+      lower.includes("নমস্কাৰ") ||
+      lower.includes("good morning") ||
+      lower.includes("good afternoon") ||
+      lower.includes("good evening") ||
+      lower.includes("how are you") ||
+      lower.includes("kaise ho") ||
+      lower.includes("कैसे") ||
+      lower.includes("bhal ne") ||
+      lower.includes("ভালনে")
+    ) {
+      if (language === "as") {
+        return {
+          responseText: `নমস্কাৰ ${elderFirstName} দেউতা! মই বহুত ভাল আছোঁ। আপোনাৰ হাঁহিমুখীয়া মুখখন দেখি মোৰ বৰ আনন্দ লাগিছে। আজি আপুনি কি কৰিব বিচাৰে?`,
+          topicCategory: "general",
+        };
+      }
+      if (language === "hi") {
+        return {
+          responseText: `नमस्ते ${elderFirstName} जी! मैं बहुत अच्छी हूँ। आपसे मिलकर दिन बहुत अच्छा हो जाता है। बताइए आज आपका क्या मन है?`,
+          topicCategory: "general",
+        };
+      }
+      return {
+        responseText: `Hello and warm greetings, ${elderFirstName}! I am doing wonderfully, and being here with you brings me great joy. How can I brighten your day?`,
+        topicCategory: "general",
+      };
+    }
+
+    if (
+      lower.includes("who are you") ||
+      lower.includes("your name") ||
+      lower.includes("what is your name") ||
+      lower.includes("kon hoi") ||
+      lower.includes("kaun ho")
+    ) {
+      if (language === "as") {
+        return {
+          responseText: `মই আপোনাৰ প্ৰিয় বন্ধু 'স্মৃতি মিত্ৰ'। মই সদায় আপোনাৰ কাষতেই আছোঁ আপোনাৰ লগত কথা পাতিবলৈ, গান শুনিবলৈ আৰু পুৰণি স্মৃতি মনত পেলাবলৈ।`,
+          topicCategory: "general",
+        };
+      }
+      if (language === "hi") {
+        return {
+          responseText: `मैं आपकी सहेली 'स्मृति मित्र' हूँ। मैं हर समय आपके साथ हूँ बात करने, गाने सुनने और सुंदर यादें साझा करने के लिए।`,
+          topicCategory: "general",
+        };
+      }
+      return {
+        responseText: `I am Smriti Mitr, your caring companion and friend. I am always right here by your side to chat, recall fond memories, and keep your day cheerful and safe.`,
+        topicCategory: "general",
+      };
+    }
+
+    if (
+      lower.includes("medicine") ||
+      lower.includes("pill") ||
+      lower.includes("dawai") ||
+      lower.includes("oukhod") ||
+      lower.includes("meds")
+    ) {
+      const pendingCount = ctx.pendingMeds.length;
+      if (language === "as") {
+        return {
+          responseText:
+            pendingCount > 0
+              ? `আপোনাৰ আজিৰ ঔষধ অনিতাই সময়মতে খুৱাবৰ বাবে সজাই থৈছে। কোনো চিন্তা নকৰিব, সকলো সময়মতে হৈ যাব।`
+              : `আজিৰ সকলো ঔষধ সময়মতে খোৱা হৈ গৈছে! আপুনি অতি নিয়মীয়া।`,
+          topicCategory: "routine",
+        };
+      }
+      if (language === "hi") {
+        return {
+          responseText:
+            pendingCount > 0
+              ? `आपकी दवाइयां अनिता ने तैयार रखी हैं। समय पर वे आपको दवा दे देंगी, आप बिल्कुल निश्चिंत रहिए।`
+              : `आज की सारी दवाइयां समय पर पूरी हो चुकी हैं! आप बहुत अच्छे से अपना ध्यान रख रहे हैं।`,
+          topicCategory: "routine",
+        };
+      }
+      return {
+        responseText:
+          pendingCount > 0
+            ? `Your medications are nicely prepared by Anita and your care team. Everything is on schedule, so you can relax completely.`
+            : `All your scheduled medications for today have been taken on time. You are doing wonderfully!`,
+        topicCategory: "routine",
+      };
+    }
+
+    // ── 7.5. Who Am I / Identity Recognition ──────────────────────────────────
+    if (
+      lower.includes("who am i") ||
+      lower.includes("who i am") ||
+      lower.includes("my name") ||
+      lower.includes("মই কোন") ||
+      lower.includes("মোৰ নাম") ||
+      lower.includes("मैं कौन हूँ") ||
+      lower.includes("मेरा नाम")
+    ) {
+      if (language === "as") {
+        return {
+          responseText: `আপোনাৰ নাম ${ctx.profile.name || "ভৱেন বৰ্মন"}। আপুনি আপোনাৰ মাজুলীৰ মৰমৰ ঘৰত জীয়ৰী অনিতা আৰু পৰিয়ালৰ সৈতে সন্মান আৰু মৰমেৰে সুৰক্ষিত হৈ আছে।`,
+          topicCategory: "general",
+        };
+      }
+      if (language === "hi") {
+        return {
+          responseText: `आपका नाम ${ctx.profile.name || "भावेन बर्मन"} है। आप अपने माजुली वाले घर में बेटी अनिता और परिवार के साथ बहुत सम्मान और प्यार से सुरक्षित हैं।`,
+          topicCategory: "general",
+        };
+      }
+      return {
+        responseText: `Your name is ${ctx.profile.name || "Bhaben Barman"}. You are in your beloved home in Majuli with your daughter Anita and family, surrounded by care and deep love.`,
+        topicCategory: "general",
+      };
+    }
+
+    // ── 7.6. Hunger / Food / Meal / Tea / Bhaat ───────────────────────────────
+    if (
+      lower.includes("food") ||
+      lower.includes("hungry") ||
+      lower.includes("lunch") ||
+      lower.includes("breakfast") ||
+      lower.includes("dinner") ||
+      lower.includes("bhaat") ||
+      lower.includes("ভাত") ||
+      lower.includes("আহাৰ") ||
+      lower.includes("খানা") ||
+      lower.includes("खाना") ||
+      lower.includes("भूख")
+    ) {
+      if (language === "as") {
+        return {
+          responseText: `অনিতাই আপোনাৰ বাবে গৰম আৰু পুষ্টিকৰ ভাত-আহাৰ সাজু কৰিছে। অলপ পিছতেই বাৰাণ্ডাৰ মেজত আপোনাক মৰমেৰে খুৱাই দিব।`,
+          topicCategory: "routine",
+        };
+      }
+      if (language === "hi") {
+        return {
+          responseText: `अनिता ने आपके लिए ताजा और पौष्टिक खाना तैयार किया है। थोड़ी ही देर में वे आपको भोजन परोसेंगी।`,
+          topicCategory: "routine",
+        };
+      }
+      return {
+        responseText: `Anita has prepared a warm, nutritious meal for you. She will serve it to you comfortably at the courtyard table very shortly.`,
+        topicCategory: "routine",
+      };
+    }
+
+    // ── 7.7. Date / Day / Time / Today ───────────────────────────────────────
+    if (
+      lower.includes("time") ||
+      lower.includes("what day") ||
+      lower.includes("date") ||
+      lower.includes("today") ||
+      lower.includes("সময়") ||
+      lower.includes("সময়") ||
+      lower.includes("আজি") ||
+      lower.includes("तारीख") ||
+      lower.includes("दिन") ||
+      lower.includes("आज")
+    ) {
+      const todayStr = new Date().toLocaleDateString(
+        language === "as" ? "as-IN" : language === "hi" ? "hi-IN" : "en-US",
+        { weekday: "long", day: "numeric", month: "long" }
+      );
+      if (language === "as") {
+        return {
+          responseText: `আজি হৈছে ${todayStr}। মাজুলীৰ পুৱাৰ বতাহ অতি শান্ত আৰু নিৰ্মল। ঘৰত সকলো অতি সুন্দৰভাৱে চলি আছে।`,
+          topicCategory: "general",
+        };
+      }
+      if (language === "hi") {
+        return {
+          responseText: `आज ${todayStr} है। मौसम बहुत सुहावना है और घर में सब कुछ शांत और सुरक्षित है।`,
+          topicCategory: "general",
+        };
+      }
+      return {
+        responseText: `Today is ${todayStr}. The morning breeze is calm and peaceful, and everything is completely safe at home.`,
+        topicCategory: "general",
+      };
+    }
+
+    // ── 7.8. Doctor / Hospital / Clinic ───────────────────────────────────────
+    if (
+      lower.includes("doctor") ||
+      lower.includes("hospital") ||
+      lower.includes("clinic") ||
+      lower.includes("sharma") ||
+      lower.includes("appointment") ||
+      lower.includes("ডাক্টৰ") ||
+      lower.includes("বেমাৰ") ||
+      lower.includes("डॉक्टर")
+    ) {
+      if (language === "as") {
+        return {
+          responseText: `ডাঃ মহিত শৰ্মাই আপোনাৰ স্বাস্থ্যৰ যত্ন লৈ আছে। আপোনাৰ হৃদস্পন্দন আৰু অক্সিজেন লেভেল সম্পূৰ্ণ স্বাভাৱিক আৰু সুদৃঢ়।`,
+          topicCategory: "health",
+        };
+      }
+      if (language === "hi") {
+        return {
+          responseText: `डॉक्टर माहित शर्मा आपकी सेहत का पूरा ध्यान रख रहे हैं। आपकी धड़कन और ऑक्सीजन बिल्कुल सामान्य और स्वस्थ हैं।`,
+          topicCategory: "health",
+        };
+      }
+      return {
+        responseText: `Dr. Mahit Sharma is looking after your medical care. Your heart rate, oxygen levels, and vitals are completely normal and stable today.`,
+        topicCategory: "health",
+      };
+    }
+
+    // ── 7.9. Namghar / Temple / Prayer / God ──────────────────────────────────
+    if (
+      lower.includes("namghar") ||
+      lower.includes("temple") ||
+      lower.includes("prayer") ||
+      lower.includes("god") ||
+      lower.includes("krishna") ||
+      lower.includes("নামঘৰ") ||
+      lower.includes("প্ৰাৰ্থনা") ||
+      lower.includes("ভগৱান") ||
+      lower.includes("नामघर") ||
+      lower.includes("प्रार्थना") ||
+      lower.includes("भगवान")
+    ) {
+      if (language === "as") {
+        return {
+          responseText: `নামঘৰৰ ডবা আৰু শঙ্খৰ ধ্বনিয়ে মনলৈ গভীৰ প্ৰশান্তি আনে। গুৰুজনাৰ কৃপা আৰু আশীৰ্বাদ সদায় আপোনাৰ লগত আছে।`,
+          topicCategory: "calm",
+        };
+      }
+      if (language === "hi") {
+        return {
+          responseText: `नामघर की प्रार्थना और घंटियों की गूंज मन में गहरी शांति भर देती है। भगवान की कृपा हमेशा आपके साथ है।`,
+          topicCategory: "calm",
+        };
+      }
+      return {
+        responseText: `The bells and gentle hymns of the Namghar bring such deep peace to the heart. May serenity, blessings, and calm always fill your day.`,
+        topicCategory: "calm",
+      };
+    }
+
+    if (
+      lower.includes("story") ||
+      lower.includes("sadhu") ||
+      lower.includes("kahani") ||
+      lower.includes("tell me")
+    ) {
+      if (language === "as") {
+        return {
+          responseText: `মাজুলীৰ ব্ৰহ্মপুত্ৰৰ পাৰত এদিন এজাক ৰঙচুৱা পখী উৰি আহিছিল। বাৰাণ্ডাৰ জবা ফুলজোপাত বহি সিহঁতে মিঠা সুৰেৰে গান গাইছিল। সেই গান শুনি ককাহঁতে কিমান আনন্দ পাইছিল!`,
+          topicCategory: "places",
+        };
+      }
+      if (language === "hi") {
+        return {
+          responseText: `ब्रह्मपुत्र नदी के किनारे एक प्यारा सा बगीचा था, जहाँ लाल गुड़हल के फूल खिलते थे। सुबह की ठंडी हवा में पंछी मीठे गीत गाते थे और मन को असीम शांति मिलती थी।`,
+          topicCategory: "places",
+        };
+      }
+      return {
+        responseText: `Once near the banks of the mighty Brahmaputra in Majuli, the morning sun rose with golden light over the courtyard. The gentle river breeze whispered through the trees, bringing joy to all who sat there.`,
+        topicCategory: "places",
+      };
+    }
+
+    // ── 8. Default Friendly Reassurance & Companionship ──────────────────────
     if (language === "as") {
       const asOptions = [
         `আপোনাৰ লগত কথা পাতি বৰ ভাল লাগিল, ${elderFirstName} দেউতা। মই সদায় আপোনাৰ কাষতেই আছোঁ। কওকচোন আৰু কি কথা মনলৈ আহিছে?`,
@@ -378,10 +666,14 @@ export const companionService = {
   },
 
   /**
-   * Speaks the response with the native voice assistant
+   * Speaks the response with the native voice assistant exclusively for the Dashboard AI companion
    */
-  speakResponse(text: string, language: SupportedLanguage = "en") {
-    VoiceAssistant.speak(text, language);
+  speakResponse(
+    text: string,
+    language: SupportedLanguage = "en",
+    onDone?: () => void
+  ) {
+    return VoiceAssistant.speakCompanion(text, language, onDone);
   },
 
   /**
@@ -391,3 +683,4 @@ export const companionService = {
     VoiceAssistant.stop();
   },
 };
+

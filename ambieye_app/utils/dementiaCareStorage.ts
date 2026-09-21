@@ -51,71 +51,9 @@ const STORAGE_KEYS = {
   ACTIVE_PATIENT_VIEW_MODE: "smriti_active_patient_view_mode", // 'elderly' | 'caregiver'
 };
 
-const DEFAULT_BEHAVIOR_LOGS: BehaviorLogItem[] = [
-  {
-    id: "log-1",
-    date: new Date().toISOString().split("T")[0],
-    time: "09:30 AM",
-    mood: "calm",
-    sleep: "good",
-    appetite: "normal",
-    notes: "Had morning herbal tea peacefully. Enjoyed reminiscence photos of Majuli.",
-  },
-  {
-    id: "log-2",
-    date: new Date(Date.now() - 86400000).toISOString().split("T")[0],
-    time: "06:15 PM",
-    mood: "confused",
-    sleep: "restless",
-    appetite: "low",
-    notes: "Mild sundowning confusion around sunset. Calmed down after listening to regional flute music.",
-  },
-];
+const DEFAULT_BEHAVIOR_LOGS: BehaviorLogItem[] = [];
 
-const DEFAULT_SCREENINGS: AshaScreeningRecord[] = [
-  {
-    id: "scr-101",
-    patientId: "pat-1",
-    patientName: "Bhabesh Sharma",
-    date: new Date(Date.now() - 86400000 * 3).toISOString().replace("T", " ").substring(0, 16),
-    scores: {
-      orientationTime: 4,
-      orientationPlace: 4,
-      registration: 3,
-      attention: 3,
-      recall: 2,
-      languageNaming: 2,
-      languageRepeat: 1,
-      construction: 1,
-    },
-    totalScore: 20,
-    stage: "stage_mci",
-    screenerName: "Runu Deka (ASHA Worker - Kamrup)",
-    notes: "Patient is cooperative. Minor delay in 3-item recall and serial math. Family counselled on memory routines.",
-    escalatedToDoctor: true,
-  },
-  {
-    id: "scr-102",
-    patientId: "pat-2",
-    patientName: "Rongsenwati Jamir",
-    date: new Date(Date.now() - 86400000 * 7).toISOString().replace("T", " ").substring(0, 16),
-    scores: {
-      orientationTime: 5,
-      orientationPlace: 5,
-      registration: 3,
-      attention: 5,
-      recall: 3,
-      languageNaming: 2,
-      languageRepeat: 1,
-      construction: 1,
-    },
-    totalScore: 25,
-    stage: "stage_normal",
-    screenerName: "Moarenla Ao (Community Volunteer)",
-    notes: "Healthy cognitive scores. Retaining orientation well.",
-    escalatedToDoctor: false,
-  },
-];
+const DEFAULT_SCREENINGS: AshaScreeningRecord[] = [];
 
 export function calculateDementiaStage(totalScore: number): DementiaStage {
   if (totalScore >= 24) return "stage_normal";
@@ -125,11 +63,28 @@ export function calculateDementiaStage(totalScore: number): DementiaStage {
 }
 
 export const dementiaCareStorage = {
-  // ── Caregiver View Mode (Elderly Senior Kiosk vs Caregiver Guardian) ────────
+  // ── Purge Seeded / Mock Data ──────────────────────────────────────────────
+  async purgeSeededData(): Promise<void> {
+    const purgeKey = "@dementia_care_purged_live_v1";
+    try {
+      const purged = await AsyncStorage.getItem(purgeKey);
+      if (!purged) {
+        await AsyncStorage.multiRemove([
+          STORAGE_KEYS.BEHAVIOR_LOGS,
+          STORAGE_KEYS.ASHA_SCREENINGS,
+        ]);
+        await AsyncStorage.setItem(purgeKey, "true");
+      }
+    } catch {
+      // ignore
+    }
+  },
+
+  // ── Active Patient View Mode ──────────────────────────────────────────────
   async getActiveViewMode(): Promise<"elderly" | "caregiver"> {
     try {
       const mode = await AsyncStorage.getItem(STORAGE_KEYS.ACTIVE_PATIENT_VIEW_MODE);
-      return mode === "caregiver" ? "caregiver" : "elderly";
+      return mode === "elderly" || mode === "caregiver" ? mode : "elderly";
     } catch {
       return "elderly";
     }
@@ -145,15 +100,15 @@ export const dementiaCareStorage = {
 
   // ── Daily Behavior & Mood Logs ─────────────────────────────────────────────
   async getBehaviorLogs(): Promise<BehaviorLogItem[]> {
+    await this.purgeSeededData();
     try {
       const raw = await AsyncStorage.getItem(STORAGE_KEYS.BEHAVIOR_LOGS);
       if (raw) {
         return JSON.parse(raw);
       }
-      await AsyncStorage.setItem(STORAGE_KEYS.BEHAVIOR_LOGS, JSON.stringify(DEFAULT_BEHAVIOR_LOGS));
-      return DEFAULT_BEHAVIOR_LOGS;
+      return [];
     } catch {
-      return DEFAULT_BEHAVIOR_LOGS;
+      return [];
     }
   },
 
@@ -173,18 +128,16 @@ export const dementiaCareStorage = {
 
   // ── ASHA Cognitive Screenings ──────────────────────────────────────────────
   async getScreeningRecords(patientId?: string): Promise<AshaScreeningRecord[]> {
+    await this.purgeSeededData();
     try {
       const raw = await AsyncStorage.getItem(STORAGE_KEYS.ASHA_SCREENINGS);
-      let records: AshaScreeningRecord[] = raw ? JSON.parse(raw) : DEFAULT_SCREENINGS;
-      if (!raw) {
-        await AsyncStorage.setItem(STORAGE_KEYS.ASHA_SCREENINGS, JSON.stringify(DEFAULT_SCREENINGS));
-      }
+      let records: AshaScreeningRecord[] = raw ? JSON.parse(raw) : [];
       if (patientId) {
         return records.filter((r) => r.patientId === patientId || r.patientName.toLowerCase().includes(patientId.toLowerCase()));
       }
       return records;
     } catch {
-      return DEFAULT_SCREENINGS;
+      return [];
     }
   },
 

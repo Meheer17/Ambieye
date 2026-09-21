@@ -9,6 +9,7 @@ import {
   Alert,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WarmPalette } from "../../constants/theme";
 import { caregiverStorage, CaregiverServiceItem } from "../../utils/caregiverStorage";
 
@@ -19,6 +20,7 @@ interface Props {
 }
 
 export const CaregiverServicesModal: React.FC<Props> = ({ visible, onClose, elderName }) => {
+  const insets = useSafeAreaInsets();
   const [services, setServices] = useState<CaregiverServiceItem[]>([]);
   const [selectedService, setSelectedService] = useState<CaregiverServiceItem | null>(null);
   const [requestConfirmed, setRequestConfirmed] = useState(false);
@@ -58,9 +60,15 @@ export const CaregiverServicesModal: React.FC<Props> = ({ visible, onClose, elde
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent
+      statusBarTranslucent
+      onRequestClose={onClose}
+    >
       <View style={styles.overlay}>
-        <View style={styles.sheetContainer}>
+        <View style={[styles.sheetContainer, { paddingBottom: Math.max(insets.bottom, 24) }]}>
           {/* Header */}
           <View style={styles.header}>
             <View style={{ flex: 1 }}>

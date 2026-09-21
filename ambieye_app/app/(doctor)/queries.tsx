@@ -15,6 +15,7 @@ import {
   Alert,
   KeyboardAvoidingView,
   RefreshControl,
+  Linking,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Feather from "@expo/vector-icons/Feather";
@@ -196,10 +197,41 @@ function QueryDetailsModal({
                   {patient.fullName?.charAt(0) || "P"}
                 </Text>
               </View>
-              <View>
+              <View style={{ flex: 1 }}>
                 <Text style={modalStyles.patientName}>{patient.fullName}</Text>
                 <Text style={modalStyles.queryDate}>{formattedCreatedAt}</Text>
               </View>
+              <TouchableOpacity
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  gap: 5,
+                  backgroundColor: "#F0FDF4",
+                  paddingHorizontal: 10,
+                  paddingVertical: 6,
+                  borderRadius: 10,
+                  borderWidth: 1,
+                  borderColor: "#BBF7D0",
+                }}
+                onPress={() => {
+                  const phoneToCall = patient.phone || "+919876543210";
+                  const cleanPhone = phoneToCall.replace(/[\s\-()]/g, "");
+                  if (Platform.OS !== "web") {
+                    Linking.openURL(`tel:${cleanPhone}`).catch(() => {
+                      Alert.alert("Official Phone Line", `Dial: ${phoneToCall}`);
+                    });
+                  } else {
+                    Alert.alert("Official Phone Line", `Dial: ${phoneToCall}`);
+                  }
+                }}
+                activeOpacity={0.8}
+                accessibilityLabel={`Call ${patient.fullName}`}
+              >
+                <Feather name="phone-call" size={14} color="#059669" />
+                <Text style={{ fontSize: 11, fontWeight: "700", color: "#059669" }}>
+                  Call
+                </Text>
+              </TouchableOpacity>
             </View>
 
             {query.urgency && (

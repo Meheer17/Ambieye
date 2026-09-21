@@ -1,6 +1,7 @@
 /**
  * utils/reminderStorage.ts
- * Offline Persistent Reminder Manager for Dementia Care
+ * Unified Persistent Reminder Manager for Dementia Care
+ * Live two-way synchronization between Caregiver and Patient portals.
  * Manages daily hydration, medications, routine tasks, and SOS logs.
  */
 import AsyncStorage from "@react-native-async-storage/async-storage";
@@ -14,6 +15,7 @@ export interface MedicationItem {
   taken: boolean;
   takenAt?: string;
   pillColor: string;
+  instructions?: string;
 }
 
 export interface DailyHydration {
@@ -43,78 +45,18 @@ export interface AppointmentItem {
   completed: boolean;
 }
 
-const STORAGE_KEYS = {
+export const STORAGE_KEYS = {
   HYDRATION: "smriti_hydration_data",
   MEDICATIONS: "smriti_medications_data",
   ROUTINE: "smriti_routine_data",
   APPOINTMENTS: "smriti_appointments_data",
   SOS_LOGS: "smriti_sos_logs",
+  // Master Shared Keys (Caregiver & Patient unified)
+  CAREGIVER_MEDS: "@caregiver_care_medicines_v2",
+  CAREGIVER_ROUTINES: "@caregiver_care_routines_v2",
+  CAREGIVER_APPOINTMENTS: "@caregiver_care_appointments_v2",
+  CAREGIVER_REMINDERS: "@caregiver_care_reminders_v2",
 };
-
-const DEFAULT_MEDICATIONS: MedicationItem[] = [
-  {
-    id: "med-1",
-    name: "Donepezil / Memory Tablet",
-    dosage: "5mg with water",
-    timeSlot: "morning",
-    timeLabel: "9:00 AM",
-    taken: false,
-    pillColor: "#3B82F6",
-  },
-  {
-    id: "med-2",
-    name: "Vitamin B12 & Minerals",
-    dosage: "1 capsule after lunch",
-    timeSlot: "afternoon",
-    timeLabel: "1:30 PM",
-    taken: false,
-    pillColor: "#10B981",
-  },
-  {
-    id: "med-3",
-    name: "BP & Calming Night Tablet",
-    dosage: "1 tablet with warm milk",
-    timeSlot: "night",
-    timeLabel: "8:30 PM",
-    taken: false,
-    pillColor: "#8B5CF6",
-  },
-];
-
-const DEFAULT_ROUTINES: RoutineTask[] = [
-  {
-    id: "rt-1",
-    title: "Morning Medicine",
-    timeLabel: "9:00 AM",
-    completed: false,
-    iconName: "pill",
-    description: "Take your morning medicine",
-  },
-  {
-    id: "rt-2",
-    title: "Bathing",
-    timeLabel: "10:30 AM",
-    completed: false,
-    iconName: "shower",
-    description: "Morning routine & refresh",
-  },
-  {
-    id: "rt-3",
-    title: "Grooming",
-    timeLabel: "11:00 AM",
-    completed: false,
-    iconName: "sparkles",
-    description: "Take your time",
-  },
-  {
-    id: "rt-4",
-    title: "Courtyard Rest & Music",
-    timeLabel: "3:00 PM",
-    completed: false,
-    iconName: "music",
-    description: "Gentle courtyard melodies",
-  },
-];
 
 function getTodayString(): string {
   return new Date().toISOString().split("T")[0];
@@ -132,7 +74,6 @@ export const reminderStorage = {
           return parsed;
         }
       }
-      // Reset for new day
       const fresh: DailyHydration = {
         date: today,
         glassesDrunk: 0,
@@ -140,7 +81,7 @@ export const reminderStorage = {
       };
       await AsyncStorage.setItem(STORAGE_KEYS.HYDRATION, JSON.stringify(fresh));
       return fresh;
-    } catch (e) {
+    } catch {
       return { date: getTodayString(), glassesDrunk: 0, dailyGoal: 8 };
     }
   },
@@ -156,116 +97,234 @@ export const reminderStorage = {
     return updated;
   },
 
-  // ── Medications ───────────────────────────────────────────────────────────
+  // ── Medications (Live Sync with Caregiver Dashboard) ───────────────────────
   async getTodayMedications(): Promise<MedicationItem[]> {
     try {
+      // 1. Primary: Live Caregiver Medicines
+      const caregiverRaw =
+        (await AsyncStorage.getItem(STORAGE_KEYS.CAREGIVER_MEDS)) ||
+        (await AsyncStorage.getItem("@caregiver_medicines_v2"));
+
+      if (caregiverRaw) {
+        const parsed = JSON.parse(caregiverRaw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const mapped: MedicationItem[] = parsed.map((m: any, idx: number) => ({
+            id: m.id || `med-${idx}`,
+            name: m.name || "Scheduled Medication",
+            dosage: m.dosage || m.dose || "As directed",
+            timeSlot:
+              m.timeSlot === "morning" || m.timeSlot === "afternoon" || m.timeSlot === "night"
+                ? m.timeSlot
+                : "morning",
+            timeLabel: m.timeLabel || m.time || "Scheduled",
+            taken: m.status === "done" || m.status === "taken" || m.taken === true,
+            takenAt: m.recordedAt || m.takenAt,
+            pillColor:
+              m.timeSlot === "morning" ? "#38BDF8" : m.timeSlot === "night" ? "#818CF8" : "#F59E0B",
+            instructions: m.instructions,
+          }));
+
+          // Mirror to legacy key for compatibility
+          await AsyncStorage.setItem(
+            STORAGE_KEYS.MEDICATIONS,
+            JSON.stringify({ date: getTodayString(), items: mapped })
+          );
+          return mapped;
+        }
+      }
+
+      // 2. Fallback: Local Cache
       const raw = await AsyncStorage.getItem(STORAGE_KEYS.MEDICATIONS);
       if (raw) {
         const parsed = JSON.parse(raw);
-        if (parsed.date === getTodayString() && parsed.items) {
+        if (parsed.items && Array.isArray(parsed.items)) {
           return parsed.items;
         }
       }
-      // Fresh list for today
-      const fresh = { date: getTodayString(), items: DEFAULT_MEDICATIONS };
-      await AsyncStorage.setItem(STORAGE_KEYS.MEDICATIONS, JSON.stringify(fresh));
-      return DEFAULT_MEDICATIONS;
-    } catch (e) {
-      return DEFAULT_MEDICATIONS;
+      return [];
+    } catch {
+      return [];
     }
   },
 
   async toggleMedication(id: string): Promise<MedicationItem[]> {
-    const meds = await reminderStorage.getTodayMedications();
-    const updated = meds.map((m) => {
-      if (m.id === id) {
-        const nextTaken = !m.taken;
-        return {
-          ...m,
-          taken: nextTaken,
-          takenAt: nextTaken ? new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" }) : undefined,
-        };
+    try {
+      // Update Caregiver Master Key
+      const caregiverRaw = await AsyncStorage.getItem(STORAGE_KEYS.CAREGIVER_MEDS);
+      if (caregiverRaw) {
+        const parsed = JSON.parse(caregiverRaw);
+        if (Array.isArray(parsed)) {
+          const updatedCaregiver = parsed.map((m: any) => {
+            if (m.id === id) {
+              const isNowDone = m.status !== "done";
+              return {
+                ...m,
+                status: isNowDone ? "done" : "upcoming",
+                recordedAt: isNowDone
+                  ? new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })
+                  : undefined,
+              };
+            }
+            return m;
+          });
+          await AsyncStorage.setItem(
+            STORAGE_KEYS.CAREGIVER_MEDS,
+            JSON.stringify(updatedCaregiver)
+          );
+        }
       }
-      return m;
-    });
-    await AsyncStorage.setItem(STORAGE_KEYS.MEDICATIONS, JSON.stringify({ date: getTodayString(), items: updated }));
-    return updated;
+
+      // Return updated list
+      return await reminderStorage.getTodayMedications();
+    } catch {
+      return [];
+    }
   },
 
-  // ── Daily Routines ────────────────────────────────────────────────────────
+  // ── Daily Routines (Live Sync with Caregiver Dashboard) ────────────────────
   async getTodayRoutines(): Promise<RoutineTask[]> {
     try {
+      // 1. Primary: Live Caregiver Routines
+      const caregiverRaw =
+        (await AsyncStorage.getItem(STORAGE_KEYS.CAREGIVER_ROUTINES)) ||
+        (await AsyncStorage.getItem("@caregiver_routines_v2"));
+
+      if (caregiverRaw) {
+        const parsed = JSON.parse(caregiverRaw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          const mapped: RoutineTask[] = parsed.map((r: any, idx: number) => ({
+            id: r.id || `rt-${idx}`,
+            title: r.task || r.title || r.name || "Daily Routine",
+            timeLabel: r.time || r.timeLabel || "Daily",
+            completed: r.completed === true || r.status === "done",
+            status: r.completed === true || r.status === "done" ? "done" : "pending",
+            iconName: r.icon || r.iconName || "check-circle",
+            description: r.description || r.repeat || "Daily routine",
+          }));
+
+          // Mirror to legacy key for compatibility
+          await AsyncStorage.setItem(
+            STORAGE_KEYS.ROUTINE,
+            JSON.stringify({ date: getTodayString(), items: mapped })
+          );
+          return mapped;
+        }
+      }
+
+      // 2. Fallback: Local Cache
       const raw = await AsyncStorage.getItem(STORAGE_KEYS.ROUTINE);
       if (raw) {
         const parsed = JSON.parse(raw);
-        if (parsed.date === getTodayString() && parsed.items) {
+        if (parsed.items && Array.isArray(parsed.items)) {
           return parsed.items;
         }
       }
-      const fresh = { date: getTodayString(), items: DEFAULT_ROUTINES };
-      await AsyncStorage.setItem(STORAGE_KEYS.ROUTINE, JSON.stringify(fresh));
-      return DEFAULT_ROUTINES;
-    } catch (e) {
-      return DEFAULT_ROUTINES;
+      return [];
+    } catch {
+      return [];
     }
   },
 
   async toggleRoutine(id: string): Promise<RoutineTask[]> {
-    const routines = await reminderStorage.getTodayRoutines();
-    const updated = routines.map((r) =>
-      r.id === id ? { ...r, completed: !r.completed, status: (!r.completed ? "done" : "pending") as any } : r
-    );
-    await AsyncStorage.setItem(STORAGE_KEYS.ROUTINE, JSON.stringify({ date: getTodayString(), items: updated }));
-    return updated;
+    try {
+      // Update Caregiver Master Key
+      const caregiverRaw = await AsyncStorage.getItem(STORAGE_KEYS.CAREGIVER_ROUTINES);
+      if (caregiverRaw) {
+        const parsed = JSON.parse(caregiverRaw);
+        if (Array.isArray(parsed)) {
+          const updatedCaregiver = parsed.map((r: any) =>
+            r.id === id ? { ...r, completed: !r.completed } : r
+          );
+          await AsyncStorage.setItem(
+            STORAGE_KEYS.CAREGIVER_ROUTINES,
+            JSON.stringify(updatedCaregiver)
+          );
+        }
+      }
+
+      // Return updated list
+      return await reminderStorage.getTodayRoutines();
+    } catch {
+      return [];
+    }
   },
 
   async updateRoutineStatus(id: string, status: "done" | "skipped" | "pending"): Promise<RoutineTask[]> {
-    const routines = await reminderStorage.getTodayRoutines();
-    const updated = routines.map((r) =>
-      r.id === id ? { ...r, status, completed: status === "done" } : r
-    );
-    await AsyncStorage.setItem(STORAGE_KEYS.ROUTINE, JSON.stringify({ date: getTodayString(), items: updated }));
-    return updated;
+    try {
+      const caregiverRaw = await AsyncStorage.getItem(STORAGE_KEYS.CAREGIVER_ROUTINES);
+      if (caregiverRaw) {
+        const parsed = JSON.parse(caregiverRaw);
+        if (Array.isArray(parsed)) {
+          const updatedCaregiver = parsed.map((r: any) =>
+            r.id === id
+              ? {
+                  ...r,
+                  completed: status === "done",
+                  status: status,
+                }
+              : r
+          );
+          await AsyncStorage.setItem(
+            STORAGE_KEYS.CAREGIVER_ROUTINES,
+            JSON.stringify(updatedCaregiver)
+          );
+        }
+      }
+      return await reminderStorage.getTodayRoutines();
+    } catch {
+      return [];
+    }
   },
 
-  // ── Appointments & Checkups ───────────────────────────────────────────────
+  // ── Appointments & Checkups (Live Sync with Caregiver Dashboard) ───────────
   async getAppointments(): Promise<AppointmentItem[]> {
-    const defaultAppointments: AppointmentItem[] = [
-      {
-        id: "apt-1",
-        title: "Monthly Memory Review & MMSE Check",
-        doctorName: "Dr. Himanta Sarma (Neurologist)",
-        date: "Friday, 10:30 AM",
-        timeLabel: "In 3 Days",
-        location: "Guwahati Geriatric Clinic & Tele-Room",
-        completed: false,
-      },
-      {
-        id: "apt-2",
-        title: "ASHA Worker Home Visit & Blood Pressure",
-        doctorName: "Runu Deka (Community ASHA)",
-        date: "Tomorrow, 4:00 PM",
-        timeLabel: "Tomorrow",
-        location: "Home Visit",
-        completed: false,
-      },
-    ];
-
     try {
+      const caregiverRaw =
+        (await AsyncStorage.getItem(STORAGE_KEYS.CAREGIVER_APPOINTMENTS)) ||
+        (await AsyncStorage.getItem("@caregiver_appointments_v2"));
+
+      if (caregiverRaw) {
+        const parsed = JSON.parse(caregiverRaw);
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          return parsed.map((a: any, idx: number) => ({
+            id: a.id || `apt-${idx}`,
+            title: a.reason || a.title || "Doctor Consultation",
+            doctorName: a.doctor || a.doctorName || "Dr. Sharma",
+            date: a.date || "Scheduled",
+            timeLabel: a.time || a.timeLabel || "Upcoming",
+            location: a.hospital || a.clinic || a.specialty || "Clinic Visit",
+            completed: a.isPast === true || a.completed === true,
+          }));
+        }
+      }
+
       const raw = await AsyncStorage.getItem(STORAGE_KEYS.APPOINTMENTS);
       if (raw) return JSON.parse(raw);
-      await AsyncStorage.setItem(STORAGE_KEYS.APPOINTMENTS, JSON.stringify(defaultAppointments));
-      return defaultAppointments;
+      return [];
     } catch {
-      return defaultAppointments;
+      return [];
     }
   },
 
   async toggleAppointment(id: string): Promise<AppointmentItem[]> {
-    const apts = await reminderStorage.getAppointments();
-    const updated = apts.map((a) => (a.id === id ? { ...a, completed: !a.completed } : a));
-    await AsyncStorage.setItem(STORAGE_KEYS.APPOINTMENTS, JSON.stringify(updated));
-    return updated;
+    try {
+      const caregiverRaw = await AsyncStorage.getItem(STORAGE_KEYS.CAREGIVER_APPOINTMENTS);
+      if (caregiverRaw) {
+        const parsed = JSON.parse(caregiverRaw);
+        if (Array.isArray(parsed)) {
+          const updated = parsed.map((a: any) =>
+            a.id === id ? { ...a, isPast: !a.isPast, completed: !a.completed } : a
+          );
+          await AsyncStorage.setItem(
+            STORAGE_KEYS.CAREGIVER_APPOINTMENTS,
+            JSON.stringify(updated)
+          );
+        }
+      }
+      return await reminderStorage.getAppointments();
+    } catch {
+      return [];
+    }
   },
 
   // ── SOS Alert Log ─────────────────────────────────────────────────────────
@@ -276,7 +335,7 @@ export const reminderStorage = {
       const logs = raw ? JSON.parse(raw) : [];
       logs.unshift({ time, date: getTodayString(), status: "Alert Sent to Caregiver & Local ASHA Worker" });
       await AsyncStorage.setItem(STORAGE_KEYS.SOS_LOGS, JSON.stringify(logs.slice(0, 20)));
-    } catch (e) {
+    } catch {
       // ignore
     }
     return { success: true, time };

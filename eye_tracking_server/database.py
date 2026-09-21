@@ -272,6 +272,49 @@ def init_db():
         """)
         cursor.execute("CREATE INDEX IF NOT EXISTS idx_music_favorites_patient ON music_favorites(patient_id);")
 
+        # 14. Personalized Recognition Activities Table (Caregiver Created Challenges)
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS personalized_activities (
+            id TEXT PRIMARY KEY,
+            patient_id TEXT NOT NULL DEFAULT 'mahi',
+            caregiver_id TEXT NOT NULL DEFAULT 'caregiver',
+            title TEXT NOT NULL,
+            prompt_question TEXT NOT NULL,
+            prompt_question_as TEXT DEFAULT '',
+            prompt_question_hi TEXT DEFAULT '',
+            media_type TEXT NOT NULL, -- 'photo' | 'audio' | 'video'
+            media_url TEXT NOT NULL,
+            thumbnail_url TEXT DEFAULT '',
+            hint_text TEXT DEFAULT '',
+            category TEXT NOT NULL DEFAULT 'people', -- 'people' | 'places' | 'events' | 'voice' | 'music' | 'objects'
+            options_json TEXT NOT NULL DEFAULT '[]',
+            status TEXT NOT NULL DEFAULT 'active', -- 'active' | 'completed' | 'archived'
+            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_pers_act_patient ON personalized_activities(patient_id, status);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_pers_act_created ON personalized_activities(created_at DESC);")
+
+        # 15. Personalized Activity Results Table (Patient Game Engagement & Recall Metrics)
+        cursor.execute("""
+        CREATE TABLE IF NOT EXISTS personalized_activity_results (
+            id TEXT PRIMARY KEY,
+            activity_id TEXT NOT NULL,
+            patient_id TEXT NOT NULL DEFAULT 'mahi',
+            selected_option_id TEXT NOT NULL,
+            is_correct INTEGER NOT NULL DEFAULT 1,
+            attempts_count INTEGER NOT NULL DEFAULT 1,
+            hint_used INTEGER NOT NULL DEFAULT 0,
+            response_time_seconds REAL NOT NULL DEFAULT 0.0,
+            patient_reaction TEXT DEFAULT '',
+            completed_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+            FOREIGN KEY(activity_id) REFERENCES personalized_activities(id) ON DELETE CASCADE
+        );
+        """)
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_pers_res_act ON personalized_activity_results(activity_id);")
+        cursor.execute("CREATE INDEX IF NOT EXISTS idx_pers_res_patient ON personalized_activity_results(patient_id, completed_at DESC);")
+
         conn.commit()
         logger.info("Real-time database initialized with clean tables at %s", DB_PATH)
 
@@ -1592,4 +1635,358 @@ def get_patient_music_summary(patient_id: str = "mahi") -> Dict[str, Any]:
         }
 
 
+# ── 15. PERSONALIZED RECOGNITION ACTIVITIES & RESULTS ────────────────────────
 
+def create_personalized_activity(data: Dict[str, Any]) -> Dict[str, Any]:
+    """Creates a new personalized recognition activity / memory challenge."""
+    act_id = data.get("id") or f"pact_{uuid.uuid4().hex[:12]}"
+    patient_id = data.get("patientId") or data.get("patient_id") or "mahi"
+    caregiver_id = data.get("caregiverId") or data.get("caregiver_id") or "caregiver"
+    title = data.get("title") or "Personalized Memory Challenge"
+    prompt_question = data.get("promptQuestion") or data.get("prompt_question") or ""
+    prompt_question_as = data.get("promptQuestionAs") or data.get("prompt_question_as") or ""
+    prompt_question_hi = data.get("promptQuestionHi") or data.get("prompt_question_hi") or ""
+    media_type = data.get("mediaType") or data.get("media_type") or "photo"
+    media_url = data.get("mediaUrl") or data.get("media_url") or ""
+    thumbnail_url = data.get("thumbnailUrl") or data.get("thumbnail_url") or ""
+    hint_text = data.get("hintText") or data.get("hint_text") or ""
+    category = data.get("category") or "people"
+    
+    options = data.get("options") or []
+    options_json = json.dumps(options) if isinstance(options, (list, dict)) else str(options)
+    status = data.get("status") or "active"
+    created_at = data.get("createdAt") or time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+
+    with get_db_connection() as conn:
+        conn.execute("""
+            INSERT INTO personalized_activities (
+                id, patient_id, caregiver_id, title, prompt_question,
+                prompt_question_as, prompt_question_hi, media_type, media_url,
+                thumbnail_url, hint_text, category, options_json, status, created_at, updated_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            act_id, patient_id, caregiver_id, title, prompt_question,
+            prompt_question_as, prompt_question_hi, media_type, media_url,
+            thumbnail_url, hint_text, category, options_json, status, created_at, created_at
+        ))
+        conn.commit()
+
+    return {
+        "id": act_id,
+        "patientId": patient_id,
+        "caregiverId": caregiver_id,
+        "title": title,
+        "promptQuestion": prompt_question,
+        "promptQuestionAs": prompt_question_as,
+        "promptQuestionHi": prompt_question_hi,
+        "mediaType": media_type,
+        "mediaUrl": media_url,
+        "thumbnailUrl": thumbnail_url,
+        "hintText": hint_text,
+        "category": category,
+        "options": options if isinstance(options, list) else json.loads(options_json),
+        "status": status,
+        "createdAt": created_at,
+    }
+
+
+def get_personalized_activities(patient_id: str = "mahi", status: Optional[str] = None) -> List[Dict[str, Any]]:
+    """Retrieves all personalized activities for a patient, optionally filtering by status."""
+    with get_db_connection() as conn:
+        if status:
+            rows = conn.execute("""
+                SELECT * FROM personalized_activities
+                WHERE patient_id = ? AND status = ?
+                ORDER BY created_at DESC
+            """, (patient_id, status)).fetchall()
+        else:
+            rows = conn.execute("""
+                SELECT * FROM personalized_activities
+                WHERE patient_id = ?
+                ORDER BY created_at DESC
+            """, (patient_id,)).fetchall()
+
+        results = []
+        for r in rows:
+            opts = []
+            try:
+                opts = json.loads(r["options_json"]) if r["options_json"] else []
+            except Exception:
+                opts = []
+
+            # Check if there is any result for this activity
+            res_row = conn.execute("""
+                SELECT * FROM personalized_activity_results
+                WHERE activity_id = ?
+                ORDER BY completed_at DESC
+                LIMIT 1
+            """, (r["id"],)).fetchone()
+
+            last_result = None
+            if res_row:
+                last_result = {
+                    "id": res_row["id"],
+                    "selectedOptionId": res_row["selected_option_id"],
+                    "isCorrect": bool(res_row["is_correct"]),
+                    "attemptsCount": res_row["attempts_count"],
+                    "hintUsed": bool(res_row["hint_used"]),
+                    "responseTimeSeconds": res_row["response_time_seconds"],
+                    "patientReaction": res_row["patient_reaction"],
+                    "completedAt": res_row["completed_at"],
+                }
+
+            results.append({
+                "id": r["id"],
+                "patientId": r["patient_id"],
+                "caregiverId": r["caregiver_id"],
+                "title": r["title"],
+                "promptQuestion": r["prompt_question"],
+                "promptQuestionAs": r["prompt_question_as"],
+                "promptQuestionHi": r["prompt_question_hi"],
+                "mediaType": r["media_type"],
+                "mediaUrl": r["media_url"],
+                "thumbnailUrl": r["thumbnail_url"],
+                "hintText": r["hint_text"],
+                "category": r["category"],
+                "options": opts,
+                "status": r["status"],
+                "createdAt": r["created_at"],
+                "lastResult": last_result,
+            })
+        return results
+
+
+def get_personalized_activity_by_id(activity_id: str) -> Optional[Dict[str, Any]]:
+    """Retrieves a single personalized activity by ID."""
+    with get_db_connection() as conn:
+        r = conn.execute("SELECT * FROM personalized_activities WHERE id = ?", (activity_id,)).fetchone()
+        if not r:
+            return None
+        opts = []
+        try:
+            opts = json.loads(r["options_json"]) if r["options_json"] else []
+        except Exception:
+            opts = []
+
+        return {
+            "id": r["id"],
+            "patientId": r["patient_id"],
+            "caregiverId": r["caregiver_id"],
+            "title": r["title"],
+            "promptQuestion": r["prompt_question"],
+            "promptQuestionAs": r["prompt_question_as"],
+            "promptQuestionHi": r["prompt_question_hi"],
+            "mediaType": r["media_type"],
+            "mediaUrl": r["media_url"],
+            "thumbnailUrl": r["thumbnail_url"],
+            "hintText": r["hint_text"],
+            "category": r["category"],
+            "options": opts,
+            "status": r["status"],
+            "createdAt": r["created_at"],
+        }
+
+
+def delete_personalized_activity(activity_id: str) -> bool:
+    """Deletes a personalized activity and its results."""
+    with get_db_connection() as conn:
+        conn.execute("DELETE FROM personalized_activities WHERE id = ?", (activity_id,))
+        conn.execute("DELETE FROM personalized_activity_results WHERE activity_id = ?", (activity_id,))
+        conn.commit()
+        return True
+
+
+def record_personalized_activity_result(data: Dict[str, Any]) -> Dict[str, Any]:
+    """Records a patient's game result and marks the challenge completed."""
+    res_id = data.get("id") or f"pres_{uuid.uuid4().hex[:12]}"
+    activity_id = data.get("activityId") or data.get("activity_id") or ""
+    patient_id = data.get("patientId") or data.get("patient_id") or "mahi"
+    selected_option_id = data.get("selectedOptionId") or data.get("selected_option_id") or ""
+    is_correct = 1 if data.get("isCorrect") or data.get("is_correct") else 0
+    attempts_count = int(data.get("attemptsCount") or data.get("attempts_count") or 1)
+    hint_used = 1 if data.get("hintUsed") or data.get("hint_used") else 0
+    response_time = float(data.get("responseTimeSeconds") or data.get("response_time_seconds") or 0.0)
+    patient_reaction = data.get("patientReaction") or data.get("patient_reaction") or ""
+    completed_at = data.get("completedAt") or time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime())
+
+    with get_db_connection() as conn:
+        conn.execute("""
+            INSERT INTO personalized_activity_results (
+                id, activity_id, patient_id, selected_option_id,
+                is_correct, attempts_count, hint_used, response_time_seconds,
+                patient_reaction, completed_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            res_id, activity_id, patient_id, selected_option_id,
+            is_correct, attempts_count, hint_used, response_time,
+            patient_reaction, completed_at
+        ))
+        
+        # Update activity status to completed
+        conn.execute("""
+            UPDATE personalized_activities
+            SET status = 'completed', updated_at = ?
+            WHERE id = ?
+        """, (completed_at, activity_id))
+        conn.commit()
+
+    return {
+        "id": res_id,
+        "activityId": activity_id,
+        "patientId": patient_id,
+        "selectedOptionId": selected_option_id,
+        "isCorrect": bool(is_correct),
+        "attemptsCount": attempts_count,
+        "hintUsed": bool(hint_used),
+        "responseTimeSeconds": response_time,
+        "patientReaction": patient_reaction,
+        "completedAt": completed_at,
+    }
+
+
+def get_personalized_activity_results(patient_id: str = "mahi") -> List[Dict[str, Any]]:
+    """Retrieves full history of personalized recognition results for caregiver dashboard."""
+    with get_db_connection() as conn:
+        rows = conn.execute("""
+            SELECT r.*, a.title as activity_title, a.prompt_question, a.media_type,
+                   a.media_url, a.thumbnail_url, a.category, a.options_json
+            FROM personalized_activity_results r
+            JOIN personalized_activities a ON r.activity_id = a.id
+            WHERE r.patient_id = ?
+            ORDER BY r.completed_at DESC
+        """, (patient_id,)).fetchall()
+
+        results = []
+        for r in rows:
+            opts = []
+            try:
+                opts = json.loads(r["options_json"]) if r["options_json"] else []
+            except Exception:
+                opts = []
+
+            # Find selected option and correct option names
+            selected_opt_name = r["selected_option_id"]
+            correct_opt_name = ""
+            for o in opts:
+                if o.get("id") == r["selected_option_id"]:
+                    selected_opt_name = o.get("text") or o.get("name") or r["selected_option_id"]
+                if o.get("isCorrect") or o.get("is_correct"):
+                    correct_opt_name = o.get("text") or o.get("name") or ""
+
+            results.append({
+                "id": r["id"],
+                "activityId": r["activity_id"],
+                "patientId": r["patient_id"],
+                "activityTitle": r["activity_title"],
+                "promptQuestion": r["prompt_question"],
+                "mediaType": r["media_type"],
+                "mediaUrl": r["media_url"],
+                "thumbnailUrl": r["thumbnail_url"],
+                "category": r["category"],
+                "selectedOptionId": r["selected_option_id"],
+                "selectedOptionName": selected_opt_name,
+                "correctOptionName": correct_opt_name,
+                "isCorrect": bool(r["is_correct"]),
+                "attemptsCount": r["attempts_count"],
+                "hintUsed": bool(r["hint_used"]),
+                "responseTimeSeconds": r["response_time_seconds"],
+                "patientReaction": r["patient_reaction"],
+                "completedAt": r["completed_at"],
+            })
+        return results
+
+
+def get_personalized_activity_summary(patient_id: str = "mahi") -> Dict[str, Any]:
+    """Computes aggregated recognition agility, accuracy, and engagement metrics for caregiver."""
+    with get_db_connection() as conn:
+        total_created = conn.execute(
+            "SELECT COUNT(*) as cnt FROM personalized_activities WHERE patient_id = ?",
+            (patient_id,)
+        ).fetchone()["cnt"]
+
+        total_completed = conn.execute(
+            "SELECT COUNT(*) as cnt FROM personalized_activities WHERE patient_id = ? AND status = 'completed'",
+            (patient_id,)
+        ).fetchone()["cnt"]
+
+        results = conn.execute("""
+            SELECT is_correct, attempts_count, hint_used, response_time_seconds, patient_reaction
+            FROM personalized_activity_results
+            WHERE patient_id = ?
+        """, (patient_id,)).fetchall()
+
+        total_played = len(results)
+        if total_played == 0:
+            return {
+                "patientId": patient_id,
+                "totalCreated": total_created,
+                "totalCompleted": total_completed,
+                "totalPlayed": 0,
+                "accuracyPercent": 0,
+                "firstAttemptAccuracyPercent": 0,
+                "avgResponseTimeSeconds": 0.0,
+                "hintsUsedCount": 0,
+                "recentReactions": [],
+                "categoryBreakdown": [],
+            }
+
+        correct_count = sum(1 for r in results if r["is_correct"])
+        first_attempt_count = sum(1 for r in results if r["is_correct"] and r["attempts_count"] == 1)
+        hints_used_count = sum(1 for r in results if r["hint_used"])
+        avg_response_time = round(sum(r["response_time_seconds"] for r in results) / total_played, 1)
+
+        accuracy_pct = round((correct_count / total_played) * 100, 1)
+        first_attempt_pct = round((first_attempt_count / total_played) * 100, 1)
+
+        # Category breakdown
+        cat_rows = conn.execute("""
+            SELECT a.category, COUNT(r.id) as played_cnt, SUM(r.is_correct) as correct_cnt
+            FROM personalized_activity_results r
+            JOIN personalized_activities a ON r.activity_id = a.id
+            WHERE r.patient_id = ?
+            GROUP BY a.category
+        """, (patient_id,)).fetchall()
+
+        category_breakdown = []
+        for c in cat_rows:
+            c_played = c["played_cnt"]
+            c_correct = c["correct_cnt"] or 0
+            category_breakdown.append({
+                "category": c["category"],
+                "played": c_played,
+                "correct": c_correct,
+                "accuracy": round((c_correct / c_played) * 100, 1) if c_played > 0 else 0,
+            })
+
+        # Recent reactions
+        reaction_rows = conn.execute("""
+            SELECT r.patient_reaction, r.completed_at, a.title, a.media_type
+            FROM personalized_activity_results r
+            JOIN personalized_activities a ON r.activity_id = a.id
+            WHERE r.patient_id = ? AND r.patient_reaction != ''
+            ORDER BY r.completed_at DESC
+            LIMIT 6
+        """, (patient_id,)).fetchall()
+
+        recent_reactions = [
+            {
+                "reaction": r["patient_reaction"],
+                "completedAt": r["completed_at"],
+                "title": r["title"],
+                "mediaType": r["media_type"],
+            }
+            for r in reaction_rows
+        ]
+
+        return {
+            "patientId": patient_id,
+            "totalCreated": total_created,
+            "totalCompleted": total_completed,
+            "totalPlayed": total_played,
+            "accuracyPercent": accuracy_pct,
+            "firstAttemptAccuracyPercent": first_attempt_pct,
+            "avgResponseTimeSeconds": avg_response_time,
+            "hintsUsedCount": hints_used_count,
+            "recentReactions": recent_reactions,
+            "categoryBreakdown": category_breakdown,
+        }

@@ -32,15 +32,19 @@ export interface IoTHistoryItem {
   steps: number;
 }
 
-const SERVER_HOST = "172.25.62.153:8000";
+import { API_CONFIG } from "../api/config";
+
+const getHost = () =>
+  API_CONFIG.LOCAL_IP ? `${API_CONFIG.LOCAL_IP}:8000` : "localhost:8000";
+
 const HTTP_BASE_URL =
   Platform.OS === "android" || Platform.OS === "ios"
-    ? `http://${SERVER_HOST}`
+    ? `http://${getHost()}`
     : "http://127.0.0.1:8000";
 
 const WS_BASE_URL =
   Platform.OS === "android" || Platform.OS === "ios"
-    ? `ws://${SERVER_HOST}/ws/realtime`
+    ? `ws://${getHost()}/ws/realtime`
     : "ws://127.0.0.1:8000/ws/realtime";
 
 const IOT_STORAGE_KEY = "ambieye_real_iot_telemetry";

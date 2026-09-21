@@ -135,7 +135,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({
       }
     };
 
-    loadAuthAndVerify();
+    // Failsafe: Ensure isLoading is never stuck on true if verification hangs
+    const safetyTimer = setTimeout(() => {
+      setAuthState((prev) => (prev.isLoading ? { ...prev, isLoading: false } : prev));
+    }, 2500);
+
+    loadAuthAndVerify().finally(() => clearTimeout(safetyTimer));
   }, []);
 
   const login = async (

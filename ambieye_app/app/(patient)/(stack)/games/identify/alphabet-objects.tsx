@@ -192,14 +192,14 @@ export default function AlphabetObjectsGame() {
       Alert.alert(
         "Game Complete!",
         `Score: ${finalScore}%\nTime: ${Math.round(gameDuration)}s`,
-        [{ text: "OK", onPress: () => router.back() }],
+        [{ text: "OK", onPress: () => router.replace("/(patient)/games" as any) }],
       );
     } catch (error) {
       console.error("Failed to save game result:", error);
       Alert.alert(
         "Game Complete!",
         `Score: ${finalScore}%\nTime: ${Math.round(gameDuration)}s\n(Failed to save results)`,
-        [{ text: "OK", onPress: () => router.back() }],
+        [{ text: "OK", onPress: () => router.replace("/(patient)/games" as any) }],
       );
     }
   };
@@ -229,7 +229,7 @@ export default function AlphabetObjectsGame() {
           justifyContent: "space-between",
         }}
       >
-        <TouchableOpacity onPress={() => router.back()}>
+        <TouchableOpacity onPress={() => router.replace("/(patient)/games" as any)}>
           <FontAwesome name="arrow-left" size={24} color="#0EA5E9" />
         </TouchableOpacity>
         <Text style={styles.gameTitle}>Select the Correct one</Text>

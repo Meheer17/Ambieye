@@ -1,5 +1,6 @@
 import React from "react";
-import { StyleSheet, View, Text, ScrollView, SafeAreaView } from "react-native";
+import { StyleSheet, View, Text, ScrollView } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 export default function PrivacyPolicyScreen() {
   return (
@@ -17,9 +18,9 @@ export default function PrivacyPolicyScreen() {
 
         <Text style={styles.sectionTitle}>Introduction</Text>
         <Text style={styles.paragraph}>
-          Welcome to Ambieye. This Privacy Policy explains how we collect, use,
-          disclose, and safeguard your information when you use our eye training
-          application and related services. We are committed to protecting your
+          Welcome to MindCare. This Privacy Policy explains how we collect, use,
+          disclose, and safeguard your information when you use our cognitive care
+          companion and related services. We are committed to protecting your
           privacy and ensuring the security of your personal information.
         </Text>
 

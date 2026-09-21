@@ -58,6 +58,12 @@ export default function PictureRecallGame() {
 
   const timerAnim = useRef(new Animated.Value(1)).current;
 
+  useEffect(() => {
+    return () => {
+      VoiceAssistant.stop();
+    };
+  }, []);
+
   const startNewGame = () => {
     setScore(0);
     setRound(1);
@@ -155,7 +161,7 @@ export default function PictureRecallGame() {
     <SafeAreaView style={styles.container} edges={["top"]}>
       {/* Header Bar */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+        <TouchableOpacity onPress={() => router.replace("/(patient)/games" as any)} style={styles.backBtn}>
           <Feather name="arrow-left" size={24} color="#0F172A" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Picture Recall</Text>
@@ -260,7 +266,7 @@ export default function PictureRecallGame() {
                 <Text style={styles.retryBtnText}>Play Again</Text>
               </TouchableOpacity>
 
-              <TouchableOpacity style={styles.doneBtn} onPress={() => router.back()}>
+              <TouchableOpacity style={styles.doneBtn} onPress={() => router.replace("/(patient)/games" as any)}>
                 <Text style={styles.doneBtnText}>Back to Games</Text>
               </TouchableOpacity>
             </View>

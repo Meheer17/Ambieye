@@ -173,6 +173,7 @@ export default function SequenceRecallScreen() {
 
     return () => {
       isMounted = false;
+      VoiceAssistant.stop();
       // Early exit abandonment: if exited before completing all rounds
       if (!isCompletedRef.current && !isAbandonedRef.current && sessionIdRef.current) {
         isAbandonedRef.current = true;
@@ -500,7 +501,7 @@ export default function SequenceRecallScreen() {
       <View style={styles.header}>
         <TouchableOpacity
           style={styles.backButton}
-          onPress={() => router.back()}
+          onPress={() => router.replace("/(patient)/games" as any)}
           accessibilityRole="button"
           accessibilityLabel="Go back"
         >
@@ -810,7 +811,7 @@ export default function SequenceRecallScreen() {
 
               <TouchableOpacity
                 style={styles.btnSecondary}
-                onPress={() => router.back()}
+                onPress={() => router.replace("/(patient)/games" as any)}
                 activeOpacity={0.8}
               >
                 <Text style={styles.btnSecondaryText}>

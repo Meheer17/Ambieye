@@ -97,7 +97,7 @@ export default function UserTypeScreen() {
         <View style={styles.logoRow}>
           <View style={styles.logoBox}>
             <Image
-              source={require("@/assets/images/logo.png")}
+              source={require("@/assets/images/mindcare_logo_circle.png")}
               style={styles.logo}
             />
           </View>
@@ -342,19 +342,21 @@ const styles = StyleSheet.create({
     gap: 14,
   },
   logoBox: {
-    width: 52,
-    height: 52,
-    borderRadius: 14,
-    backgroundColor: 'rgba(14, 165, 233, 0.15)',
+    width: 54,
+    height: 54,
+    borderRadius: 27,
+    backgroundColor: 'transparent',
     justifyContent: 'center',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(14, 165, 233, 0.25)',
+    borderWidth: 1.5,
+    borderColor: 'rgba(16, 185, 129, 0.45)',
+    overflow: 'hidden',
   },
   logo: {
-    width: 34,
-    height: 34,
-    resizeMode: "contain",
+    width: 52,
+    height: 52,
+    borderRadius: 26,
+    resizeMode: "cover",
   },
   appName: {
     fontSize: 22,

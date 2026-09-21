@@ -13,9 +13,9 @@ import Feather from "@expo/vector-icons/Feather";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useFocusEffect } from "expo-router";
-import { Colors, BorderRadius, Shadows, Spacing, WarmPalette } from "@/constants/theme";
+import { Colors, BorderRadius, Shadows, Spacing, WarmPalette, AestheticTheme } from "@/constants/theme";
 import { useTranslation } from "@/constants/i18n";
-import { reminderStorage, MedicationItem, DailyHydration, RoutineTask } from "@/utils/reminderStorage";
+import { reminderStorage, MedicationItem, DailyHydration, RoutineTask, AppointmentItem } from "@/utils/reminderStorage";
 import { VoiceAssistant } from "@/utils/voiceAssistant";
 import { useAuth } from "@/hooks/useAuth";
 import { dementiaCareStorage } from "@/utils/dementiaCareStorage";
@@ -28,7 +28,9 @@ export default function RemindersScreen() {
   const [hydration, setHydration] = useState<DailyHydration>({ date: "", glassesDrunk: 0, dailyGoal: 8 });
   const [medications, setMedications] = useState<MedicationItem[]>([]);
   const [routines, setRoutines] = useState<RoutineTask[]>([]);
+  const [appointments, setAppointments] = useState<AppointmentItem[]>([]);
   const [sosStatus, setSosStatus] = useState<string | null>(null);
+  const [activeCategory, setActiveCategory] = useState<"all" | "meds" | "tasks" | "appointments">("all");
 
   useFocusEffect(
     React.useCallback(() => {
@@ -40,21 +42,31 @@ export default function RemindersScreen() {
         } else {
           setViewMode(savedMode);
         }
+        await loadData();
       })();
+
+      return () => {
+        VoiceAssistant.stop();
+      };
     }, [username])
   );
 
   useEffect(() => {
     loadData();
+    return () => {
+      VoiceAssistant.stop();
+    };
   }, []);
 
   const loadData = async () => {
     const hyd = await reminderStorage.getTodayHydration();
     const meds = await reminderStorage.getTodayMedications();
     const rts = await reminderStorage.getTodayRoutines();
+    const apts = await reminderStorage.getAppointments();
     setHydration(hyd);
     setMedications(meds);
     setRoutines(rts);
+    setAppointments(apts);
   };
 
   const handleAddWater = async () => {
@@ -75,25 +87,15 @@ export default function RemindersScreen() {
   };
 
   const getMedName = (med: MedicationItem) => {
-    if (med.id === "med-1") return t("med_donepezil_title");
-    if (med.id === "med-2") return t("med_vitb12_title");
-    if (med.id === "med-3") return t("med_bp_title");
-    return med.name;
+    return med.name || "Scheduled Medicine";
   };
 
   const getMedDosage = (med: MedicationItem) => {
-    if (med.id === "med-1") return t("med_donepezil_dosage");
-    if (med.id === "med-2") return t("med_vitb12_dosage");
-    if (med.id === "med-3") return t("med_bp_dosage");
-    return med.dosage;
+    return med.dosage || "As directed";
   };
 
   const getRoutineTitle = (rt: RoutineTask) => {
-    if (rt.id === "rt-1") return t("morning_tea_courtyard");
-    if (rt.id === "rt-2") return t("gentle_walk");
-    if (rt.id === "rt-3") return t("play_memory_game");
-    if (rt.id === "rt-4") return t("afternoon_rest");
-    return rt.title;
+    return rt.title || "Routine Task";
   };
 
   const handleReadScheduleAloud = () => {
@@ -124,23 +126,18 @@ export default function RemindersScreen() {
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
+      <View style={styles.ambientAuraTop} pointerEvents="none" />
+      <View style={styles.ambientAuraBottom} pointerEvents="none" />
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
       >
-        {/* Header with Title and Voice Readout Button */}
+        {/* Header with Title */}
         <View style={styles.header}>
           <View style={styles.headerLeft}>
             <Text style={styles.headerTitle}>{t("reminders_title")}</Text>
             <Text style={styles.headerSubtitle}>{t("reminders_subtitle")}</Text>
           </View>
-          <TouchableOpacity
-            style={styles.voiceButton}
-            onPress={handleReadScheduleAloud}
-            accessibilityLabel={t("read_aloud")}
-          >
-            <Feather name="volume-2" size={24} color="#FFFFFF" />
-          </TouchableOpacity>
         </View>
 
         {/* SOS Alert Banner if triggered */}
@@ -151,213 +148,292 @@ export default function RemindersScreen() {
           </View>
         )}
 
-        {/* ── 1. Hydration Card ─────────────────────────────────────── */}
-        <View style={styles.card}>
-          <View style={styles.cardHeader}>
-            <View style={[styles.cardIconBg, { backgroundColor: "#DBEAFE" }]}>
-              <MaterialCommunityIcons name="cup-water" size={28} color="#2563EB" />
-            </View>
-            <View style={styles.cardHeaderText}>
-              <Text style={styles.cardTitle}>{t("water_tracker")}</Text>
-              <Text style={styles.cardSub}>
-                {hydration.glassesDrunk} / {hydration.dailyGoal} {t("glasses_drunk")}
-              </Text>
-            </View>
-            <Text style={styles.percentageText}>{completionRate}%</Text>
-          </View>
-
-          {/* Glasses Visual Matrix */}
-          <View style={styles.waterGlassesContainer}>
-            {Array.from({ length: hydration.dailyGoal }).map((_, idx) => {
-              const isFilled = idx < hydration.glassesDrunk;
-              return (
-                <View
-                  key={idx}
-                  style={[
-                    styles.glassIcon,
-                    isFilled ? styles.glassFilled : styles.glassEmpty,
-                  ]}
-                >
-                  <MaterialCommunityIcons
-                    name="cup-water"
-                    size={22}
-                    color={isFilled ? "#2563EB" : "#94A3B8"}
-                  />
-                </View>
-              );
-            })}
-          </View>
-
+        {/* Category Filter Tabs: Prevents infinite vertical scrolling */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={styles.categoryFilterRow}
+        >
           <TouchableOpacity
-            style={styles.actionBtnPrimary}
-            onPress={handleAddWater}
+            style={[styles.filterChip, activeCategory === "all" && styles.filterChipActive]}
+            onPress={() => setActiveCategory("all")}
             activeOpacity={0.8}
           >
-            <MaterialCommunityIcons name="plus-circle" size={24} color="#FFFFFF" />
-            <Text style={styles.actionBtnText}>{t("add_water_btn")}</Text>
+            <Text style={[styles.filterChipText, activeCategory === "all" && styles.filterChipTextActive]}>
+              🌟 {currentLang === "as" ? "সকলো" : "All Care"}
+            </Text>
           </TouchableOpacity>
-        </View>
 
-        {/* ── 2. Medication Reminder Section ────────────────────────── */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>{t("medication_reminder")}</Text>
-        </View>
-
-        {medications.map((med) => (
           <TouchableOpacity
-            key={med.id}
-            style={[
-              styles.medCard,
-              med.taken && styles.medCardCompleted,
-            ]}
-            onPress={() => handleToggleMed(med.id)}
-            activeOpacity={0.7}
+            style={[styles.filterChip, activeCategory === "meds" && styles.filterChipActive]}
+            onPress={() => setActiveCategory("meds")}
+            activeOpacity={0.8}
           >
-            <View style={[styles.medBadge, { backgroundColor: `${med.pillColor}20` }]}>
-              <MaterialCommunityIcons
-                name="pill"
-                size={26}
-                color={med.pillColor}
-              />
-            </View>
-            <View style={styles.medContent}>
-              <View style={styles.medRowTop}>
-                <Text style={[styles.medName, med.taken && styles.medTextStrikethrough]}>
-                  {getMedName(med)}
-                </Text>
-                <View style={[styles.timeBadge, { backgroundColor: "#F1F5F9" }]}>
-                  <Feather name="clock" size={13} color="#475569" />
-                  <Text style={styles.timeBadgeText}>{med.timeLabel}</Text>
+            <Text style={[styles.filterChipText, activeCategory === "meds" && styles.filterChipTextActive]}>
+              💧 {currentLang === "as" ? "পানী আৰু ঔষধ" : "Water & Meds"}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.filterChip, activeCategory === "tasks" && styles.filterChipActive]}
+            onPress={() => setActiveCategory("tasks")}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.filterChipText, activeCategory === "tasks" && styles.filterChipTextActive]}>
+              ✅ {currentLang === "as" ? "দৈনন্দিন কাম" : "Daily Tasks"}
+            </Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
+            style={[styles.filterChip, activeCategory === "appointments" && styles.filterChipActive]}
+            onPress={() => setActiveCategory("appointments")}
+            activeOpacity={0.8}
+          >
+            <Text style={[styles.filterChipText, activeCategory === "appointments" && styles.filterChipTextActive]}>
+              📅 {currentLang === "as" ? "পৰামৰ্শ" : "Doctor Visits"}
+            </Text>
+          </TouchableOpacity>
+        </ScrollView>
+
+        {/* ── 1. Hydration & 2. Medication Section ──────────────────── */}
+        {(activeCategory === "all" || activeCategory === "meds") && (
+          <>
+            {/* Hydration Card */}
+            <View style={styles.card}>
+              <View style={styles.cardHeader}>
+                <View style={[styles.cardIconBg, { backgroundColor: "#DBEAFE" }]}>
+                  <MaterialCommunityIcons name="cup-water" size={28} color="#2563EB" />
                 </View>
+                <View style={styles.cardHeaderText}>
+                  <Text style={styles.cardTitle}>{t("water_tracker")}</Text>
+                  <Text style={styles.cardSub}>
+                    {hydration.glassesDrunk} / {hydration.dailyGoal} {t("glasses_drunk")}
+                  </Text>
+                </View>
+                <Text style={styles.percentageText}>{completionRate}%</Text>
               </View>
-              <Text style={styles.medDosage}>{getMedDosage(med)}</Text>
-              {med.taken && (
-                <Text style={styles.takenAtText}>✓ {t("taken_at_time")} {med.takenAt}</Text>
-              )}
+
+              {/* Glasses Visual Matrix */}
+              <View style={styles.waterGlassesContainer}>
+                {Array.from({ length: hydration.dailyGoal }).map((_, idx) => {
+                  const isFilled = idx < hydration.glassesDrunk;
+                  return (
+                    <View
+                      key={idx}
+                      style={[
+                        styles.glassIcon,
+                        isFilled ? styles.glassFilled : styles.glassEmpty,
+                      ]}
+                    >
+                      <MaterialCommunityIcons
+                        name="cup-water"
+                        size={22}
+                        color={isFilled ? "#2563EB" : "#94A3B8"}
+                      />
+                    </View>
+                  );
+                })}
+              </View>
+
+              <TouchableOpacity
+                style={styles.actionBtnPrimary}
+                onPress={handleAddWater}
+                activeOpacity={0.8}
+              >
+                <MaterialCommunityIcons name="plus-circle" size={24} color="#FFFFFF" />
+                <Text style={styles.actionBtnText}>{t("add_water_btn")}</Text>
+              </TouchableOpacity>
             </View>
 
-            <View style={[styles.checkbox, med.taken && styles.checkboxActive]}>
-              {med.taken && <Feather name="check" size={18} color="#FFFFFF" />}
+            {/* Medication Reminder Section */}
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>{t("medication_reminder")}</Text>
             </View>
-          </TouchableOpacity>
-        ))}
+
+            {medications.length === 0 ? (
+              <View style={styles.liveEmptyCard}>
+                <View style={styles.livePulseDot} />
+                <Text style={styles.liveEmptyTitle}>No Medications Scheduled</Text>
+                <Text style={styles.liveEmptySubtitle}>
+                  Prescriptions and dosage alerts created by your caregiver or doctor will appear here automatically.
+                </Text>
+              </View>
+            ) : (
+              medications.map((med) => (
+                <TouchableOpacity
+                  key={med.id}
+                  style={[
+                    styles.medCard,
+                    med.taken && styles.medCardCompleted,
+                  ]}
+                  onPress={() => handleToggleMed(med.id)}
+                  activeOpacity={0.7}
+                >
+                  <View style={[styles.medBadge, { backgroundColor: `${med.pillColor}20` }]}>
+                    <MaterialCommunityIcons
+                      name="pill"
+                      size={26}
+                      color={med.pillColor}
+                    />
+                  </View>
+                  <View style={styles.medContent}>
+                    <View style={styles.medRowTop}>
+                      <Text style={[styles.medName, med.taken && styles.medTextStrikethrough]}>
+                        {getMedName(med)}
+                      </Text>
+                      <View style={[styles.timeBadge, { backgroundColor: "#F1F5F9" }]}>
+                        <Feather name="clock" size={13} color="#475569" />
+                        <Text style={styles.timeBadgeText}>{med.timeLabel}</Text>
+                      </View>
+                    </View>
+                    <Text style={styles.medDosage}>{getMedDosage(med)}</Text>
+                    {med.taken && (
+                      <Text style={styles.takenAtText}>✓ {t("taken_at_time")} {med.takenAt}</Text>
+                    )}
+                  </View>
+
+                  <View style={[styles.checkbox, med.taken && styles.checkboxActive]}>
+                    {med.taken && <Feather name="check" size={18} color="#FFFFFF" />}
+                  </View>
+                </TouchableOpacity>
+              ))
+            )}
+          </>
+        )}
 
         {/* ── 3. Daily Care Tasks & Status ─────────────────────────── */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>Daily Care Tasks</Text>
-          <Text style={{ fontSize: 12, color: "#64748B" }}>Done / Skipped / Pending</Text>
-        </View>
-
-        {routines.map((rt) => {
-          const taskStatus = rt.status || (rt.completed ? "done" : "pending");
-          return (
-            <View
-              key={rt.id}
-              style={[
-                styles.routineCard,
-                taskStatus === "done" && styles.routineCardCompleted,
-                taskStatus === "skipped" && styles.routineCardSkipped,
-              ]}
-            >
-              <View style={[styles.routineIcon, taskStatus === "done" && styles.routineIconDone]}>
-                {(() => {
-                  const color = taskStatus === "done" ? "#10B981" : taskStatus === "skipped" ? "#94A3B8" : "#64748B";
-                  switch (rt.iconName) {
-                    case "pill":
-                      return <MaterialCommunityIcons name="pill" size={22} color={color} />;
-                    case "shower":
-                      return <MaterialCommunityIcons name="shower" size={22} color={color} />;
-                    case "sparkles":
-                      return <MaterialCommunityIcons name="face-woman-shimmer" size={22} color={color} />;
-                    case "music":
-                      return <Feather name="music" size={22} color={color} />;
-                    case "coffee":
-                      return <Feather name="coffee" size={22} color={color} />;
-                    case "sun":
-                      return <Feather name="sun" size={22} color={color} />;
-                    default:
-                      return <Feather name="check-circle" size={22} color={color} />;
-                  }
-                })()}
-              </View>
-              <View style={styles.routineInfo}>
-                <Text style={[styles.routineTitle, taskStatus === "done" && styles.routineTitleDone, taskStatus === "skipped" && styles.routineTitleSkipped]}>
-                  {getRoutineTitle(rt)}
-                </Text>
-                <Text style={styles.routineTime}>{rt.timeLabel}</Text>
-              </View>
-
-              {/* 3 Status Selector Buttons */}
-              <View style={styles.statusButtonsRow}>
-                <TouchableOpacity
-                  style={[styles.statusBtn, taskStatus === "done" && styles.statusBtnDoneActive]}
-                  onPress={() => {
-                    reminderStorage.updateRoutineStatus(rt.id, "done").then(setRoutines);
-                    VoiceAssistant.speak(`${getRoutineTitle(rt)} marked completed`, currentLang);
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[styles.statusBtnText, taskStatus === "done" && styles.statusBtnTextActive]}>Done ✓</Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={[styles.statusBtn, taskStatus === "skipped" && styles.statusBtnSkippedActive]}
-                  onPress={() => {
-                    reminderStorage.updateRoutineStatus(rt.id, "skipped").then(setRoutines);
-                  }}
-                  activeOpacity={0.7}
-                >
-                  <Text style={[styles.statusBtnText, taskStatus === "skipped" && styles.statusBtnTextActive]}>Skip ⏭</Text>
-                </TouchableOpacity>
-              </View>
+        {(activeCategory === "all" || activeCategory === "tasks") && (
+          <>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Daily Care Tasks</Text>
+              <Text style={{ fontSize: 13, color: "#64748B" }}>Tap to mark completed</Text>
             </View>
-          );
-        })}
+
+            {routines.length === 0 ? (
+              <View style={styles.liveEmptyCard}>
+                <View style={styles.livePulseDot} />
+                <Text style={styles.liveEmptyTitle}>No Daily Care Tasks Scheduled</Text>
+                <Text style={styles.liveEmptySubtitle}>
+                  Daily habits, tea times, and walking routines set by your caregiver will appear here in real time.
+                </Text>
+              </View>
+            ) : (
+              routines.map((rt) => {
+                const taskStatus = rt.status || (rt.completed ? "done" : "pending");
+                return (
+                  <View
+                    key={rt.id}
+                    style={[
+                      styles.routineCard,
+                      taskStatus === "done" && styles.routineCardCompleted,
+                      taskStatus === "skipped" && styles.routineCardSkipped,
+                    ]}
+                  >
+                    <View style={[styles.routineIcon, taskStatus === "done" && styles.routineIconDone]}>
+                      {(() => {
+                        const color = taskStatus === "done" ? "#10B981" : taskStatus === "skipped" ? "#94A3B8" : "#64748B";
+                        switch (rt.iconName) {
+                          case "pill":
+                            return <MaterialCommunityIcons name="pill" size={22} color={color} />;
+                          case "shower":
+                            return <MaterialCommunityIcons name="shower" size={22} color={color} />;
+                          case "sparkles":
+                            return <MaterialCommunityIcons name="face-woman-shimmer" size={22} color={color} />;
+                          case "music":
+                            return <Feather name="music" size={22} color={color} />;
+                          case "coffee":
+                            return <Feather name="coffee" size={22} color={color} />;
+                          case "sun":
+                            return <Feather name="sun" size={22} color={color} />;
+                          default:
+                            return <Feather name="check-circle" size={22} color={color} />;
+                        }
+                      })()}
+                    </View>
+                    <View style={styles.routineInfo}>
+                      <Text style={[styles.routineTitle, taskStatus === "done" && styles.routineTitleDone, taskStatus === "skipped" && styles.routineTitleSkipped]}>
+                        {getRoutineTitle(rt)}
+                      </Text>
+                      <Text style={styles.routineTime}>{rt.timeLabel}</Text>
+                    </View>
+
+                    {/* Large, Easy-to-Tap Action Buttons */}
+                    <View style={styles.statusButtonsRow}>
+                      <TouchableOpacity
+                        style={[styles.statusBtn, taskStatus === "done" && styles.statusBtnDoneActive]}
+                        onPress={() => {
+                          reminderStorage.updateRoutineStatus(rt.id, "done").then(setRoutines);
+                          VoiceAssistant.speak(`${getRoutineTitle(rt)} marked completed`, currentLang);
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <Feather name="check" size={16} color={taskStatus === "done" ? "#FFFFFF" : "#10B981"} />
+                        <Text style={[styles.statusBtnText, taskStatus === "done" && styles.statusBtnTextActive]}>
+                          {currentLang === "as" ? "সম্পন্ন" : "Done"}
+                        </Text>
+                      </TouchableOpacity>
+
+                      <TouchableOpacity
+                        style={[styles.statusBtn, taskStatus === "skipped" && styles.statusBtnSkippedActive]}
+                        onPress={() => {
+                          reminderStorage.updateRoutineStatus(rt.id, "skipped").then(setRoutines);
+                        }}
+                        activeOpacity={0.7}
+                      >
+                        <Feather name="skip-forward" size={15} color={taskStatus === "skipped" ? "#FFFFFF" : "#64748B"} />
+                        <Text style={[styles.statusBtnText, taskStatus === "skipped" && styles.statusBtnTextActive]}>
+                          {currentLang === "as" ? "পাছত" : "Skip"}
+                        </Text>
+                      </TouchableOpacity>
+                    </View>
+                  </View>
+                );
+              })
+            )}
+          </>
+        )}
 
         {/* ── 4. Clinical Appointments & Home Visits ────────────────── */}
-        <View style={styles.sectionHeader}>
-          <Text style={styles.sectionTitle}>📅 Appointments & Visits</Text>
-        </View>
+        {(activeCategory === "all" || activeCategory === "appointments") && (
+          <>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>📅 Appointments & Visits</Text>
+            </View>
 
-        <View style={styles.appointmentsContainer}>
-          <View style={styles.appointmentCard}>
-            <View style={styles.aptTopRow}>
-              <View style={styles.aptIconBg}>
-                <Feather name="calendar" size={20} color="#2563EB" />
+            {appointments.length === 0 ? (
+              <View style={styles.liveEmptyCard}>
+                <View style={styles.livePulseDot} />
+                <Text style={styles.liveEmptyTitle}>No Upcoming Appointments</Text>
+                <Text style={styles.liveEmptySubtitle}>
+                  Clinical consultations, neurology checkups, and ASHA home visits sync live from the caregiver portal.
+                </Text>
               </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.aptTitle}>Monthly Memory Review & MMSE Check</Text>
-                <Text style={styles.aptDoctor}>Dr. Himanta Sarma (Neurologist)</Text>
+            ) : (
+              <View style={styles.appointmentsContainer}>
+                {appointments.map((apt) => (
+                  <View key={apt.id} style={styles.appointmentCard}>
+                    <View style={styles.aptTopRow}>
+                      <View style={styles.aptIconBg}>
+                        <Feather name="calendar" size={20} color="#2563EB" />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                        <Text style={styles.aptTitle}>{apt.title}</Text>
+                        <Text style={styles.aptDoctor}>{apt.doctorName}</Text>
+                      </View>
+                      <View style={styles.aptTimingBadge}>
+                        <Text style={styles.aptTimingText}>{apt.timeLabel || apt.date}</Text>
+                      </View>
+                    </View>
+                    <View style={styles.aptBottomRow}>
+                      <Feather name="map-pin" size={13} color="#64748B" />
+                      <Text style={styles.aptLocationText}>{apt.location}</Text>
+                    </View>
+                  </View>
+                ))}
               </View>
-              <View style={styles.aptTimingBadge}>
-                <Text style={styles.aptTimingText}>In 3 Days</Text>
-              </View>
-            </View>
-            <View style={styles.aptBottomRow}>
-              <Feather name="map-pin" size={13} color="#64748B" />
-              <Text style={styles.aptLocationText}>Guwahati Geriatric Clinic & Tele-Room</Text>
-            </View>
-          </View>
-
-          <View style={styles.appointmentCard}>
-            <View style={styles.aptTopRow}>
-              <View style={[styles.aptIconBg, { backgroundColor: "#DCFCE7" }]}>
-                <Feather name="home" size={20} color="#16A34A" />
-              </View>
-              <View style={{ flex: 1 }}>
-                <Text style={styles.aptTitle}>ASHA Worker Home Visit & Blood Pressure</Text>
-                <Text style={styles.aptDoctor}>Runu Deka (Community ASHA)</Text>
-              </View>
-              <View style={[styles.aptTimingBadge, { backgroundColor: "#DCFCE7" }]}>
-                <Text style={[styles.aptTimingText, { color: "#166534" }]}>Tomorrow</Text>
-              </View>
-            </View>
-            <View style={styles.aptBottomRow}>
-              <Feather name="map-pin" size={13} color="#64748B" />
-              <Text style={styles.aptLocationText}>Home Visit</Text>
-            </View>
-          </View>
-        </View>
+            )}
+          </>
+        )}
 
         {/* ── 5. Emergency Caregiver SOS Button ─────────────────────── */}
         <TouchableOpacity
@@ -378,7 +454,26 @@ export default function RemindersScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#F8FAFC",
+    backgroundColor: AestheticTheme.canvas,
+    position: "relative",
+  },
+  ambientAuraTop: {
+    position: "absolute",
+    top: -80,
+    right: -60,
+    width: 240,
+    height: 240,
+    borderRadius: 120,
+    backgroundColor: AestheticTheme.ambientLavender,
+  },
+  ambientAuraBottom: {
+    position: "absolute",
+    top: 540,
+    left: -80,
+    width: 260,
+    height: 260,
+    borderRadius: 130,
+    backgroundColor: AestheticTheme.ambientMint,
   },
   scrollContent: {
     padding: Spacing.md,
@@ -433,13 +528,13 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   card: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: AestheticTheme.cardSurface,
     borderRadius: BorderRadius.xl,
     padding: Spacing.lg,
     marginBottom: Spacing.lg,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
-    ...Shadows.md,
+    borderColor: AestheticTheme.cardBorder,
+    ...AestheticTheme.cardShadow,
   },
   cardHeader: {
     flexDirection: "row",
@@ -656,31 +751,61 @@ const styles = StyleSheet.create({
   },
   statusButtonsRow: {
     flexDirection: "row",
-    gap: 6,
+    gap: 8,
   },
   statusBtn: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    borderRadius: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    minHeight: 44,
+    borderRadius: 12,
     backgroundColor: "#F1F5F9",
-    borderWidth: 1,
-    borderColor: "#E2E8F0",
+    borderWidth: 1.5,
+    borderColor: "#CBD5E1",
+    gap: 6,
   },
   statusBtnDoneActive: {
-    backgroundColor: "#DCFCE7",
-    borderColor: "#16A34A",
+    backgroundColor: "#16A34A",
+    borderColor: "#15803D",
   },
   statusBtnSkippedActive: {
-    backgroundColor: "#FEE2E2",
-    borderColor: "#DC2626",
+    backgroundColor: "#64748B",
+    borderColor: "#475569",
   },
   statusBtnText: {
-    fontSize: 11,
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#334155",
+  },
+  statusBtnTextActive: {
+    color: "#FFFFFF",
+  },
+  categoryFilterRow: {
+    flexDirection: "row",
+    gap: 8,
+    paddingBottom: Spacing.sm,
+  },
+  filterChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 22,
+    backgroundColor: "#F1F5F9",
+    borderWidth: 1.5,
+    borderColor: "#E2E8F0",
+  },
+  filterChipActive: {
+    backgroundColor: "#2563EB",
+    borderColor: "#1D4ED8",
+  },
+  filterChipText: {
+    fontSize: 14,
     fontWeight: "700",
     color: "#475569",
   },
-  statusBtnTextActive: {
-    color: "#0F172A",
+  filterChipTextActive: {
+    color: "#FFFFFF",
   },
   appointmentsContainer: {
     gap: 10,
@@ -757,5 +882,34 @@ const styles = StyleSheet.create({
     fontWeight: "800",
     color: "#FFFFFF",
     letterSpacing: 0.5,
+  },
+  liveEmptyCard: {
+    borderWidth: 1.5,
+    borderStyle: "dashed",
+    borderColor: "#CBD5E1",
+    borderRadius: BorderRadius.xl,
+    padding: 16,
+    backgroundColor: "#F8FAFC",
+    alignItems: "center",
+    marginBottom: Spacing.md,
+  },
+  livePulseDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#10B981",
+    marginBottom: 8,
+  },
+  liveEmptyTitle: {
+    fontSize: 13,
+    fontWeight: "700",
+    color: "#334155",
+    marginBottom: 4,
+  },
+  liveEmptySubtitle: {
+    fontSize: 12,
+    color: "#64748B",
+    textAlign: "center",
+    lineHeight: 17,
   },
 });

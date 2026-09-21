@@ -57,7 +57,18 @@ export const MusicHubModal: React.FC<MusicHubModalProps> = ({
     };
   }, []);
 
-  // Cleanup audio playback when modal is closed
+  // Cleanup audio playback when modal is closed or unmounted
+  useEffect(() => {
+    if (!visible) {
+      VoiceAssistant.stop();
+      musicService.pause();
+    }
+    return () => {
+      VoiceAssistant.stop();
+      musicService.stop();
+    };
+  }, [visible]);
+
   const handleClose = () => {
     VoiceAssistant.stop();
     musicService.stop();

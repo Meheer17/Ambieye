@@ -332,7 +332,7 @@ export default function AntakshariBattleScreen() {
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
-            onPress={() => router.back()}
+            onPress={() => router.replace("/(patient)/games" as any)}
             activeOpacity={0.7}
             accessibilityLabel="Go Back"
             accessibilityRole="button"

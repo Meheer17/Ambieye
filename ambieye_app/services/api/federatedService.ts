@@ -29,10 +29,11 @@ export interface CognitiveStabilityResult {
 }
 
 import { Platform } from "react-native";
+import { API_CONFIG } from "./config";
 
 const DEFAULT_SERVER_URL =
   Platform.OS === "android" || Platform.OS === "ios"
-    ? "http://172.25.62.153:8000"
+    ? `http://${API_CONFIG.LOCAL_IP}:8000`
     : "http://127.0.0.1:8000";
 
 export const federatedService = {
@@ -119,13 +120,18 @@ export const federatedService = {
     features?: number[]
   ): Promise<CognitiveStabilityResult> {
     try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 600);
+
       const res = await fetch(`${DEFAULT_SERVER_URL}/federated/predict`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        signal: controller.signal,
         body: JSON.stringify({
           features: features || [2.1, 88.0, 15.2, 7.2, 1.0, 4.5, 0.85],
         }),
       });
+      clearTimeout(timeoutId);
       if (!res.ok) throw new Error("Predict request failed");
       return await res.json();
     } catch (e) {

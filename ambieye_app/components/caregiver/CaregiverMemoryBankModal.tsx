@@ -12,6 +12,7 @@ import {
   Platform,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WarmPalette } from "../../constants/theme";
 import { caregiverStorage, MemoryBankItem } from "../../utils/caregiverStorage";
 import { musicService } from "../../services/music/musicService";
@@ -35,6 +36,7 @@ const CATEGORY_TABS: Array<{ cat: MemoryCategory; label: string; icon: keyof typ
 ];
 
 export const CaregiverMemoryBankModal: React.FC<Props> = ({ visible, onClose, elderName }) => {
+  const insets = useSafeAreaInsets();
   const [items, setItems] = useState<MemoryBankItem[]>([]);
   const [activeTab, setActiveTab] = useState<MemoryCategory>("people");
   const [showAddForm, setShowAddForm] = useState(false);
@@ -106,12 +108,18 @@ export const CaregiverMemoryBankModal: React.FC<Props> = ({ visible, onClose, el
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent
+      statusBarTranslucent
+      onRequestClose={onClose}
+    >
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={styles.overlay}
       >
-        <View style={styles.sheetContainer}>
+        <View style={[styles.sheetContainer, { paddingBottom: Math.max(insets.bottom, 24) }]}>
           {/* Header */}
           <View style={styles.header}>
             <View style={{ flex: 1 }}>
@@ -302,6 +310,7 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     maxHeight: "92%",
+    minHeight: "55%",
   },
   header: {
     flexDirection: "row",

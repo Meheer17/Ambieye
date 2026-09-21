@@ -142,6 +142,7 @@ export const SmritiGeetiRadio: React.FC = () => {
   useEffect(() => {
     return () => {
       radioAudioService.stop();
+      VoiceAssistant.stop();
     };
   }, []);
 

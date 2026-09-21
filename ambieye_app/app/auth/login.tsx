@@ -208,7 +208,7 @@ export default function LoginScreen() {
           <View style={styles.headerSection}>
             <View style={[styles.logoContainer, { borderColor: `${accentColor}40` }]}>
               <Image
-                source={require("../../assets/images/logo.png")}
+                source={require("../../assets/images/mindcare_logo_circle.png")}
                 style={styles.logo}
               />
             </View>
@@ -436,20 +436,22 @@ const styles = StyleSheet.create({
     marginBottom: 28,
   },
   logoContainer: {
-    width: 72,
-    height: 72,
-    borderRadius: 22,
-    backgroundColor: "rgba(255,255,255,0.08)",
+    width: 76,
+    height: 76,
+    borderRadius: 38,
+    backgroundColor: "transparent",
     borderWidth: 1.5,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 16,
+    overflow: "hidden",
     ...Shadows.md,
   },
   logo: {
-    width: 44,
-    height: 44,
-    resizeMode: "contain",
+    width: 74,
+    height: 74,
+    borderRadius: 37,
+    resizeMode: "cover",
   },
   rolePickerContainer: {
     flexDirection: "row",

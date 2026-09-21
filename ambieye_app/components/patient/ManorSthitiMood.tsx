@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   StyleSheet,
   View,
@@ -115,6 +115,12 @@ export function ManorSthitiMood({ onOpenCalmCorner, onOpenFamilyCall }: Props) {
   const { currentLang } = useTranslation();
   const [selectedMoodId, setSelectedMoodId] = useState<string | null>(null);
   const [alertSentNotice, setAlertSentNotice] = useState<string | null>(null);
+
+  useEffect(() => {
+    return () => {
+      VoiceAssistant.stop();
+    };
+  }, []);
 
   const getTitle = (m: MoodOption) => {
     if (currentLang === "as") return m.titleAs;

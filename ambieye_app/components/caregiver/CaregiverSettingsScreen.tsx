@@ -318,7 +318,7 @@ export const CaregiverSettingsScreen: React.FC = () => {
             onPress={() =>
               Alert.alert(
                 "Need Support?",
-                "Contact our 24/7 care coordination desk at support@ambieye.org or call 1800-123-DEMENTIA."
+                "Contact our 24/7 care coordination desk at support@mindcare.org or call 1800-123-DEMENTIA."
               )
             }
           >

@@ -12,6 +12,7 @@ import {
   Platform,
 } from "react-native";
 import Feather from "@expo/vector-icons/Feather";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { WarmPalette } from "../../constants/theme";
 import { caregiverStorage, ShiftHandoffRecord } from "../../utils/caregiverStorage";
 
@@ -22,6 +23,7 @@ interface Props {
 }
 
 export const CaregiverShiftHandoffModal: React.FC<Props> = ({ visible, onClose, onSaved }) => {
+  const insets = useSafeAreaInsets();
   const [record, setRecord] = useState<ShiftHandoffRecord | null>(null);
   const [noteText, setNoteText] = useState("");
   const [hasVoiceSummary, setHasVoiceSummary] = useState(true);
@@ -70,12 +72,18 @@ export const CaregiverShiftHandoffModal: React.FC<Props> = ({ visible, onClose, 
   if (!record) return null;
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
+    <Modal
+      visible={visible}
+      animationType="slide"
+      transparent
+      statusBarTranslucent
+      onRequestClose={onClose}
+    >
       <KeyboardAvoidingView
         behavior={Platform.OS === "ios" ? "padding" : undefined}
         style={styles.overlay}
       >
-        <View style={styles.sheetContainer}>
+        <View style={[styles.sheetContainer, { paddingBottom: Math.max(insets.bottom, 24) }]}>
           {/* Header */}
           <View style={styles.header}>
             <View style={{ flex: 1 }}>

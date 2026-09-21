@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   StyleSheet,
   View,
@@ -10,6 +10,7 @@ import {
   Linking,
   ScrollView,
   Animated,
+  Alert,
 } from "react-native";
 import Feather from "@expo/vector-icons/Feather";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
@@ -71,15 +72,36 @@ const FAMILY_CONTACTS: FamilyContact[] = [
     avatarEmoji: "👨‍💼",
     avatarBg: "#EFF6FF",
     borderColor: "#60A5FA",
-    statusText: "Available on 1-Tap",
-    videoGreetingTitle: "Rahul's Daily Blessing ☀️",
+    statusText: "Free at 1:30 PM Lunch",
+    videoGreetingTitle: "Quick Hello from Office 💼",
     videoGreetingMessage:
-      "Nomoskar Deuta! I just finished my morning client meeting in Guwahati. Hope you enjoyed the radio music. I'm coming to see you this Sunday with fresh sweets!",
+      "Deuta, Rahul here! Hope you enjoyed your morning courtyard walk. I will call you after my office meeting today. Stay joyful!",
     videoGreetingMessageAs:
-      "নমস্কাৰ দেউতা! মই গুৱাহাটীত অফিচৰ কাম শেষ কৰিলোঁ। আপুনি ৰেডিঅ’ত গান শুনি ভাল পালে নে? এই দেওবাৰে মই নতুন মিঠাই লৈ আপোনাক দেখা কৰিবলৈ আহিম!",
+      "দেউতা, মই ৰাহুল! আশা কৰোঁ পুৱাৰ বাৰাণ্ডাৰ খোজকাঢ়ি ভাল পালে। অফিচৰ কাম শেষ কৰিয়েই আপোনালৈ ফোন কৰিম। আনন্দত থাকক!",
     videoGreetingMessageHi:
-      "नमस्ते पिताजी! मैंने अभी ऑफिस की मीटिंग पूरी की है। आशा है आपने रेडियो पर भजन सुने। इस रविवार मैं आपसे मिलने आ रहा हूँ!",
-    greetingTime: "Recorded Yesterday",
+      "पिताजी, मैं राहुल! आशा है सुबह की सैर अच्छी रही। ऑफिस से फ्री होकर आपको फोन करूँगा। मुस्कुराते रहिए!",
+    greetingTime: "Recorded 9:00 AM today",
+  },
+  {
+    id: "fam-arjun",
+    name: "Arjun Barman",
+    relationship: "Grandson (Class 7)",
+    relationshipAs: "মৰমৰ নাতি",
+    relationshipHi: "पोता (अर्जुन)",
+    roleBadge: "School · Back by 3 PM",
+    phone: "+91 98540 99887",
+    avatarEmoji: "🏏",
+    avatarBg: "#ECFDF5",
+    borderColor: "#34D399",
+    statusText: "Cricket Practice 4 PM",
+    videoGreetingTitle: "Story Request from Arjun 📖",
+    videoGreetingMessage:
+      "Koka! Arjun here. Please think of a new Brahmaputra river monster story for me today. I will come sit with you right after cricket!",
+    videoGreetingMessageAs:
+      "ককা! মই অৰ্জুন। আজি মোৰ বাবে ব্ৰহ্মপুত্ৰৰ এটা নতুন সাধু সাজু কৰি ৰাখিব। ক্ৰিকেট খেলি উঠি পোনচাটেই আপোনাৰ ওচৰলৈ আহিম!",
+    videoGreetingMessageHi:
+      "दादाजी! मैं अर्जुन। आज मेरे लिए एक नई कहानी सोचकर रखिएगा। क्रिकेट के बाद आपके पास आऊंगा!",
+    greetingTime: "Recorded 7:45 AM today",
   },
   {
     id: "fam-doctor",
@@ -112,6 +134,12 @@ export function AponManuhSpeedDial() {
   const [callingContact, setCallingContact] = useState<FamilyContact | null>(null);
   const [callConnected, setCallConnected] = useState(false);
 
+  useEffect(() => {
+    return () => {
+      VoiceAssistant.stop();
+    };
+  }, []);
+
   // Helper for translated relation
   const getRelation = (contact: FamilyContact) => {
     if (currentLang === "as") return contact.relationshipAs;
@@ -134,30 +162,15 @@ export function AponManuhSpeedDial() {
   };
 
   const handleStartCall = (contact: FamilyContact) => {
-    setCallingContact(contact);
-    setCallModalVisible(true);
-    setCallConnected(false);
-
     const dialMsg =
       currentLang === "as"
-        ? `${contact.name} লৈ কল কৰা হৈছে... সংযোগ হৈ আছে।`
+        ? `${contact.name} লৈ অফিচিয়েল ফোন কল সংযোগ কৰা হৈছে...`
         : currentLang === "hi"
-        ? `${contact.name} को कॉल किया जा रहा है...`
-        : `Calling ${contact.name}... Connecting your family line.`;
+        ? `${contact.name} को ऑफिशियल फोन कॉल से जोड़ा जा रहा है...`
+        : `Connecting to official phone line for ${contact.name}...`;
 
     VoiceAssistant.speak(dialMsg, currentLang);
-
-    // Simulate connection after 2 seconds
-    setTimeout(() => {
-      setCallConnected(true);
-      const connectedMsg =
-        currentLang === "as"
-          ? `নমস্কাৰ দেউতা! মই ${contact.name}, কওক কেনে আছে?`
-          : currentLang === "hi"
-          ? `नमस्ते पिताजी! मैं ${contact.name}, आप कैसे हैं?`
-          : `Hello Bhaben! This is ${contact.name}, I am so happy you called!`;
-      VoiceAssistant.speak(connectedMsg, currentLang);
-    }, 2400);
+    handleNativePhoneDial(contact.phone);
   };
 
   const handleEndCall = () => {
@@ -168,8 +181,16 @@ export function AponManuhSpeedDial() {
   };
 
   const handleNativePhoneDial = (phone: string) => {
+    const cleanNumber = (phone || "+919876543210").replace(/[\s\-()]/g, "");
     if (Platform.OS !== "web") {
-      Linking.openURL(`tel:${phone.replace(/\s+/g, "")}`);
+      Linking.openURL(`tel:${cleanNumber}`).catch(() => {
+        Alert.alert("Official Phone Line", `Please dial: ${phone}`);
+      });
+    } else {
+      Alert.alert(
+        "Official External Call",
+        `In compliance with medical tele-consultation rules, calls are connected via external official phones.\n\nCalling: ${phone}`
+      );
     }
   };
 
@@ -402,7 +423,7 @@ export function AponManuhSpeedDial() {
                       : currentLang === "hi"
                       ? `"नमस्ते पिताजी! मैं सुन रहा हूँ, आप कैसे हैं?"`
                       : `"Hello Bhaben! I am so happy to hear your voice. Everything at home is good!"`
-                    : "Connecting via AmbiEye Smart Senior Safe Line..."}
+                    : "Connecting via MindCare Smart Senior Safe Line..."}
                 </Text>
               </View>
 

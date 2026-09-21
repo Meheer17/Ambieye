@@ -238,6 +238,7 @@ export default function NumberOrderScreen() {
 
     return () => {
       isMounted = false;
+      VoiceAssistant.stop();
       // Early exit abandonment: if exited before completing all 5 rounds
       if (!isCompletedRef.current && !isAbandonedRef.current && sessionIdRef.current) {
         isAbandonedRef.current = true;
@@ -720,7 +721,7 @@ export default function NumberOrderScreen() {
 
             <TouchableOpacity
               style={styles.backHomeBtn}
-              onPress={() => router.back()}
+              onPress={() => router.replace("/(patient)/games" as any)}
               activeOpacity={0.8}
             >
               <Feather name="home" size={20} color="#0F172A" />
@@ -745,7 +746,7 @@ export default function NumberOrderScreen() {
       <View style={styles.topBar}>
         <TouchableOpacity
           style={styles.backIconButton}
-          onPress={() => router.back()}
+          onPress={() => router.replace("/(patient)/games" as any)}
           activeOpacity={0.7}
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         >

@@ -29,6 +29,7 @@ import numpy as np
 from fastapi import FastAPI, File, UploadFile, HTTPException, Body, Request, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
+from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 import aiofiles
 
@@ -273,12 +274,17 @@ app = FastAPI(title="AmbiEye Eye Tracking Server", version="3.0.0")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_methods=["GET", "POST"],
+    allow_credentials=True,
+    allow_methods=["*"],
     allow_headers=["*"],
 )
 
 UPLOAD_DIR = Path(tempfile.gettempdir()) / "ambieye_uploads"
 UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+
+MEDIA_UPLOAD_DIR = Path(__file__).parent / "uploads"
+MEDIA_UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
+app.mount("/uploads", StaticFiles(directory=str(MEDIA_UPLOAD_DIR)), name="uploads")
 
 
 # ── Pydantic models ───────────────────────────────────────────────────────────
@@ -1352,11 +1358,12 @@ async def get_alerts_api(user_id: str = "mahi"):
 # WEBSOCKET REAL-TIME STREAMING ENDPOINT
 # ══════════════════════════════════════════════════════════════════════════════
 
+@app.websocket("/ws")
 @app.websocket("/ws/realtime")
 async def websocket_realtime_stream(websocket: WebSocket):
     """
     WebSocket endpoint for real-time bidirectional telemetry, wandering alerts,
-    and instant status updates across Caregiver and Patient mobile apps.
+    personalized memory activities, and instant status updates across Caregiver and Patient mobile apps.
     """
     await realtime_manager.connect(websocket)
     try:
@@ -1474,6 +1481,145 @@ async def toggle_patient_music_favorite(patient_id: str, payload: Dict[str, Any]
     database.toggle_music_favorite(patient_id, track_id, is_favorite)
     favs = database.get_patient_music_favorites(patient_id)
     return {"patientId": patient_id, "trackId": track_id, "isFavorite": is_favorite, "favorites": favs}
+
+
+# ══════════════════════════════════════════════════════════════════════════════
+# PERSONALIZED RECOGNITION ACTIVITIES & CAREGIVER ANALYTICS REST API
+# ══════════════════════════════════════════════════════════════════════════════
+
+@app.post("/api/personalized-activities/upload-media")
+async def upload_activity_media(file: UploadFile = File(...)):
+    """
+    Handles photo, audio voice note, and video clip uploads for personalized recognition activities.
+    Saves files securely to the uploads folder and returns accessible static URL.
+    """
+    if not file:
+        raise HTTPException(status_code=400, detail="No file provided")
+
+    # Generate a unique safe filename
+    orig_ext = Path(file.filename).suffix if file.filename else ""
+    if not orig_ext:
+        content_type = file.content_type or ""
+        if "image" in content_type:
+            orig_ext = ".jpg"
+        elif "audio" in content_type:
+            orig_ext = ".m4a"
+        elif "video" in content_type:
+            orig_ext = ".mp4"
+        else:
+            orig_ext = ".dat"
+
+    safe_filename = f"media_{uuid.uuid4().hex[:16]}{orig_ext}"
+    dest_path = MEDIA_UPLOAD_DIR / safe_filename
+
+    try:
+        async with aiofiles.open(dest_path, "wb") as out_file:
+            while content := await file.read(1024 * 1024):  # Read 1MB chunks
+                await out_file.write(content)
+
+        media_type = "photo"
+        if file.content_type:
+            if "audio" in file.content_type:
+                media_type = "audio"
+            elif "video" in file.content_type:
+                media_type = "video"
+            elif "image" in file.content_type:
+                media_type = "photo"
+
+        media_url = f"/uploads/{safe_filename}"
+        logger.info("[MediaUpload] Stored %s (%s) at %s", safe_filename, media_type, dest_path)
+
+        return {
+            "success": True,
+            "fileName": safe_filename,
+            "mediaUrl": media_url,
+            "mediaType": media_type,
+            "size": dest_path.stat().st_size if dest_path.exists() else 0,
+        }
+    except Exception as e:
+        logger.error("[MediaUpload] Failed to save file: %s", e)
+        raise HTTPException(status_code=500, detail=f"Failed to save upload: {str(e)}")
+
+
+@app.post("/api/personalized-activities")
+async def create_activity(payload: Dict[str, Any]):
+    """
+    Caregiver endpoint to create a personalized recognition activity.
+    Persists to SQLite and immediately broadcasts a real-time event to the patient client.
+    """
+    if not payload.get("promptQuestion") and not payload.get("prompt_question") and not payload.get("title"):
+        raise HTTPException(status_code=400, detail="Prompt question or title is required")
+
+    activity = database.create_personalized_activity(payload)
+
+    # Real-Time WebSocket broadcast to connected patient app
+    broadcast_msg = {
+        "type": "NEW_PERSONALIZED_ACTIVITY",
+        "activity": activity,
+        "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ"),
+    }
+    await realtime_manager.broadcast(broadcast_msg)
+    logger.info("[PersonalizedActivities] Created activity '%s' (ID: %s). Broadcast sent to WS clients.", activity["title"], activity["id"])
+
+    return {"status": "success", "activity": activity}
+
+
+@app.get("/api/personalized-activities")
+async def list_activities(patient_id: str = "mahi", status: Optional[str] = None):
+    """Retrieves all personalized activities for a patient."""
+    activities = database.get_personalized_activities(patient_id, status)
+    return {"patientId": patient_id, "activities": activities, "count": len(activities)}
+
+
+@app.get("/api/personalized-activities/results")
+async def get_activity_results(patient_id: str = "mahi"):
+    """Retrieves detailed personalized recognition results history for caregiver dashboard."""
+    results = database.get_personalized_activity_results(patient_id)
+    return {"patientId": patient_id, "results": results, "count": len(results)}
+
+
+@app.get("/api/personalized-activities/summary")
+async def get_activity_summary(patient_id: str = "mahi"):
+    """Computes aggregated recognition agility, accuracy, and engagement metrics for caregiver."""
+    summary = database.get_personalized_activity_summary(patient_id)
+    return summary
+
+
+@app.get("/api/personalized-activities/{activity_id}")
+async def get_activity_by_id(activity_id: str):
+    """Retrieves single personalized recognition activity details."""
+    act = database.get_personalized_activity_by_id(activity_id)
+    if not act:
+        raise HTTPException(status_code=404, detail="Activity not found")
+    return {"status": "success", "activity": act}
+
+
+@app.delete("/api/personalized-activities/{activity_id}")
+async def delete_activity_by_id(activity_id: str):
+    """Deletes a personalized activity."""
+    success = database.delete_personalized_activity(activity_id)
+    return {"status": "success", "deleted": success, "activityId": activity_id}
+
+
+@app.post("/api/personalized-activities/{activity_id}/submit")
+async def submit_activity_result(activity_id: str, payload: Dict[str, Any]):
+    """
+    Patient endpoint to submit their recognition answer, timing, and emotional reaction.
+    Persists result in SQLite and notifies caregiver dashboard via WebSocket.
+    """
+    payload["activityId"] = activity_id
+    result = database.record_personalized_activity_result(payload)
+
+    # Real-time notification to caregiver
+    broadcast_msg = {
+        "type": "PERSONALIZED_ACTIVITY_COMPLETED",
+        "result": result,
+        "timestamp": time.strftime("%Y-%m-%dT%H:%M:%SZ"),
+    }
+    await realtime_manager.broadcast(broadcast_msg)
+    logger.info("[PersonalizedActivities] Result recorded for activity %s (Correct: %s, Reaction: %s)", activity_id, result["isCorrect"], result.get("patientReaction"))
+
+    return {"status": "success", "result": result}
 
 
 

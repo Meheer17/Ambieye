@@ -149,20 +149,36 @@ export default function CalmCornerModal({ visible, onClose }: CalmCornerModalPro
     };
   }, [visible, activeTab, pattern, breathAnim]);
 
+  useEffect(() => {
+    if (!visible) {
+      VoiceAssistant.stop();
+    }
+    return () => {
+      VoiceAssistant.stop();
+    };
+  }, [visible]);
+
+  const handleClose = () => {
+    VoiceAssistant.stop();
+    onClose();
+  };
+
   const handleReadAffirmation = () => {
     VoiceAssistant.speak(AFFIRMATIONS[currentAffirmationIndex], currentLang);
   };
 
   const handleNextAffirmation = () => {
+    VoiceAssistant.stop();
     setCurrentAffirmationIndex((prev) => (prev + 1) % AFFIRMATIONS.length);
   };
 
   const handlePrevAffirmation = () => {
+    VoiceAssistant.stop();
     setCurrentAffirmationIndex((prev) => (prev === 0 ? AFFIRMATIONS.length - 1 : prev - 1));
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={onClose}>
+    <Modal visible={visible} animationType="slide" transparent={true} onRequestClose={handleClose}>
       <View style={styles.overlay}>
         <View style={styles.container}>
           {/* Header */}
@@ -174,7 +190,7 @@ export default function CalmCornerModal({ visible, onClose }: CalmCornerModalPro
                 <Text style={styles.subtitle}>Gentle sensory relaxation & anxiety relief</Text>
               </View>
             </View>
-            <TouchableOpacity onPress={onClose} style={styles.closeBtn}>
+            <TouchableOpacity onPress={handleClose} style={styles.closeBtn}>
               <Feather name="x" size={22} color="#64748B" />
             </TouchableOpacity>
           </View>

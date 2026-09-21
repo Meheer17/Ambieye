@@ -29,6 +29,7 @@ export interface RawCompanionEvent {
     difficulty?: string;
     metadata?: Record<string, any>; // Flexible game-specific payload
   };
+  metadata?: Record<string, any>;
 }
 
 /**

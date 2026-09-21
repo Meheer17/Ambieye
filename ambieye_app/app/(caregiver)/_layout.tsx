@@ -3,43 +3,49 @@ import { View, StyleSheet, Platform } from "react-native";
 import Feather from "@expo/vector-icons/Feather";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { Tabs } from "expo-router";
-import { WarmPalette, PastelPalette } from "@/constants/theme";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const ICON_SIZE = 22;
 
 export default function CaregiverTabLayout() {
+  const insets = useSafeAreaInsets();
+  const bottomInset = Math.max(insets.bottom, Platform.OS === "android" ? 14 : 0);
+  const tabHeight = 62 + bottomInset;
+
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: PastelPalette.rosePrimary,
-        tabBarInactiveTintColor: WarmPalette.charcoalWarm + "80",
+        tabBarActiveTintColor: "#2563EB",
+        tabBarInactiveTintColor: "#64748B",
         tabBarStyle: {
           position: "absolute",
           bottom: 0,
-          width: "100%",
-          backgroundColor: WarmPalette.ivory,
+          left: 0,
+          right: 0,
+          backgroundColor: "#FFFFFF",
           borderTopWidth: 1,
-          borderTopColor: WarmPalette.sand,
-          height: Platform.OS === "ios" ? 90 : 78,
-          paddingBottom: Platform.OS === "ios" ? 28 : 16,
+          borderTopColor: "#E2E8F0",
+          height: tabHeight,
+          paddingBottom: bottomInset + 2,
           paddingTop: 8,
-          elevation: 25,
-          shadowColor: "#000",
-          shadowOffset: { width: 0, height: -4 },
-          shadowOpacity: 0.08,
-          shadowRadius: 16,
-          borderTopLeftRadius: 24,
-          borderTopRightRadius: 24,
+          elevation: 20,
+          shadowColor: "#0F172A",
+          shadowOffset: { width: 0, height: -3 },
+          shadowOpacity: 0.06,
+          shadowRadius: 12,
+          borderTopLeftRadius: 20,
+          borderTopRightRadius: 20,
         },
         tabBarLabelStyle: {
-          fontSize: 12,
-          fontWeight: "800",
-          letterSpacing: 0.2,
+          fontSize: 11,
+          fontWeight: "700",
+          letterSpacing: -0.1,
           marginTop: 2,
         },
         headerShown: false,
       }}
     >
+      {/* 1. Home */}
       <Tabs.Screen
         name="index"
         options={{
@@ -51,32 +57,38 @@ export default function CaregiverTabLayout() {
           ),
         }}
       />
-      <Tabs.Screen
-        name="care"
-        options={{
-          title: "Tele-Care",
-          tabBarIcon: ({ color, focused }) => (
-            <View style={focused ? styles.activeIconBg : styles.iconBg}>
-              <MaterialCommunityIcons name="doctor" size={24} color={color} />
-            </View>
-          ),
-        }}
-      />
+
+      {/* 2. Cognition */}
       <Tabs.Screen
         name="activities"
         options={{
-          title: "Activities",
+          title: "Cognition",
           tabBarIcon: ({ color, focused }) => (
             <View style={focused ? styles.activeIconBg : styles.iconBg}>
-              <Feather name="activity" size={ICON_SIZE} color={color} />
+              <MaterialCommunityIcons name="brain" size={23} color={color} />
             </View>
           ),
         }}
       />
+
+      {/* 3. Care */}
+      <Tabs.Screen
+        name="care"
+        options={{
+          title: "Care",
+          tabBarIcon: ({ color, focused }) => (
+            <View style={focused ? styles.activeIconBg : styles.iconBg}>
+              <Feather name="heart" size={ICON_SIZE} color={color} />
+            </View>
+          ),
+        }}
+      />
+
+      {/* 4. Care Circle */}
       <Tabs.Screen
         name="family"
         options={{
-          title: "Family",
+          title: "Circle",
           tabBarIcon: ({ color, focused }) => (
             <View style={focused ? styles.activeIconBg : styles.iconBg}>
               <Feather name="users" size={ICON_SIZE} color={color} />
@@ -84,6 +96,8 @@ export default function CaregiverTabLayout() {
           ),
         }}
       />
+
+      {/* 5. Profile */}
       <Tabs.Screen
         name="profile"
         options={{
@@ -101,16 +115,16 @@ export default function CaregiverTabLayout() {
 
 const styles = StyleSheet.create({
   iconBg: {
-    width: 44,
-    height: 32,
+    width: 42,
+    height: 30,
     justifyContent: "center",
     alignItems: "center",
   },
   activeIconBg: {
-    backgroundColor: WarmPalette.peach,
-    borderRadius: 12,
-    width: 44,
-    height: 32,
+    backgroundColor: "#EFF6FF",
+    borderRadius: 10,
+    width: 42,
+    height: 30,
     justifyContent: "center",
     alignItems: "center",
   },

@@ -34,6 +34,12 @@ export default function FindCharactersGame() {
   const [foundCount, setFoundCount] = useState(0);
   const [gameStartTime, setGameStartTime] = useState(0);
 
+  useEffect(() => {
+    return () => {
+      VoiceAssistant.stop();
+    };
+  }, []);
+
   const startGame = (diff: "easy" | "medium" | "hard" = "easy") => {
     setDifficulty(diff);
     setGameActive(true);
@@ -137,7 +143,7 @@ export default function FindCharactersGame() {
     return (
       <SafeAreaView style={styles.container}>
         <View style={styles.headerBar}>
-          <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <TouchableOpacity onPress={() => router.replace("/(patient)/games" as any)} style={styles.backBtn}>
             <Feather name="arrow-left" size={24} color="#0F172A" />
           </TouchableOpacity>
           <Text style={styles.headerBarTitle}>{t("game_visual_search")}</Text>
@@ -212,7 +218,7 @@ export default function FindCharactersGame() {
             <Text style={styles.startBtnText}>{t("play_again")}</Text>
           </TouchableOpacity>
 
-          <TouchableOpacity style={styles.secondaryBtn} onPress={() => router.back()}>
+          <TouchableOpacity style={styles.secondaryBtn} onPress={() => router.replace("/(patient)/games" as any)}>
             <Text style={styles.secondaryBtnText}>{t("back_to_games")}</Text>
           </TouchableOpacity>
         </View>
@@ -224,7 +230,7 @@ export default function FindCharactersGame() {
     <SafeAreaView style={styles.container}>
       {/* Top Bar */}
       <View style={styles.topStatsBar}>
-        <TouchableOpacity onPress={() => router.back()} style={styles.exitBtn}>
+        <TouchableOpacity onPress={() => router.replace("/(patient)/games" as any)} style={styles.exitBtn}>
           <Feather name="x" size={22} color="#0F172A" />
         </TouchableOpacity>
 

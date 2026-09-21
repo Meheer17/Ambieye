@@ -1,22 +1,42 @@
 import { Platform } from "react-native";
+import Constants from "expo-constants";
 
-// Local Machine IP from ipconfig (Wi-Fi LAN)
-const LOCAL_WIFI_IP = "172.25.62.153";
+// Fallback Local Machine IP from ipconfig (Wi-Fi LAN)
+const DEFAULT_LAN_IP = "10.133.31.66";
+
+/**
+ * Dynamically resolves the development machine IP from Expo bundler
+ */
+export function getDevHostIp(): string {
+  try {
+    const hostUri =
+      Constants.expoConfig?.hostUri ||
+      (Constants as any)?.manifest?.debuggerHost ||
+      (Constants as any)?.manifest2?.extra?.expoClient?.hostUri;
+
+    if (hostUri) {
+      const ip = hostUri.split(":")[0];
+      if (ip && ip !== "localhost" && ip !== "127.0.0.1") {
+        return ip;
+      }
+    }
+  } catch {
+    // fallback below
+  }
+  return DEFAULT_LAN_IP;
+}
+
+const LOCAL_WIFI_IP = getDevHostIp();
 
 // Python FastAPI backend running on port 8000
-const PYTHON_BACKEND_URL =
-  Platform.OS === "android" || Platform.OS === "ios"
-    ? `http://${LOCAL_WIFI_IP}:8000/api`
-    : "http://localhost:8000/api";
+const PYTHON_BACKEND_URL = `http://${LOCAL_WIFI_IP}:8000/api`;
 
 // WebSocket Call Signaling URL
-const WS_CALLS_URL =
-  Platform.OS === "android" || Platform.OS === "ios"
-    ? `ws://${LOCAL_WIFI_IP}:8000/ws/calls`
-    : "ws://localhost:8000/ws/calls";
+const WS_CALLS_URL = `ws://${LOCAL_WIFI_IP}:8000/ws/calls`;
 
 export const API_CONFIG = {
   LOCAL_IP: LOCAL_WIFI_IP,
+  getDevHostIp,
   // Primary: Local Python FastAPI backend
   BASE_URL: PYTHON_BACKEND_URL,
   WS_CALLS_URL: WS_CALLS_URL,
@@ -69,5 +89,16 @@ export const API_CONFIG = {
       SUMMARY: (patientId: string) => `/patients/${patientId}/music/summary`,
       FAVORITES: (patientId: string) => `/patients/${patientId}/music/favorites`,
     },
+    PERSONALIZED_ACTIVITIES: {
+      BASE: "/personalized-activities",
+      CREATE: "/personalized-activities",
+      LIST: "/personalized-activities",
+      UPLOAD_MEDIA: "/personalized-activities/upload-media",
+      DETAIL: (id: string) => `/personalized-activities/${id}`,
+      SUBMIT: (id: string) => `/personalized-activities/${id}/submit`,
+      RESULTS: "/personalized-activities/results",
+      SUMMARY: "/personalized-activities/summary",
+    },
   },
 };
+

@@ -13,6 +13,8 @@ import {
   StatusBar,
   Platform,
   RefreshControl,
+  Linking,
+  Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Feather from "@expo/vector-icons/Feather";
@@ -524,10 +526,25 @@ function PatientDetailsModal({
             <Text style={modalStyles.infoItemText}>{patient.email}</Text>
           </View>
           {patient.phone && (
-            <View style={modalStyles.infoItem}>
-              <Feather name="phone" size={16} color="#0EA5E9" />
-              <Text style={modalStyles.infoItemText}>{patient.phone}</Text>
-            </View>
+            <TouchableOpacity
+              style={[modalStyles.infoItem, { backgroundColor: "#F0FDF4", borderColor: "#BBF7D0", borderWidth: 1, borderRadius: 10, paddingVertical: 8, paddingHorizontal: 10 }]}
+              onPress={() => {
+                const cleanPhone = (patient.phone || "").replace(/[\s\-()]/g, "");
+                if (Platform.OS !== "web" && cleanPhone) {
+                  Linking.openURL(`tel:${cleanPhone}`).catch(() => {
+                    Alert.alert("Official Phone Line", `Dial: ${patient.phone || ""}`);
+                  });
+                } else {
+                  Alert.alert("Official Phone Call", `Dial patient at: ${patient.phone || "N/A"}`);
+                }
+              }}
+              activeOpacity={0.75}
+            >
+              <Feather name="phone-call" size={16} color="#059669" />
+              <Text style={[modalStyles.infoItemText, { color: "#059669", fontWeight: "700" }]}>
+                {patient.phone} (Tap to Call Official Phone)
+              </Text>
+            </TouchableOpacity>
           )}
           {patient.fatherName && (
             <View style={modalStyles.infoItem}>
@@ -1863,6 +1880,34 @@ export default function PatientsScreen() {
               )}
             </View>
           </View>
+          {item.phone && (
+            <TouchableOpacity
+              style={{
+                width: 38,
+                height: 38,
+                borderRadius: 19,
+                backgroundColor: "#F0FDF4",
+                borderWidth: 1,
+                borderColor: "#BBF7D0",
+                justifyContent: "center",
+                alignItems: "center",
+                marginRight: 6,
+              }}
+              onPress={(e) => {
+                e.stopPropagation();
+                const cleanPhone = (item.phone || "").replace(/[\s\-()]/g, "");
+                if (Platform.OS !== "web" && cleanPhone) {
+                  Linking.openURL(`tel:${cleanPhone}`).catch(() => {});
+                } else {
+                  Alert.alert("Official Phone Line", `Dial: ${item.phone || ""}`);
+                }
+              }}
+              activeOpacity={0.75}
+              accessibilityLabel={`Call ${item.fullName}`}
+            >
+              <Feather name="phone-call" size={16} color="#059669" />
+            </TouchableOpacity>
+          )}
           <Feather name="chevron-right" size={24} color="#0EA5E9" />
         </TouchableOpacity>
       </View>

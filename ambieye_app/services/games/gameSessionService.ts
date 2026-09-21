@@ -10,6 +10,7 @@ import {
   RecordGameEventParams,
   UpdateGameSessionParams,
 } from "@/types/gameSession";
+import { getActivityCategory } from "@/constants/activityCategories";
 
 /**
  * Key for temporary offline buffering when network is unreachable.
@@ -64,6 +65,9 @@ export class GameSessionService {
       `sess_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
     const startedAt = new Date().toISOString();
 
+    const category = getActivityCategory(params.gameId);
+    const enrichedMetadata = { category, ...(params.metadata || {}) };
+
     const payload = {
       sessionId,
       patientId,
@@ -71,7 +75,7 @@ export class GameSessionService {
       startedAt,
       status: "in_progress",
       score: null,
-      metadata: params.metadata || {},
+      metadata: enrichedMetadata,
     };
 
     try {
@@ -86,7 +90,7 @@ export class GameSessionService {
           patientId,
           gameId: params.gameId,
           eventType: "game_started",
-          metadata: { startedAt, ...params.metadata },
+          metadata: { startedAt, category, ...params.metadata },
         });
 
         return response.data.session as GameSession;
@@ -109,7 +113,7 @@ export class GameSessionService {
       duration: 0,
       status: "in_progress",
       score: null,
-      metadata: params.metadata || {},
+      metadata: enrichedMetadata,
     };
 
     return localSession;
@@ -123,15 +127,18 @@ export class GameSessionService {
     const patientId = await this.resolvePatientId(params.patientId);
     const eventId = `evt_${Date.now()}_${Math.random().toString(36).substring(2, 8)}`;
     const timestamp = params.timestamp || new Date().toISOString();
+    const gameId = params.gameId || "generic_game";
+    const category = getActivityCategory(gameId);
+    const enrichedMetadata = { category, ...(params.metadata || {}) };
 
     const payload = {
       eventId,
       sessionId: params.sessionId,
       patientId,
-      gameId: params.gameId || "generic_game",
+      gameId,
       eventType: params.eventType,
       timestamp,
-      metadata: params.metadata || {},
+      metadata: enrichedMetadata,
     };
 
     try {
@@ -154,10 +161,10 @@ export class GameSessionService {
       eventId,
       sessionId: params.sessionId,
       patientId,
-      gameId: params.gameId || "generic_game",
+      gameId,
       eventType: params.eventType,
       timestamp,
-      metadata: params.metadata || {},
+      metadata: enrichedMetadata,
     };
   }
 

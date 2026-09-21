@@ -17,6 +17,7 @@ import { useRouter, useFocusEffect } from "expo-router";
 import Feather from "@expo/vector-icons/Feather";
 import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { useAuth } from "@/hooks/useAuth";
+import { AestheticTheme } from "@/constants/theme";
 import { useTranslation, SUPPORTED_LANGUAGES, SupportedLanguage } from "@/constants/i18n";
 import {
   reminderStorage,
@@ -29,7 +30,7 @@ import {
   FamilySentItem,
   PatientProfile,
 } from "@/utils/caregiverStorage";
-import { companionService } from "@/services/companion/companionService";
+import { companionService, companionVoiceService } from "@/services/companion";
 import { VoiceAssistant } from "@/utils/voiceAssistant";
 import CalmCornerModal from "@/components/CalmCornerModal";
 import { VirtualAvatar, AvatarState } from "@/components/companion/VirtualAvatar";
@@ -38,6 +39,9 @@ import { MusicHubModal } from "@/components/patient/MusicHubModal";
 import { SmritiPhotobook } from "@/components/patient/SmritiPhotobook";
 import { AponManuhSpeedDial } from "@/components/patient/AponManuhSpeedDial";
 import { GharorBartaPostcards } from "@/components/patient/GharorBartaPostcards";
+import { PersonalizedRecognitionPopupModal } from "@/components/patient/PersonalizedRecognitionPopupModal";
+import { personalizedActivityService } from "@/services/personalizedActivity/personalizedActivityService";
+import { PersonalizedActivity } from "@/types/personalizedActivity";
 
 export default function PatientHomeScreen() {
   const router = useRouter();
@@ -52,6 +56,10 @@ export default function PatientHomeScreen() {
   const [companionModalVisible, setCompanionModalVisible] = useState(false);
   const [languageModalVisible, setLanguageModalVisible] = useState(false);
 
+  // Personalized Recognition Challenge Popup & State
+  const [activeChallenge, setActiveChallenge] = useState<PersonalizedActivity | null>(null);
+  const [challengePopupVisible, setChallengePopupVisible] = useState(false);
+
   // Patient Profile, Routines & Family Postcards
   const [profile, setProfile] = useState<PatientProfile | null>(null);
   const [routines, setRoutines] = useState<RoutineTask[]>([]);
@@ -64,22 +72,48 @@ export default function PatientHomeScreen() {
     "Good day, Bhaben! I am your companion Smriti Mitr. Tap 'Talk to Me' whenever you want to chat."
   );
 
+  // Real-time listener for newly uploaded caregiver memory challenges
+  useEffect(() => {
+    const unsub = personalizedActivityService.onNewActivity((act) => {
+      setActiveChallenge(act);
+      setChallengePopupVisible(true);
+    });
+
+    return () => {
+      unsub();
+      VoiceAssistant.stop();
+      companionVoiceService.cancelListening();
+      companionService.stopSpeech();
+    };
+  }, []);
+
   const loadData = useCallback(async () => {
     try {
       const prof = await caregiverStorage.getPatientProfile();
       const rts = await reminderStorage.getTodayRoutines();
       const fam = await caregiverStorage.getFamilySentItems();
+      const pendingChallenges = await personalizedActivityService.getActivities("mahi", "active");
+
       setProfile(prof);
       setRoutines(rts);
       setFamilyItems(fam);
+      if (pendingChallenges.length > 0) {
+        setActiveChallenge(pendingChallenges[0]);
+      }
     } catch (err) {
       console.error("[PatientHome] Error loading data:", err);
     }
   }, []);
 
+
   useFocusEffect(
     useCallback(() => {
       loadData();
+      return () => {
+        VoiceAssistant.stop();
+        companionVoiceService.cancelListening();
+        companionService.stopSpeech();
+      };
     }, [loadData])
   );
 
@@ -117,15 +151,53 @@ export default function PatientHomeScreen() {
   };
 
   const handleVoiceGreeting = () => {
-    const greetingText = `${getGreeting()}, ${profile?.name || "Bhaben"}. Today is ${getFormattedDate()}. I am your companion Smriti Mitr. Everything is calm and safe at home.`;
-    VoiceAssistant.speak(greetingText, currentLang);
+    const greetingText = `${getGreeting()}, ${profile?.name || "Bhaben"}! Today is ${getFormattedDate()}. I am your companion Smriti Mitr. Everything is calm and safe at home.`;
+    handleSpokenQuery(greetingText, true);
+  };
+
+  const handleSpokenQuery = async (queryText: string, isGreeting: boolean = false) => {
+    if (avatarState === "speaking" || avatarState === "comforting") {
+      companionService.stopSpeech();
+    }
+    setAvatarState("thinking");
+    if (!isGreeting) {
+      setAvatarSpeechText(`“${queryText}”`);
+    }
+
+    try {
+      let responseText = queryText;
+      let isDistressed = false;
+
+      if (!isGreeting) {
+        const result = await companionService.processElderInput(
+          queryText,
+          currentLang as any
+        );
+        responseText = result.responseText;
+        isDistressed = !!result.isDistressed;
+      }
+
+      setAvatarSpeechText(responseText);
+      setAvatarState(isDistressed ? "comforting" : "speaking");
+      companionService.speakResponse(responseText, currentLang as any, () => {
+        setAvatarState("idle");
+      });
+    } catch {
+      setAvatarState("idle");
+    }
   };
 
   // Avatar Voice Interaction: "Talk to Me"
   const handleAvatarMicTap = async () => {
-    if (avatarState === "speaking") {
+    if (avatarState === "speaking" || avatarState === "comforting") {
       companionService.stopSpeech();
       setAvatarState("idle");
+      return;
+    }
+
+    if (avatarState === "listening") {
+      // Patient tapped to stop speaking
+      companionVoiceService.stopListening();
       return;
     }
 
@@ -138,24 +210,27 @@ export default function PatientHomeScreen() {
         : "I am listening, please speak...";
     setAvatarSpeechText(listenPrompt);
 
-    setTimeout(async () => {
-      try {
-        const result = await companionService.processElderInput(
-          "Hello Smriti Mitr, how is my day looking?",
-          currentLang as any
-        );
-        setAvatarSpeechText(result.responseText);
-        setAvatarState("speaking");
-        companionService.speakResponse(result.responseText, currentLang as any);
-
-        const durationMs = Math.max(3000, result.responseText.length * 70);
-        setTimeout(() => {
-          setAvatarState("idle");
-        }, durationMs);
-      } catch {
+    companionVoiceService.startListening({
+      language: currentLang as SupportedLanguage,
+      onInterimTranscript: (text) => {
+        setAvatarSpeechText(`“${text}”`);
+      },
+      onSpeechEnd: async (finalTranscript) => {
+        const thinkingPrompt =
+          currentLang === "as"
+            ? "আপোনাৰ কথা মন দি ভাবি আছোঁ..."
+            : currentLang === "hi"
+            ? "आपके लिए विचार कर रहा हूँ..."
+            : "Thinking with care...";
+        setAvatarState("thinking");
+        setAvatarSpeechText(thinkingPrompt);
+        await handleSpokenQuery(finalTranscript);
+      },
+      onError: (err) => {
+        console.warn("[PatientHome] Companion voice error:", err);
         setAvatarState("idle");
-      }
-    }, 1800);
+      },
+    });
   };
 
   // Toggle routine completion
@@ -215,6 +290,8 @@ export default function PatientHomeScreen() {
 
   return (
     <SafeAreaView style={styles.safeArea} edges={["top"]}>
+      <View style={styles.ambientAuraTop} pointerEvents="none" />
+      <View style={styles.ambientAuraBottom} pointerEvents="none" />
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         showsVerticalScrollIndicator={false}
@@ -306,6 +383,56 @@ export default function PatientHomeScreen() {
             </View>
           </View>
 
+          {/* Quick Speech Topic Chips for Elder */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.companionPromptChips}
+          >
+            {[
+              {
+                text: currentLang === "as" ? "অনিতা ক'ত?" : currentLang === "hi" ? "अनिता कहाँ है?" : "Where is Anita?",
+                prompt: "Where is Anita?",
+                emoji: "🌸",
+              },
+              {
+                text: currentLang === "as" ? "পানী আৰু চাহ" : currentLang === "hi" ? "पानी और चाय" : "Water & Tea",
+                prompt: "What should I do right now? Water and tea",
+                emoji: "💧",
+              },
+              {
+                text: currentLang === "as" ? "মই ক'ত আছোঁ?" : currentLang === "hi" ? "मैं कहाँ हूँ?" : "Where am I?",
+                prompt: "Where am I?",
+                emoji: "🏡",
+              },
+              {
+                text: currentLang === "as" ? "মোৰ স্বাস্থ্য" : currentLang === "hi" ? "मेरी सेहत" : "My Health",
+                prompt: "How is my health and sleep today?",
+                emoji: "🩺",
+              },
+              {
+                text: currentLang === "as" ? "ভূপেন মামাৰ গান" : currentLang === "hi" ? "भूपेन दा का गाना" : "Bhupen Da Song",
+                prompt: "Can we listen to Dr. Bhupen Hazarika's song?",
+                emoji: "🎵",
+              },
+              {
+                text: currentLang === "as" ? "মাজুলীৰ স্মৃতি" : currentLang === "hi" ? "माजुली की यादें" : "Majuli Memories",
+                prompt: "Tell me about our home in Majuli by the river",
+                emoji: "🏞️",
+              },
+            ].map((chip, idx) => (
+              <TouchableOpacity
+                key={idx}
+                style={styles.companionPromptPill}
+                onPress={() => handleSpokenQuery(chip.prompt)}
+                activeOpacity={0.8}
+              >
+                <Text style={styles.companionPromptPillEmoji}>{chip.emoji}</Text>
+                <Text style={styles.companionPromptPillText}>{chip.text}</Text>
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+
           {/* Large Prominent "Talk to Me" Button */}
           <TouchableOpacity
             style={[
@@ -339,6 +466,54 @@ export default function PatientHomeScreen() {
             </Text>
           </TouchableOpacity>
         </View>
+
+        {/* ── 2.5 SPECIAL PERSONALIZED MEMORY CHALLENGE HERO BANNER ── */}
+        {activeChallenge && activeChallenge.status === "active" && (
+          <TouchableOpacity
+            style={styles.personalizedChallengeBanner}
+            onPress={() => {
+              setChallengePopupVisible(false);
+              router.push({
+                pathname: "/(patient)/(stack)/games/cognitive/personalized-recall" as any,
+                params: { activityId: activeChallenge.id },
+              });
+            }}
+            activeOpacity={0.88}
+          >
+            <View style={styles.pcBannerLeft}>
+              <View style={styles.pcStarCircle}>
+                <Text style={{ fontSize: 22 }}>🌟</Text>
+              </View>
+              <View style={{ flex: 1, marginLeft: 10 }}>
+                <View style={styles.pcTagRow}>
+                  <Text style={styles.pcTagText}>
+                    {activeChallenge.mediaType === "audio"
+                      ? "🎙️ VOICE CHALLENGE"
+                      : activeChallenge.mediaType === "video"
+                      ? "🎥 VIDEO MOMENT"
+                      : "📸 PHOTO RECALL"}
+                  </Text>
+                </View>
+                <Text style={styles.pcTitleText} numberOfLines={1}>
+                  {activeChallenge.title}
+                </Text>
+                <Text style={styles.pcPromptText} numberOfLines={2}>
+                  "{currentLang === "as"
+                    ? activeChallenge.promptQuestionAs || activeChallenge.promptQuestion
+                    : currentLang === "hi"
+                    ? activeChallenge.promptQuestionHi || activeChallenge.promptQuestion
+                    : activeChallenge.promptQuestion}"
+                </Text>
+              </View>
+            </View>
+            <View style={styles.pcPlayBtn}>
+              <Text style={styles.pcPlayBtnText}>
+                {currentLang === "as" ? "খেলক" : currentLang === "hi" ? "खेलें" : "Play"}
+              </Text>
+              <Feather name="arrow-right" size={14} color="#FFFFFF" />
+            </View>
+          </TouchableOpacity>
+        )}
 
         {/* ── 3. FEATURE DISCOVERY (4 CLEAR ELDERLY TILES) ───────────────── */}
         <View style={styles.discoverySection}>
@@ -454,61 +629,75 @@ export default function PatientHomeScreen() {
           </View>
 
           <View style={styles.routineList}>
-            {routines.slice(0, 4).map((task) => {
-              return (
-                <TouchableOpacity
-                  key={task.id}
-                  style={[
-                    styles.routineCard,
-                    task.completed && styles.routineCardCompleted,
-                  ]}
-                  onPress={() => handleToggleRoutine(task.id)}
-                  activeOpacity={0.85}
-                  accessibilityRole="button"
-                  accessibilityLabel={`${task.timeLabel} ${task.title}`}
-                >
-                  {/* Left: Time Badge */}
-                  <View style={styles.timeBadge}>
-                    <Text style={styles.timeBadgeText}>{task.timeLabel}</Text>
-                  </View>
-
-                  {/* Middle: Icon + Title + Description */}
-                  <View style={styles.routineMiddle}>
-                    <View style={styles.routineIconWrap}>
-                      {getRoutineIcon(task.iconName)}
-                    </View>
-                    <View style={styles.routineDetails}>
-                      <Text
-                        style={[
-                          styles.routineTitle,
-                          task.completed && styles.routineTitleCompleted,
-                        ]}
-                        numberOfLines={1}
-                      >
-                        {task.title}
-                      </Text>
-                      {task.description ? (
-                        <Text style={styles.routineDescription} numberOfLines={1}>
-                          {task.description}
-                        </Text>
-                      ) : null}
-                    </View>
-                  </View>
-
-                  {/* Right: Check Circle */}
-                  <View
+            {routines.length === 0 ? (
+              <View style={styles.liveEmptyRoutineCard}>
+                <View style={styles.livePulseDot} />
+                <Text style={styles.liveEmptyRoutineTitle}>
+                  {currentLang === "as" ? "আজিৰ কোনো কাৰ্যসূচী নাই" : "No Routine Tasks Scheduled"}
+                </Text>
+                <Text style={styles.liveEmptyRoutineSub}>
+                  {currentLang === "as"
+                    ? "পৰিচর্যাকাৰীয়ে যোগ কৰা কাৰ্যসূচী ইয়াত বাস্তৱ সময়ত দেখা যাব।"
+                    : "Tasks and wellness reminders scheduled by your caregiver appear here in real time."}
+                </Text>
+              </View>
+            ) : (
+              routines.slice(0, 4).map((task) => {
+                return (
+                  <TouchableOpacity
+                    key={task.id}
                     style={[
-                      styles.checkCircle,
-                      task.completed && styles.checkCircleCompleted,
+                      styles.routineCard,
+                      task.completed && styles.routineCardCompleted,
                     ]}
+                    onPress={() => handleToggleRoutine(task.id)}
+                    activeOpacity={0.85}
+                    accessibilityRole="button"
+                    accessibilityLabel={`${task.timeLabel} ${task.title}`}
                   >
-                    {task.completed && (
-                      <Feather name="check" size={16} color="#FFFFFF" />
-                    )}
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
+                    {/* Left: Time Badge */}
+                    <View style={styles.timeBadge}>
+                      <Text style={styles.timeBadgeText}>{task.timeLabel}</Text>
+                    </View>
+
+                    {/* Middle: Icon + Title + Description */}
+                    <View style={styles.routineMiddle}>
+                      <View style={styles.routineIconWrap}>
+                        {getRoutineIcon(task.iconName)}
+                      </View>
+                      <View style={styles.routineDetails}>
+                        <Text
+                          style={[
+                            styles.routineTitle,
+                            task.completed && styles.routineTitleCompleted,
+                          ]}
+                          numberOfLines={1}
+                        >
+                          {task.title}
+                        </Text>
+                        {task.description ? (
+                          <Text style={styles.routineDescription} numberOfLines={1}>
+                            {task.description}
+                          </Text>
+                        ) : null}
+                      </View>
+                    </View>
+
+                    {/* Right: Check Circle */}
+                    <View
+                      style={[
+                        styles.checkCircle,
+                        task.completed && styles.checkCircleCompleted,
+                      ]}
+                    >
+                      {task.completed && (
+                        <Feather name="check" size={16} color="#FFFFFF" />
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                );
+              })
+            )}
           </View>
         </View>
 
@@ -564,7 +753,10 @@ export default function PatientHomeScreen() {
               {currentLang === "as" ? "পৰিয়াল আৰু আপোন মানুহ" : "Family & Speed Dial"}
             </Text>
             <TouchableOpacity
-              onPress={() => setFamilyModalVisible(false)}
+              onPress={() => {
+                VoiceAssistant.stop();
+                setFamilyModalVisible(false);
+              }}
               style={styles.modalCloseBtn}
             >
               <Feather name="x" size={22} color="#0F172A" />
@@ -584,7 +776,10 @@ export default function PatientHomeScreen() {
       {/* 2. Music Modal */}
       <MusicHubModal
         visible={musicModalVisible}
-        onClose={() => setMusicModalVisible(false)}
+        onClose={() => {
+          VoiceAssistant.stop();
+          setMusicModalVisible(false);
+        }}
         patientId={profile?.id || username || "mahi"}
       />
 
@@ -593,7 +788,10 @@ export default function PatientHomeScreen() {
         visible={photosModalVisible}
         animationType="slide"
         presentationStyle="pageSheet"
-        onRequestClose={() => setPhotosModalVisible(false)}
+        onRequestClose={() => {
+          VoiceAssistant.stop();
+          setPhotosModalVisible(false);
+        }}
       >
         <SafeAreaView style={styles.modalSafeArea}>
           <View style={styles.modalTopBar}>
@@ -601,7 +799,10 @@ export default function PatientHomeScreen() {
               {currentLang === "as" ? "স্মৃতি ফটো এলবাম" : "Memory Photobook"}
             </Text>
             <TouchableOpacity
-              onPress={() => setPhotosModalVisible(false)}
+              onPress={() => {
+                VoiceAssistant.stop();
+                setPhotosModalVisible(false);
+              }}
               style={styles.modalCloseBtn}
             >
               <Feather name="x" size={22} color="#0F172A" />
@@ -619,7 +820,10 @@ export default function PatientHomeScreen() {
       {/* 4. Calm Corner Modal */}
       <CalmCornerModal
         visible={calmCornerVisible}
-        onClose={() => setCalmCornerVisible(false)}
+        onClose={() => {
+          VoiceAssistant.stop();
+          setCalmCornerVisible(false);
+        }}
       />
 
       {/* 5. Companion Full Screen Modal */}
@@ -627,9 +831,22 @@ export default function PatientHomeScreen() {
         visible={companionModalVisible}
         animationType="slide"
         presentationStyle="pageSheet"
-        onRequestClose={() => setCompanionModalVisible(false)}
+        onRequestClose={() => {
+          VoiceAssistant.stop();
+          companionVoiceService.cancelListening();
+          companionService.stopSpeech();
+          setCompanionModalVisible(false);
+        }}
       >
-        <CompanionScreen onClose={() => setCompanionModalVisible(false)} isModal />
+        <CompanionScreen
+          onClose={() => {
+            VoiceAssistant.stop();
+            companionVoiceService.cancelListening();
+            companionService.stopSpeech();
+            setCompanionModalVisible(false);
+          }}
+          isModal
+        />
       </Modal>
 
       {/* 6. Language Selection Modal */}
@@ -681,6 +898,20 @@ export default function PatientHomeScreen() {
           </View>
         </TouchableOpacity>
       </Modal>
+
+      {/* 7. Real-Time Personalized Recognition Challenge Popup */}
+      <PersonalizedRecognitionPopupModal
+        visible={challengePopupVisible}
+        activity={activeChallenge}
+        onPlay={(act) => {
+          setChallengePopupVisible(false);
+          router.push({
+            pathname: "/(patient)/(stack)/games/cognitive/personalized-recall" as any,
+            params: { activityId: act.id },
+          });
+        }}
+        onDismiss={() => setChallengePopupVisible(false)}
+      />
     </SafeAreaView>
   );
 }
@@ -688,7 +919,26 @@ export default function PatientHomeScreen() {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#FBF9F5",
+    backgroundColor: AestheticTheme.canvas,
+    position: "relative",
+  },
+  ambientAuraTop: {
+    position: "absolute",
+    top: -80,
+    right: -60,
+    width: 240,
+    height: 240,
+    borderRadius: 120,
+    backgroundColor: AestheticTheme.ambientLavender,
+  },
+  ambientAuraBottom: {
+    position: "absolute",
+    top: 540,
+    left: -80,
+    width: 260,
+    height: 260,
+    borderRadius: 130,
+    backgroundColor: AestheticTheme.ambientMint,
   },
   scrollContent: {
     paddingHorizontal: 16,
@@ -732,18 +982,14 @@ const styles = StyleSheet.create({
   langPill: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: AestheticTheme.cardSurface,
     paddingHorizontal: 12,
     paddingVertical: 7,
     borderRadius: 20,
     gap: 6,
     borderWidth: 1,
-    borderColor: "#E2E8F0",
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.05,
-    shadowRadius: 3,
+    borderColor: AestheticTheme.cardBorder,
+    ...AestheticTheme.cardShadow,
   },
   langEmoji: {
     fontSize: 15,
@@ -766,17 +1012,13 @@ const styles = StyleSheet.create({
 
   // 2. Virtual Companion Hero
   companionCard: {
-    backgroundColor: "#FFFFFF",
+    backgroundColor: AestheticTheme.cardSurface,
     borderRadius: 24,
     padding: 18,
     marginBottom: 20,
     borderWidth: 1,
-    borderColor: "#EAE3D6",
-    elevation: 3,
-    shadowColor: "#78716C",
-    shadowOffset: { width: 0, height: 3 },
-    shadowOpacity: 0.08,
-    shadowRadius: 10,
+    borderColor: AestheticTheme.cardBorder,
+    ...AestheticTheme.cardShadow,
   },
   companionMainRow: {
     flexDirection: "row",
@@ -827,6 +1069,30 @@ const styles = StyleSheet.create({
     lineHeight: 20,
     color: "#334155",
     fontWeight: "500",
+  },
+  companionPromptChips: {
+    gap: 6,
+    paddingVertical: 2,
+    marginBottom: 12,
+  },
+  companionPromptPill: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+    backgroundColor: "#F1F5F9",
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: "#E2E8F0",
+  },
+  companionPromptPillEmoji: {
+    fontSize: 13,
+  },
+  companionPromptPillText: {
+    fontSize: 11.5,
+    fontWeight: "700",
+    color: "#334155",
   },
   talkToMeButton: {
     flexDirection: "row",
@@ -881,16 +1147,12 @@ const styles = StyleSheet.create({
   featureTile: {
     flexDirection: "row",
     alignItems: "center",
-    backgroundColor: "#FFFFFF",
+    backgroundColor: AestheticTheme.cardSurface,
     borderRadius: 18,
     padding: 14,
     borderWidth: 1,
-    borderColor: "#EAE3D6",
-    elevation: 1,
-    shadowColor: "#78716C",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
+    borderColor: AestheticTheme.cardBorder,
+    ...AestheticTheme.cardShadow,
     gap: 12,
   },
   tileIconContainer: {
@@ -924,6 +1186,34 @@ const styles = StyleSheet.create({
   },
   routineList: {
     gap: 10,
+  },
+  liveEmptyRoutineCard: {
+    borderWidth: 1.5,
+    borderStyle: "dashed",
+    borderColor: "#CBD5E1",
+    borderRadius: 18,
+    padding: 16,
+    backgroundColor: "#F8FAFC",
+    alignItems: "center",
+  },
+  livePulseDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: "#10B981",
+    marginBottom: 8,
+  },
+  liveEmptyRoutineTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+    color: "#334155",
+    marginBottom: 4,
+  },
+  liveEmptyRoutineSub: {
+    fontSize: 12,
+    color: "#64748B",
+    textAlign: "center",
+    lineHeight: 18,
   },
   routineCard: {
     flexDirection: "row",
@@ -1140,5 +1430,75 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: "#64748B",
     marginTop: 1,
+  },
+  personalizedChallengeBanner: {
+    backgroundColor: "#FFFBEB",
+    borderRadius: 20,
+    padding: 14,
+    marginBottom: 16,
+    borderWidth: 1.5,
+    borderColor: "#FDE68A",
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    shadowColor: "#2563EB",
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  pcBannerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    flex: 1,
+  },
+  pcStarCircle: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: "#EFF6FF",
+    alignItems: "center",
+    justifyContent: "center",
+    borderWidth: 1,
+    borderColor: "#BFDBFE",
+  },
+  pcTagRow: {
+    alignSelf: "flex-start",
+    backgroundColor: "#EFF6FF",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 6,
+    marginBottom: 2,
+  },
+  pcTagText: {
+    fontSize: 9.5,
+    fontWeight: "800",
+    color: "#1D4ED8",
+  },
+  pcTitleText: {
+    fontSize: 14,
+    fontWeight: "800",
+    color: "#0F172A",
+  },
+  pcPromptText: {
+    fontSize: 12,
+    color: "#334155",
+    fontStyle: "italic",
+    marginTop: 2,
+  },
+  pcPlayBtn: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "#2563EB",
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    borderRadius: 12,
+    marginLeft: 8,
+  },
+  pcPlayBtnText: {
+    fontSize: 12,
+    fontWeight: "800",
+    color: "#FFFFFF",
   },
 });

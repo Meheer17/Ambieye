@@ -31,25 +31,24 @@ export default function SplashScreen() {
       }),
     ]).start();
 
-    if (!isLoading) {
-      const timer = setTimeout(() => {
-        if (isAuthenticated && userType) {
-          if (userType === "doctor") {
-            router.replace("/(doctor)" as any);
-          } else if (userType === "caregiver") {
-            router.replace("/(caregiver)" as any);
-          } else {
-            router.replace("/(patient)" as any);
-          }
-        } else if (userType) {
-          router.replace("/auth/login");
+    const navigateNext = () => {
+      if (isAuthenticated && userType) {
+        if (userType === "doctor") {
+          router.replace("/(doctor)" as any);
+        } else if (userType === "caregiver") {
+          router.replace("/(caregiver)" as any);
         } else {
-          router.replace("/user-type");
+          router.replace("/(patient)" as any);
         }
-      }, 2000);
+      } else if (userType) {
+        router.replace("/auth/login");
+      } else {
+        router.replace("/user-type");
+      }
+    };
 
-      return () => clearTimeout(timer);
-    }
+    const timer = setTimeout(navigateNext, isLoading ? 3500 : 2000);
+    return () => clearTimeout(timer);
   }, [isAuthenticated, fadeAnim, scaleAnim, slideAnim, userType, isLoading]);
 
   return (
@@ -69,26 +68,30 @@ export default function SplashScreen() {
         ]}
       >
         <View style={styles.logoWrapper}>
-          <View style={styles.logoGlow} />
           <View style={styles.logoContainer}>
             <Image
-              source={require("../assets/images/logo.png")}
+              source={require("../assets/images/mindcare_logo_circle.png")}
               style={styles.logo}
             />
           </View>
         </View>
-        <Text style={styles.title}>AmbiEye</Text>
-        <Text style={styles.subtitle}>Vision Therapy Platform</Text>
+        <Text style={styles.title}>
+          Mind<Text style={{ color: "#10B981" }}>Care</Text>
+        </Text>
+        <Text style={styles.tagline}>Better Minds. Brighter Days.</Text>
+        <Text style={styles.subtitle}>
+          A Cognitive Care Companion for a Healthier Tomorrow
+        </Text>
 
         <View style={styles.tagContainer}>
           <View style={styles.tag}>
-            <Text style={styles.tagText}>👁️ Smart</Text>
+            <Text style={styles.tagText}>🧠 Cognitive Care</Text>
           </View>
           <View style={styles.tag}>
-            <Text style={styles.tagText}>🎮 Interactive</Text>
+            <Text style={styles.tagText}>👵 Dementia Support</Text>
           </View>
           <View style={styles.tag}>
-            <Text style={styles.tagText}>📊 Tracked</Text>
+            <Text style={styles.tagText}>🌸 Compassionate</Text>
           </View>
         </View>
       </Animated.View>
@@ -99,7 +102,7 @@ export default function SplashScreen() {
           <View style={styles.dot} />
           <View style={styles.dot} />
         </View>
-        <Text style={styles.footerText}>Loading your experience...</Text>
+        <Text style={styles.footerText}>Loading your care companion...</Text>
       </Animated.View>
     </View>
   );
@@ -108,108 +111,113 @@ export default function SplashScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A',
+    backgroundColor: '#0A1128',
     alignItems: "center",
     justifyContent: "center",
   },
   bgCircle1: {
     position: 'absolute',
-    width: 400,
-    height: 400,
-    borderRadius: 200,
-    backgroundColor: Colors.primary,
-    opacity: 0.08,
+    width: 420,
+    height: 420,
+    borderRadius: 210,
+    backgroundColor: '#10B981',
+    opacity: 0.12,
     top: -100,
     right: -100,
   },
   bgCircle2: {
     position: 'absolute',
-    width: 300,
-    height: 300,
-    borderRadius: 150,
-    backgroundColor: Colors.secondary,
-    opacity: 0.08,
+    width: 320,
+    height: 320,
+    borderRadius: 160,
+    backgroundColor: '#0284C7',
+    opacity: 0.12,
     bottom: 50,
     left: -80,
   },
   bgCircle3: {
     position: 'absolute',
-    width: 200,
-    height: 200,
-    borderRadius: 100,
-    backgroundColor: Colors.accent,
-    opacity: 0.06,
+    width: 240,
+    height: 240,
+    borderRadius: 120,
+    backgroundColor: '#8B5CF6',
+    opacity: 0.08,
     top: '40%',
-    right: -50,
+    right: -60,
   },
   content: {
     alignItems: "center",
+    paddingHorizontal: 24,
   },
   logoWrapper: {
-    position: 'relative',
-    marginBottom: 28,
+    marginBottom: 24,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  logoGlow: {
-    position: 'absolute',
+  logoContainer: {
     width: 140,
     height: 140,
     borderRadius: 70,
-    backgroundColor: Colors.primary,
-    opacity: 0.2,
-  },
-  logoContainer: {
-    width: 110,
-    height: 110,
-    borderRadius: 28,
-    backgroundColor: 'rgba(14, 165, 233, 0.15)',
+    backgroundColor: 'transparent',
     justifyContent: "center",
     alignItems: "center",
-    borderWidth: 1.5,
-    borderColor: 'rgba(14, 165, 233, 0.3)',
+    borderWidth: 2,
+    borderColor: 'rgba(16, 185, 129, 0.6)',
+    overflow: 'hidden',
   },
   logo: {
-    width: 72,
-    height: 72,
+    width: 136,
+    height: 136,
+    borderRadius: 68,
     resizeMode: "contain",
   },
   title: {
-    fontSize: 40,
+    fontSize: 38,
     fontWeight: "800",
     color: "#FFFFFF",
-    letterSpacing: 1.5,
-    marginBottom: 8,
+    letterSpacing: 0.5,
+    marginBottom: 4,
+  },
+  tagline: {
+    fontSize: 15.5,
+    fontWeight: "700",
+    color: "#34D399",
+    letterSpacing: 0.3,
+    marginBottom: 6,
   },
   subtitle: {
-    fontSize: 14,
-    color: 'rgba(255,255,255,0.5)',
-    letterSpacing: 3,
-    textTransform: "uppercase",
-    marginBottom: 32,
+    fontSize: 12.5,
+    color: 'rgba(255, 255, 255, 0.72)',
+    letterSpacing: 0.2,
+    textAlign: "center",
+    maxWidth: 290,
+    lineHeight: 18,
+    marginBottom: 26,
   },
   tagContainer: {
     flexDirection: 'row',
-    gap: 10,
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: 8,
   },
   tag: {
-    backgroundColor: 'rgba(255,255,255,0.08)',
-    paddingHorizontal: 14,
+    backgroundColor: 'rgba(255, 255, 255, 0.08)',
+    paddingHorizontal: 13,
     paddingVertical: 7,
     borderRadius: 20,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
+    borderColor: 'rgba(255, 255, 255, 0.14)',
   },
   tagText: {
-    color: 'rgba(255,255,255,0.7)',
+    color: 'rgba(255, 255, 255, 0.85)',
     fontSize: 12,
     fontWeight: '600',
   },
   footer: {
     position: "absolute",
-    bottom: 60,
+    bottom: 50,
     alignItems: "center",
-    gap: 12,
+    gap: 10,
   },
   loadingDots: {
     flexDirection: "row",
@@ -219,15 +227,15 @@ const styles = StyleSheet.create({
     width: 6,
     height: 6,
     borderRadius: 3,
-    backgroundColor: 'rgba(255,255,255,0.25)',
+    backgroundColor: 'rgba(255, 255, 255, 0.25)',
   },
   dotActive: {
     width: 24,
-    backgroundColor: Colors.primary,
+    backgroundColor: '#10B981',
   },
   footerText: {
     fontSize: 12,
-    color: 'rgba(255,255,255,0.35)',
+    color: 'rgba(255, 255, 255, 0.45)',
     letterSpacing: 0.5,
   },
 });

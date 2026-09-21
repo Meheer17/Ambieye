@@ -58,7 +58,7 @@ export default function ClockwiseGame() {
 
   const handleBack = useCallback(async () => {
     await stopEverything();
-    router.back();
+    router.replace("/(patient)/games" as any);
   }, [stopEverything, router]);
 
   const endGame = useCallback(async () => {
@@ -171,7 +171,7 @@ export default function ClockwiseGame() {
             liveVerdict={liveVerdict}
           />
 
-          <TouchableOpacity style={[styles.primaryBtn, { marginTop: 32 }]} onPress={() => router.back()}>
+          <TouchableOpacity style={[styles.primaryBtn, { marginTop: 32 }]} onPress={() => router.replace("/(patient)/games" as any)}>
             <Text style={styles.primaryBtnText}>{t("done_btn")}</Text>
           </TouchableOpacity>
         </ScrollView>
