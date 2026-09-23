@@ -1,17 +1,8 @@
-import { Platform } from "react-native";
-import type { Audio as AudioType } from "expo-av";
-
-// Safely obtain Audio from expo-av without crashing when ExponentAV native module is absent (e.g. Expo Go, Web, or unlinked builds)
-let Audio: typeof AudioType | null = null;
-try {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const ExpoAv = require("expo-av");
-  if (ExpoAv && ExpoAv.Audio) {
-    Audio = ExpoAv.Audio;
-  }
-} catch (e) {
-  console.warn("[RadioAudioService] ExponentAV native module not available; relying on software synth fallback.");
-}
+import {
+  createAudioPlayer,
+  setAudioModeAsync,
+} from "expo-audio";
+import type { AudioPlayer } from "expo-audio";
 
 export interface RadioStationConfig {
   id: string;
@@ -82,21 +73,19 @@ export const RADIO_STATION_CONFIGS: RadioStationConfig[] = [
 ];
 
 class RadioAudioService {
-  private soundObject: AudioType.Sound | null = null;
+  private player: AudioPlayer | null = null;
   private currentStationId: string | null = null;
   private isAudioPlaying: boolean = false;
   private volume: number = 0.8;
   private isInitialized: boolean = false;
 
   private async initializeAudioSession(): Promise<void> {
-    if (this.isInitialized || !Audio) return;
+    if (this.isInitialized) return;
     try {
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: false,
-        staysActiveInBackground: true,
-        playsInSilentModeIOS: true,
-        shouldDuckAndroid: true,
-        playThroughEarpieceAndroid: false,
+      await setAudioModeAsync({
+        playsInSilentMode: true,
+        shouldPlayInBackground: true,
+        interruptionMode: "doNotMix",
       });
       this.isInitialized = true;
     } catch (e) {
@@ -111,41 +100,28 @@ class RadioAudioService {
     await this.initializeAudioSession();
     this.volume = volumeLevel === "gentle" ? 0.45 : 0.85;
 
-    if (!Audio) {
-      this.currentStationId = station.id;
-      this.isAudioPlaying = true;
-      return false; // Indicates software oscillator fallback can run seamlessly
-    }
-
     // If already playing this station, adjust volume and ensure playback
-    if (this.soundObject && this.currentStationId === station.id) {
+    if (this.player && this.currentStationId === station.id) {
       try {
-        await this.soundObject.setVolumeAsync(this.volume);
-        const status = await this.soundObject.getStatusAsync();
-        if (status.isLoaded && !status.isPlaying) {
-          await this.soundObject.playAsync();
-          this.isAudioPlaying = true;
+        this.player.volume = this.volume;
+        if (!this.player.playing) {
+          this.player.play();
         }
+        this.isAudioPlaying = true;
         return true;
       } catch (e) {
         // continue to reload
       }
     }
 
-    // Stop and unload previous sound
+    // Stop previous player
     await this.stop();
 
     try {
-      const { sound } = await Audio.Sound.createAsync(
-        { uri: station.streamUrl },
-        {
-          shouldPlay: true,
-          isLooping: true,
-          volume: this.volume,
-        }
-      );
-
-      this.soundObject = sound;
+      this.player = createAudioPlayer({ uri: station.streamUrl });
+      this.player.loop = true;
+      this.player.volume = this.volume;
+      this.player.play();
       this.currentStationId = station.id;
       this.isAudioPlaying = true;
       return true;
@@ -161,12 +137,9 @@ class RadioAudioService {
    * Pauses the current radio station
    */
   async pause(): Promise<void> {
-    if (this.soundObject) {
+    if (this.player) {
       try {
-        const status = await this.soundObject.getStatusAsync();
-        if (status.isLoaded && status.isPlaying) {
-          await this.soundObject.pauseAsync();
-        }
+        this.player.pause();
       } catch (e) {
         console.warn("Error pausing sound:", e);
       }
@@ -178,14 +151,11 @@ class RadioAudioService {
    * Resumes playback if loaded
    */
   async resume(): Promise<void> {
-    if (this.soundObject) {
+    if (this.player) {
       try {
-        const status = await this.soundObject.getStatusAsync();
-        if (status.isLoaded && !status.isPlaying) {
-          await this.soundObject.playAsync();
-          this.isAudioPlaying = true;
-          return;
-        }
+        this.player.play();
+        this.isAudioPlaying = true;
+        return;
       } catch (e) {
         console.warn("Error resuming sound:", e);
       }
@@ -196,14 +166,14 @@ class RadioAudioService {
    * Stops and unloads audio resources to prevent memory leaks on budget Android devices
    */
   async stop(): Promise<void> {
-    if (this.soundObject) {
+    if (this.player) {
       try {
-        await this.soundObject.stopAsync();
-        await this.soundObject.unloadAsync();
+        this.player.pause();
+        this.player.remove();
       } catch (e) {
-        // ignore unload error
+        // ignore remove error
       }
-      this.soundObject = null;
+      this.player = null;
     }
     this.currentStationId = null;
     this.isAudioPlaying = false;
@@ -214,9 +184,9 @@ class RadioAudioService {
    */
   async setVolume(level: "gentle" | "standard"): Promise<void> {
     this.volume = level === "gentle" ? 0.45 : 0.85;
-    if (this.soundObject) {
+    if (this.player) {
       try {
-        await this.soundObject.setVolumeAsync(this.volume);
+        this.player.volume = this.volume;
       } catch (e) {
         console.warn("Error adjusting volume:", e);
       }

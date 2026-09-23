@@ -1,17 +1,11 @@
-import { Platform } from "react-native";
-import type { Audio as AudioType } from "expo-av";
-
-// Safely obtain Audio from expo-av without crashing when ExponentAV native module is absent (e.g. Expo Go, Web, or unlinked builds)
-let Audio: typeof AudioType | null = null;
-try {
-  // eslint-disable-next-line @typescript-eslint/no-var-requires
-  const ExpoAv = require("expo-av");
-  if (ExpoAv && ExpoAv.Audio) {
-    Audio = ExpoAv.Audio;
-  }
-} catch (e) {
-  console.warn("[AntakshariAudioService] ExponentAV native module not available in this environment.");
-}
+import {
+  AudioModule,
+  RecordingPresets,
+  requestRecordingPermissionsAsync,
+  getRecordingPermissionsAsync,
+  setAudioModeAsync,
+} from "expo-audio";
+import type { AudioRecorder } from "expo-audio";
 
 export interface AudioRecordingResult {
   success: boolean;
@@ -21,19 +15,17 @@ export interface AudioRecordingResult {
 }
 
 class AntakshariAudioService {
-  private recording: AudioType.Recording | null = null;
+  private recorder: AudioRecorder | null = null;
   private lastRecordedUri: string | null = null;
   private isRecording: boolean = false;
+  private startTime: number = 0;
 
   /**
    * Request microphone permission from the system
    */
   async requestPermission(): Promise<boolean> {
-    if (!Audio) {
-      return false;
-    }
     try {
-      const response = await Audio.requestPermissionsAsync();
+      const response = await requestRecordingPermissionsAsync();
       return response.granted || response.status === "granted";
     } catch (err) {
       console.warn("[AntakshariAudioService] Permission request failed:", err);
@@ -45,11 +37,8 @@ class AntakshariAudioService {
    * Check if microphone permission is already granted
    */
   async checkPermission(): Promise<boolean> {
-    if (!Audio) {
-      return false;
-    }
     try {
-      const response = await Audio.getPermissionsAsync();
+      const response = await getRecordingPermissionsAsync();
       return response.granted || response.status === "granted";
     } catch (err) {
       console.warn("[AntakshariAudioService] Permission check failed:", err);
@@ -61,12 +50,6 @@ class AntakshariAudioService {
    * Start recording the patient's singing voice
    */
   async startRecording(): Promise<{ success: boolean; error?: string }> {
-    if (!Audio) {
-      return {
-        success: false,
-        error: "Audio recording is not supported in this client environment (requires a Development Build).",
-      };
-    }
     try {
       // 1. Check or request permission
       const hasPermission = await this.requestPermission();
@@ -78,35 +61,31 @@ class AntakshariAudioService {
       }
 
       // 2. Stop any existing recording cleanly
-      if (this.recording) {
+      if (this.recorder) {
         try {
-          await this.recording.stopAndUnloadAsync();
+          await this.recorder.stop();
         } catch (_) {}
-        this.recording = null;
+        this.recorder = null;
       }
 
       // 3. Configure audio mode for recording
-      await Audio.setAudioModeAsync({
-        allowsRecordingIOS: true,
-        playsInSilentModeIOS: true,
-        staysActiveInBackground: false,
-        shouldDuckAndroid: true,
-        playThroughEarpieceAndroid: false,
+      await setAudioModeAsync({
+        allowsRecording: true,
+        playsInSilentMode: true,
       });
 
       // 4. Create and start recording
-      const { recording } = await Audio.Recording.createAsync(
-        Audio.RecordingOptionsPresets.HIGH_QUALITY
-      );
-
-      this.recording = recording;
+      this.recorder = new AudioModule.AudioRecorder(RecordingPresets.HIGH_QUALITY);
+      await this.recorder.prepareToRecordAsync();
+      this.recorder.record();
+      this.startTime = Date.now();
       this.isRecording = true;
 
       return { success: true };
     } catch (err: any) {
       console.error("[AntakshariAudioService] Error starting recording:", err);
       this.isRecording = false;
-      this.recording = null;
+      this.recorder = null;
       return {
         success: false,
         error: err?.message || "Failed to start microphone recording.",
@@ -118,7 +97,7 @@ class AntakshariAudioService {
    * Stop recording and keep audio file URI in memory/storage
    */
   async stopRecording(): Promise<AudioRecordingResult> {
-    if (!this.recording) {
+    if (!this.recorder) {
       return {
         success: false,
         uri: this.lastRecordedUri,
@@ -127,24 +106,24 @@ class AntakshariAudioService {
     }
 
     try {
-      const status = await this.recording.getStatusAsync();
-      const durationMs = status.durationMillis;
+      const durationMs =
+        this.recorder.currentTime > 0
+          ? Math.round(this.recorder.currentTime * 1000)
+          : Date.now() - this.startTime;
 
-      await this.recording.stopAndUnloadAsync();
-      const uri = this.recording.getURI();
+      await this.recorder.stop();
+      const uri = this.recorder.uri;
 
       this.lastRecordedUri = uri;
-      this.recording = null;
+      this.recorder = null;
       this.isRecording = false;
 
       // Reset audio mode
       try {
-        if (Audio) {
-          await Audio.setAudioModeAsync({
-            allowsRecordingIOS: false,
-            playsInSilentModeIOS: true,
-          });
-        }
+        await setAudioModeAsync({
+          allowsRecording: false,
+          playsInSilentMode: true,
+        });
       } catch (_) {}
 
       return {
@@ -154,7 +133,7 @@ class AntakshariAudioService {
       };
     } catch (err: any) {
       console.error("[AntakshariAudioService] Error stopping recording:", err);
-      this.recording = null;
+      this.recorder = null;
       this.isRecording = false;
       return {
         success: false,
