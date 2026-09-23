@@ -402,7 +402,7 @@ export function AponManuhSpeedDial() {
                       : currentLang === "hi"
                       ? `"नमस्ते पिताजी! मैं सुन रहा हूँ, आप कैसे हैं?"`
                       : `"Hello Bhaben! I am so happy to hear your voice. Everything at home is good!"`
-                    : "Connecting via AmbiEye Smart Senior Safe Line..."}
+                    : "Connecting via DementiCare Smart Senior Safe Line..."}
                 </Text>
               </View>
 

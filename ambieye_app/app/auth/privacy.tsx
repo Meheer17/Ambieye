@@ -17,8 +17,8 @@ export default function PrivacyPolicyScreen() {
 
         <Text style={styles.sectionTitle}>Introduction</Text>
         <Text style={styles.paragraph}>
-          Welcome to Ambieye. This Privacy Policy explains how we collect, use,
-          disclose, and safeguard your information when you use our eye training
+          Welcome to DementiCare. This Privacy Policy explains how we collect, use,
+          disclose, and safeguard your information when you use our
           application and related services. We are committed to protecting your
           privacy and ensuring the security of your personal information.
         </Text>
@@ -119,7 +119,7 @@ export default function PrivacyPolicyScreen() {
 
         <Text style={styles.sectionTitle}>Consent</Text>
         <Text style={styles.paragraph}>
-          By using Ambieye, you acknowledge that you have read, understood, and
+          By using DementiCare, you acknowledge that you have read, understood, and
           agree to be bound by this Privacy Policy and the above disclaimer. If you do not agree with these terms, please do not use our services.
         </Text>
 

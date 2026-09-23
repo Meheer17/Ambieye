@@ -572,7 +572,7 @@ export const DEFAULT_SLEEP_RECORD: CaregiverSleepRecord = {
 
 export const DEFAULT_WEARABLE_DATA: WearableHealthData = {
   connected: false,
-  disclaimer: "Connect a supported health device (e.g. smart band, pulse oximeter, or health tracker) to view live heart rate and vitals. AmbiEye never fabricates sensor data.",
+  disclaimer: "Connect a supported health device (e.g. smart band, pulse oximeter, or health tracker) to view live heart rate and vitals. DementiCare never fabricates sensor data.",
 };
 
 export const DEFAULT_FAMILY_SENT: FamilySentItem[] = [

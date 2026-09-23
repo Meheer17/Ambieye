@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Ambi Eye",
+    "name": "DementiCare",
     "slug": "ambi-eye",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -32,8 +32,8 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "Allow Ambi Eye to access your camera for eye movement recording during exercises.",
-          "microphonePermission": "Allow Ambi Eye to access your microphone for video recording during exercises.",
+          "cameraPermission": "Allow DementiCare to access your camera for eye movement recording during exercises.",
+          "microphonePermission": "Allow DementiCare to access your microphone for video recording during exercises.",
           "recordAudioAndroid": true
         }
       ],

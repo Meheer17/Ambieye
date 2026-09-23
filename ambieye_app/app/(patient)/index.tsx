@@ -98,7 +98,7 @@ export default function PatientHomeScreen() {
   const handleLogout = () => {
     Alert.alert(
       currentLang === "as" ? "লগআউট কৰিব নেকি?" : currentLang === "hi" ? "लॉग आउट करें?" : "Log Out",
-      currentLang === "as" ? "আপুনি নিজৰ একাউণ্টৰ পৰা ওলাই যাব বিচাৰে নেকি?" : "Are you sure you want to log out of AmbiEye?",
+      currentLang === "as" ? "আপুনি নিজৰ একাউণ্টৰ পৰা ওলাই যাব বিচাৰে নেকি?" : "Are you sure you want to log out of DementiCare?",
       [
         { text: currentLang === "as" ? "বাতিল" : "Cancel", style: "cancel" },
         {

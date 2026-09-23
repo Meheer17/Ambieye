@@ -76,8 +76,8 @@ export default function SplashScreen() {
             />
           </View>
         </View>
-        <Text style={styles.title}>AmbiEye</Text>
-        <Text style={styles.subtitle}>Vision Therapy Platform</Text>
+        <Text style={styles.title}>DementiCare</Text>
+        <Text style={styles.subtitle}>Dementia Care Platform</Text>
 
         <View style={styles.tagContainer}>
           <View style={styles.tag}>

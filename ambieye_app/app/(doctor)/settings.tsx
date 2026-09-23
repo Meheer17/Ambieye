@@ -274,7 +274,7 @@ export default function SettingsScreen() {
           <Text style={styles.deleteText}>Delete Account</Text>
         </TouchableOpacity>
 
-        <Text style={styles.version}>AmbiEye v1.0.0</Text>
+        <Text style={styles.version}>DementiCare v1.0.0</Text>
 
         {/* Help Modal */}
         <Modal visible={showHelpModal} transparent animationType="fade" onRequestClose={() => setShowHelpModal(false)}>
@@ -297,7 +297,7 @@ export default function SettingsScreen() {
                 </TouchableOpacity>
                 <View style={styles.faqItem}>
                   <Text style={styles.faqQ}>How do I use my doctor code?</Text>
-                  <Text style={styles.faqA}>Share your doctor code with patients who want to connect with you on AmbiEye.</Text>
+                  <Text style={styles.faqA}>Share your doctor code with patients who want to connect with you on DementiCare.</Text>
                 </View>
                 <View style={styles.faqItem}>
                   <Text style={styles.faqQ}>How do I respond to patient queries?</Text>
@@ -316,13 +316,13 @@ export default function SettingsScreen() {
           <View style={styles.modalOverlay}>
             <View style={styles.modalBox}>
               <View style={styles.modalHeader}>
-                <Text style={styles.modalTitle}>About AmbiEye</Text>
+                <Text style={styles.modalTitle}>About DementiCare</Text>
                 <TouchableOpacity onPress={() => setShowAboutModal(false)} style={styles.modalCloseBtn}>
                   <Feather name="x" size={20} color={Colors.textSecondary} />
                 </TouchableOpacity>
               </View>
               <Text style={styles.aboutDesc}>
-                AmbiEye is a comprehensive digital health platform designed for treating amblyopia (lazy eye) through interactive games and exercises, while keeping doctors connected with their patients.
+                DementiCare is a comprehensive digital health platform designed for cognitive support, dementia care, and interactive exercises, while keeping doctors and caregivers connected with their patients.
               </Text>
               <View style={styles.featureList}>
                 {["Interactive vision therapy games", "Direct communication with patients", "Progress tracking and reports"].map((f) => (

@@ -269,7 +269,7 @@ export default function SignUpScreen() {
                 <Image source={require("../../assets/images/logo.png")} style={styles.logo} />
               </View>
               <View>
-                <Text style={styles.appName}>AmbiEye</Text>
+                <Text style={styles.appName}>DementiCare</Text>
                 <View style={[styles.roleBadge, { backgroundColor: `${accentColor}20`, borderColor: `${accentColor}40` }]}>
                   <Feather name={isDoctor ? "activity" : "eye"} size={11} color={accentColor} />
                   <Text style={[styles.roleBadgeText, { color: accentColor }]}>

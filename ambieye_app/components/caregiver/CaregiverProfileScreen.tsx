@@ -35,7 +35,7 @@ export const CaregiverProfileScreen: React.FC<Props> = ({ onSwitchToElderly }) =
   const [refreshing, setRefreshing] = useState(false);
 
   const handleLogout = () => {
-    Alert.alert("Log Out", "Are you sure you want to log out of your AmbiEye account?", [
+    Alert.alert("Log Out", "Are you sure you want to log out of your DementiCare account?", [
       { text: "Cancel", style: "cancel" },
       {
         text: "Log Out",
@@ -293,7 +293,7 @@ export const CaregiverProfileScreen: React.FC<Props> = ({ onSwitchToElderly }) =
           activeOpacity={0.85}
         >
           <Feather name="log-out" size={18} color="#DC2626" />
-          <Text style={styles.caregiverLogoutBtnText}>Log Out of AmbiEye</Text>
+          <Text style={styles.caregiverLogoutBtnText}>Log Out of DementiCare</Text>
         </TouchableOpacity>
       </ScrollView>
 
