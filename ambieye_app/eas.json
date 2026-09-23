@@ -18,22 +18,13 @@
     "apk": {
       "android": {
         "buildType": "apk"
-      },
-      "env": {
-        "ANDROID_HOME": "/home/mahi17/development/android-sdk",
-        "ANDROID_SDK_ROOT": "/home/mahi17/development/android-sdk",
-        "EAS_LOCAL_BUILD_WORKINGDIR": "/home/mahi17/.eas-build"
       }
     },
     "aab": {
       "android": {
         "buildType": "app-bundle"
       },
-      "env": {
-        "ANDROID_HOME": "/home/mahi17/development/android-sdk",
-        "ANDROID_SDK_ROOT": "/home/mahi17/development/android-sdk",
-        "EAS_LOCAL_BUILD_WORKINGDIR": "/home/mahi17/.eas-build"
-      }
+      "autoIncrement": true
     }
   },
   "submit": {
