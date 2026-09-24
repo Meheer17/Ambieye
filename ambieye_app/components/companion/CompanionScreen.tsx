@@ -16,6 +16,7 @@ import MaterialCommunityIcons from "@expo/vector-icons/MaterialCommunityIcons";
 import { WarmPalette } from "@/constants/theme";
 import { useTranslation, SupportedLanguage } from "@/constants/i18n";
 import { VirtualAvatar, AvatarState, AvatarPersona } from "./VirtualAvatar";
+import { Model3DViewer } from "./Model3DViewer";
 import {
   companionService,
   CompanionMessage,
@@ -39,6 +40,7 @@ export const CompanionScreen: React.FC<CompanionScreenProps> = ({
 
   const [persona, setPersona] = useState<AvatarPersona>("mitr");
   const [avatarState, setAvatarState] = useState<AvatarState>("idle");
+  const [viewMode3D, setViewMode3D] = useState(true);
   const [patientCtx, setPatientCtx] = useState<PatientContinuousContext | null>(null);
 
   const [messages, setMessages] = useState<CompanionMessage[]>([
@@ -253,14 +255,57 @@ export const CompanionScreen: React.FC<CompanionScreenProps> = ({
           </Text>
         </View>
 
-        {/* ── Center Stage: Expressive Virtual Avatar ───────────────────────── */}
+        {/* ── Center Stage: Expressive Virtual Avatar or 3D Model ─────────── */}
         <View style={styles.avatarStage}>
-          <VirtualAvatar
-            persona={persona}
-            state={avatarState}
-            size={170}
-            onPress={handleVoiceTap}
-          />
+          {viewMode3D ? (
+            <View style={styles.model3DStageBox}>
+              <Model3DViewer
+                activeAction={
+                  avatarState === "speaking"
+                    ? "talking"
+                    : avatarState === "listening"
+                    ? "idle"
+                    : "talking"
+                }
+                height={220}
+                width={220}
+                autoRotate={false}
+                cameraOrbit="0deg 80deg 1.35m"
+                cameraTarget="0m 1.52m 0.05m"
+                fieldOfView="28deg"
+              />
+            </View>
+          ) : (
+            <VirtualAvatar
+              persona={persona}
+              state={avatarState}
+              size={170}
+              onPress={handleVoiceTap}
+            />
+          )}
+
+          {/* Mode Switcher Pill */}
+          <View style={styles.viewModePillRow}>
+            <TouchableOpacity
+              style={[styles.viewModePill, viewMode3D && styles.viewModePillActive]}
+              onPress={() => setViewMode3D(true)}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.viewModePillText, viewMode3D && styles.viewModePillTextActive]}>
+                🧓 3D Model
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.viewModePill, !viewMode3D && styles.viewModePillActive]}
+              onPress={() => setViewMode3D(false)}
+              activeOpacity={0.8}
+            >
+              <Text style={[styles.viewModePillText, !viewMode3D && styles.viewModePillTextActive]}>
+                🌸 2D Face
+              </Text>
+            </TouchableOpacity>
+          </View>
         </View>
 
         {/* ── Large Senior-Friendly Speech Bubble ──────────────────────────── */}
@@ -515,6 +560,46 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     alignItems: "center",
     justifyContent: "center",
+  },
+  model3DStageBox: {
+    width: 220,
+    height: 220,
+    borderRadius: 20,
+    overflow: "hidden",
+    backgroundColor: "#F1EDFA",
+    borderWidth: 1.5,
+    borderColor: "#E0E7FF",
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  viewModePillRow: {
+    flexDirection: "row",
+    gap: 8,
+    marginTop: 10,
+    backgroundColor: "#F1F5F9",
+    padding: 3,
+    borderRadius: 16,
+  },
+  viewModePill: {
+    paddingHorizontal: 12,
+    paddingVertical: 5,
+    borderRadius: 13,
+  },
+  viewModePillActive: {
+    backgroundColor: "#FFFFFF",
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
+    elevation: 2,
+  },
+  viewModePillText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: "#64748B",
+  },
+  viewModePillTextActive: {
+    color: "#4F46E5",
   },
   speechBubbleContainer: {
     width: "100%",

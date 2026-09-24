@@ -39,6 +39,7 @@ import TimeOrientationCard from "@/components/TimeOrientationCard";
 import CalmCornerModal from "@/components/CalmCornerModal";
 import { VirtualAvatar, AvatarState } from "@/components/companion/VirtualAvatar";
 import { CompanionScreen } from "@/components/companion/CompanionScreen";
+import { Elder3DCompanionHero } from "@/components/companion/Elder3DCompanionHero";
 import { SmritiGeetiRadio } from "@/components/patient/SmritiGeetiRadio";
 import { SmritiPhotobook } from "@/components/patient/SmritiPhotobook";
 import { AponManuhSpeedDial } from "@/components/patient/AponManuhSpeedDial";
@@ -60,6 +61,7 @@ export default function PatientHomeScreen() {
   const [languageModalVisible, setLanguageModalVisible] = useState(false);
   const [calmCornerVisible, setCalmCornerVisible] = useState(false);
   const [companionModalVisible, setCompanionModalVisible] = useState(false);
+  const [show3DHero, setShow3DHero] = useState(true);
 
   // Daily Care & Reminder Data
   const [hydration, setHydration] = useState<DailyHydration>({ date: "", glassesDrunk: 3, dailyGoal: 8 });
@@ -284,6 +286,15 @@ export default function PatientHomeScreen() {
               <Feather name="volume-2" size={17} color="#6366F1" />
             </TouchableOpacity>
 
+            {/* 3D Model Companion Toggle */}
+            <TouchableOpacity
+              style={[styles.actionIconBtn, show3DHero && { backgroundColor: "#EDE9FE", borderColor: "#C4B5FD" }]}
+              onPress={() => setShow3DHero(!show3DHero)}
+              activeOpacity={0.8}
+            >
+              <Text style={{ fontSize: 11, fontWeight: "900", color: "#6366F1" }}>3D</Text>
+            </TouchableOpacity>
+
             {/* Logout Exit Button */}
             <TouchableOpacity
               style={[styles.actionIconBtn, { backgroundColor: "#FFF1F2", borderColor: "#FECDD3" }]}
@@ -295,8 +306,15 @@ export default function PatientHomeScreen() {
           </View>
         </View>
 
-        {/* ── 2. SLEEK COMPACT HERO: AI AVATAR & REALITY ORIENTATION ──────── */}
-        <View style={styles.heroCompanionBox}>
+        {/* ── 2. ELDER 3D COMPANION HERO (TALKING MODEL ON OPEN) ──────── */}
+        {show3DHero ? (
+          <Elder3DCompanionHero
+            elderName={profile?.name || "Bhaben"}
+            onOpenCompanionModal={() => setCompanionModalVisible(true)}
+            onNext={() => setActiveFeatureTab("radio")}
+          />
+        ) : (
+          <View style={styles.heroCompanionBox}>
           <View style={styles.avatarSpeechRow}>
             {/* Left: Interactive Avatar */}
             <TouchableOpacity
@@ -357,6 +375,7 @@ export default function PatientHomeScreen() {
             ))}
           </ScrollView>
         </View>
+        )}
 
         {/* ── 3. FOUR-WAY MOBILE FEATURE SEGMENT TABS ───────────────────────── */}
         <View style={styles.segmentNavContainer}>
