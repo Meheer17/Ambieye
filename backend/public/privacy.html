@@ -2,189 +2,477 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="description" content="Ambieye Privacy Policy">
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-</head>
-<html lang="en">
-<head>
-    <meta charset="UTF-8"</div>>
-    <title>Ambieye Privacy Policy</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Privacy Policy for DementiCare (Dementia Care) developed by Meheer J. Disclosures on data collection, health & care data, device permissions, data deletion, and privacy protections.">
+    <title>Dementia Care - DementiCare Privacy Policy</title>
     <style>
-        body {
-            background-color: #0D0145;
-            color: #ddd;
-            font-family: Arial, sans-serif;
+        :root {
+            --bg-color: #0D0145;
+            --card-bg: rgba(255, 255, 255, 0.05);
+            --card-border: rgba(255, 255, 255, 0.12);
+            --primary: #38bdf8;
+            --primary-hover: #0ea5e9;
+            --accent: #818cf8;
+            --text-main: #f1f5f9;
+            --text-muted: #94a3b8;
+            --text-heading: #ffffff;
+            --alert-bg: rgba(245, 158, 11, 0.12);
+            --alert-border: rgba(245, 158, 11, 0.35);
+            --alert-text: #fef08a;
+        }
+
+        * {
+            box-sizing: border-box;
             margin: 0;
             padding: 0;
         }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-main);
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu, Cantarell, "Helvetica Neue", Arial, sans-serif;
+            line-height: 1.65;
+            padding: 24px 16px;
+        }
+
         .container {
-            max-width: 800px;
+            max-width: 860px;
             margin: 0 auto;
-            padding: 30px 20px 0 20px;
+            background: var(--card-bg);
+            border: 1px solid var(--card-border);
+            border-radius: 16px;
+            padding: 36px 32px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.4);
         }
-        .title {
-            font-size: 2em;
-            font-weight: bold;
-            color: #fff;
-            text-align: center;
-            margin-bottom: 10px;
+
+        @media (max-width: 640px) {
+            .container {
+                padding: 24px 18px;
+            }
         }
-        .last-updated {
-            font-size: 1em;
-            color: #aaa;
+
+        header {
             text-align: center;
+            border-bottom: 1px solid var(--card-border);
+            padding-bottom: 24px;
+            margin-bottom: 28px;
+        }
+
+        .app-badge {
+            display: inline-block;
+            background: linear-gradient(135deg, #6366f1, #38bdf8);
+            color: #ffffff;
+            font-size: 0.82rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            padding: 5px 14px;
+            border-radius: 9999px;
+            margin-bottom: 12px;
+        }
+
+        h1 {
+            color: var(--text-heading);
+            font-size: 2.1rem;
+            font-weight: 800;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+
+        .subtitle {
+            color: var(--primary);
+            font-size: 1.1rem;
+            font-weight: 500;
+            margin-bottom: 12px;
+        }
+
+        .meta-bar {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 16px;
+            font-size: 0.9rem;
+            color: var(--text-muted);
             margin-top: 10px;
-            margin-bottom: 20px;
-            font-style: italic;
         }
-        .section-title {
-            font-size: 1.3em;
-            font-weight: bold;
-            color: #fff;
-            margin-top: 25px;
-            margin-bottom: 10px;
+
+        .meta-item strong {
+            color: var(--text-main);
         }
-        .sub-title {
-            font-size: 1.1em;
+
+        .summary-card {
+            background: rgba(56, 189, 248, 0.08);
+            border: 1px solid rgba(56, 189, 248, 0.25);
+            border-radius: 12px;
+            padding: 18px 20px;
+            margin-bottom: 28px;
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 12px;
+            font-size: 0.92rem;
+        }
+
+        .summary-item strong {
+            display: block;
+            color: var(--primary);
+            font-size: 0.8rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 2px;
+        }
+
+        .summary-item span, .summary-item a {
+            color: var(--text-main);
+            word-break: break-word;
+        }
+
+        .alert-box {
+            background-color: var(--alert-bg);
+            border: 1px solid var(--alert-border);
+            border-radius: 12px;
+            padding: 18px 20px;
+            margin-bottom: 28px;
+        }
+
+        .alert-title {
+            color: var(--alert-text);
+            font-weight: 700;
+            font-size: 1rem;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .alert-text {
+            color: #fef9c3;
+            font-size: 0.92rem;
+            line-height: 1.55;
+        }
+
+        h2 {
+            color: var(--text-heading);
+            font-size: 1.35rem;
+            font-weight: 700;
+            margin-top: 32px;
+            margin-bottom: 12px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        h3 {
+            color: var(--primary);
+            font-size: 1.05rem;
             font-weight: 600;
-            color: #fff;
-            margin-top: 15px;
+            margin-top: 18px;
             margin-bottom: 8px;
         }
-        .paragraph {
-            font-size: 1em;
-            color: #ddd;
-            line-height: 1.6em;
-            margin-bottom: 10px;
-            text-align: justify;
+
+        p {
+            color: var(--text-main);
+            font-size: 0.97rem;
+            margin-bottom: 12px;
+            text-align: left;
         }
-        .bottom-padding {
-            height: 30px;
-        }
+
         ul {
-            margin: 0 0 10px 20px;
-            padding: 0;
+            margin: 8px 0 16px 24px;
         }
+
         li {
-            margin-bottom: 6px;
+            margin-bottom: 8px;
+            color: var(--text-main);
+            font-size: 0.95rem;
+        }
+
+        li strong {
+            color: #ffffff;
+        }
+
+        .permission-badge {
+            display: inline-block;
+            background: rgba(129, 140, 248, 0.2);
+            color: #c7d2fe;
+            border: 1px solid rgba(129, 140, 248, 0.4);
+            border-radius: 6px;
+            padding: 2px 8px;
+            font-size: 0.85rem;
+            font-weight: 600;
+            margin-right: 6px;
+        }
+
+        .action-card {
+            background: rgba(99, 102, 241, 0.12);
+            border: 1px solid rgba(99, 102, 241, 0.35);
+            border-radius: 12px;
+            padding: 20px;
+            margin: 18px 0;
+        }
+
+        a {
+            color: var(--primary);
+            text-decoration: underline;
+            transition: color 0.2s ease;
+        }
+
+        a:hover {
+            color: var(--primary-hover);
+        }
+
+        .deletion-btn {
+            display: inline-block;
+            background: #ef4444;
+            color: #ffffff !important;
+            text-decoration: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            font-weight: 600;
+            font-size: 0.95rem;
+            margin-top: 12px;
+            transition: background 0.2s ease;
+        }
+
+        .deletion-btn:hover {
+            background: #dc2626;
+        }
+
+        footer {
+            margin-top: 40px;
+            padding-top: 24px;
+            border-top: 1px solid var(--card-border);
+            text-align: center;
+            font-size: 0.88rem;
+            color: var(--text-muted);
+        }
+
+        footer a {
+            color: var(--primary);
         }
     </style>
 </head>
 <body>
     <div class="container">
-        <div class="title">Privacy Policy</div>
-        <div class="last-updated">Last updated: <script>document.write(new Date().toLocaleDateString());</script></div>
-        <div class="section-title">Our Role</div>
-        <div class="paragraph">
-            Ambieye does not use your personal information for any purpose other than facilitating communication between you and your healthcare providers. We act solely as a medium for your doctors or guardians to access your latest eye training data. Ambieye does not provide medical advice, diagnosis, or treatment support.
-        </div>
-        <div class="section-title">Introduction</div>
-        <div class="paragraph">
-            Welcome to Ambieye. This Privacy Policy explains how we collect, use, disclose, and safeguard your information when you use our eye training application and related services. We are committed to protecting your privacy and ensuring the security of your personal information.
+        <header>
+            <div class="app-badge">Official Policy</div>
+            <h1>Dementia Care</h1>
+            <div class="subtitle">DementiCare Privacy Policy</div>
+            <div class="meta-bar">
+                <div class="meta-item">Application Name: <strong>DementiCare</strong></div>
+                <div class="meta-item">Developer: <strong>Meheer J</strong></div>
+                <div class="meta-item">Effective Date: <strong>September 24, 2026</strong></div>
+            </div>
+        </header>
+
+        <!-- Quick Summary Box for Google Play Reviewers & Users -->
+        <div class="summary-card">
+            <div class="summary-item">
+                <strong>Application</strong>
+                <span>DementiCare (Dementia Care)</span>
+            </div>
+            <div class="summary-item">
+                <strong>Developer</strong>
+                <span>Meheer J</span>
+            </div>
+            <div class="summary-item">
+                <strong>Contact Email</strong>
+                <a href="mailto:meheerj2327.sse@saveetha.com">meheerj2327.sse@saveetha.com</a>
+            </div>
+            <div class="summary-item">
+                <strong>Data Deletion Request</strong>
+                <a href="/delete-account">Web Deletion Portal</a>
+            </div>
         </div>
 
-        <div class="section-title">Information We Collect</div>
-        <div class="sub-title">Personal Information</div>
+        <!-- Medical Disclaimer -->
+        <div class="alert-box">
+            <div class="alert-title">
+                <span>⚠️ Important Medical &amp; Wellness Disclaimer</span>
+            </div>
+            <div class="alert-text">
+                <strong>DementiCare</strong> is a digital companion and assistive care coordination tool designed to facilitate cognitive engagement, daily memory activities, and communication between patients, family caregivers, and supervising healthcare professionals. <strong>DementiCare does NOT provide medical diagnosis, clinical advice, or emergency treatment.</strong> It is not a medical device. Always seek the advice of a qualified physician or healthcare provider regarding any medical condition or emergency.
+            </div>
+        </div>
+
+        <h2>1. Introduction</h2>
+        <p>
+            This Privacy Policy describes how <strong>Meheer J</strong> ("Developer", "we", "us", or "our") collects, uses, shares, protects, and handles personal and sensitive user data when you access or use the <strong>DementiCare</strong> mobile application ("App") and associated services (together, the "Service").
+        </p>
+        <p>
+            We are dedicated to safeguarding your personal privacy and maintaining transparent, secure handling of health-related and caregiver coordination information in compliance with Google Play Developer Program Policies, the General Data Protection Regulation (GDPR), the California Consumer Privacy Act (CCPA), and applicable global privacy regulations.
+        </p>
+        <p>
+            By downloading, registering for, or using DementiCare, you acknowledge that you have read, understood, and consented to the data practices described in this Privacy Policy.
+        </p>
+
+        <h2>2. Information We Collect</h2>
+        <p>
+            To deliver assistive dementia care features, daily routines, and family/caregiver coordination, DementiCare collects the following categories of information:
+        </p>
+
+        <h3>A. Account &amp; Profile Information</h3>
         <ul>
-            <li>Full name, username, and contact information</li>
-            <li>Date of birth, age, and gender</li>
-            <li>Family information (father's and mother's names)</li>
-            <li>Address and phone number</li>
-            <li>Email address for account verification</li>
+            <li><strong>User Credentials:</strong> Full name, username, email address, password hash, and designated account role (Patient, Caregiver, or Doctor).</li>
+            <li><strong>Demographic Information:</strong> Age, date of birth, gender, and language preference to adapt cognitive exercise difficulty.</li>
+            <li><strong>Caregiver &amp; Emergency Contact Details:</strong> Names, phone numbers, and relationships of family members, primary caregivers, or emergency contacts entered to enable care alerts.</li>
         </ul>
 
-        <div class="sub-title">Eye Training Data</div>
+        <h3>B. Cognitive Activities &amp; Care Management Data</h3>
         <ul>
-            <li>Progress reports and activity logs</li>
-            <li>Training session results</li>
-            <li>Feedback from supervising doctors or guardians</li>
+            <li><strong>Cognitive Exercise Results:</strong> Scores, completion times, accuracy metrics, and response trends from memory games and cognitive stimulation activities.</li>
+            <li><strong>Daily Routine &amp; Reminders:</strong> Schedules, medication intake reminders, hydration prompts, and daily checklist confirmations.</li>
+            <li><strong>Consultation &amp; Care Queries:</strong> Messages, notes, symptom logs, or questions submitted by patients/caregivers to their designated healthcare provider through the App.</li>
+            <li><strong>Doctor Clinical Records:</strong> Visit summaries, medical guidance notes, and progress observations recorded by authorized healthcare professionals.</li>
         </ul>
 
-        <div class="sub-title">Technical Information</div>
+        <h3>C. Device, Sensor &amp; Technical Information</h3>
         <ul>
-            <li>Device information and operating system</li>
-            <li>App usage statistics and performance data</li>
-            <li>IP address and location data (when permitted)</li>
-            <li>Crash reports and error logs</li>
+            <li><strong>Device Attributes:</strong> Device model, manufacturer, operating system version, unique device identifiers, and network connection status.</li>
+            <li><strong>App Performance &amp; Crash Telemetry:</strong> Anonymized application logs, error traces, and performance diagnostics used solely to resolve bugs and ensure system stability.</li>
         </ul>
 
-        <div class="section-title">How We Use Your Information</div>
+        <h2>3. Device Permissions &amp; Purpose Specification</h2>
+        <p>
+            DementiCare only requests runtime device permissions strictly necessary to deliver its core features. In accordance with Google Play Developer Policies, our usage of these permissions is detailed below:
+        </p>
         <ul>
-            <li>Provide eye training activities</li>
-            <li>Maintain progress records</li>
-            <li>Enable communication between parents, guardians, and doctors</li>
-            <li>Improve our services and app functionality</li>
-            <li>Send important updates about your training progress</li>
-            <li>Comply with legal and regulatory requirements</li>
-            <li>Ensure the security of our platform</li>
+            <li>
+                <span class="permission-badge">CAMERA</span>
+                <strong>Camera Permission:</strong>
+                Used exclusively for real-time visual tracking during interactive cognitive/memory exercises (such as eye movement coordination, gaze interaction, and visual engagement verification) and for optional user profile pictures.
+                <br><em>Important:</em> Visual frames and video feeds are processed in real-time on your device or securely via our server for immediate exercise feedback. <strong>We do not record, sell, or commercially store personal camera feeds for any advertising or surveillance purpose.</strong>
+            </li>
+            <li>
+                <span class="permission-badge">MICROPHONE</span>
+                <strong>Microphone / Audio Permission:</strong>
+                Used when the user engages in optional voice-assisted cognitive prompts, speech-based memory exercises, or recorded care notes. Audio data is used only for the active exercise session and is not accessed in the background.
+            </li>
+            <li>
+                <span class="permission-badge">NOTIFICATIONS</span>
+                <strong>Notification Permission:</strong>
+                Used to deliver time-critical medication alerts, scheduled memory routine reminders, caregiver check-in prompts, and notifications when a doctor answers an inquiry. You can disable notifications anytime in your device settings.
+            </li>
         </ul>
 
-        <div class="section-title">Information Sharing and Disclosure</div>
-        <div class="paragraph">
-            We do not sell, trade, or otherwise transfer your personal information to third parties without your consent, except in the following circumstances:
-        </div>
+        <h2>4. How We Use Your Information</h2>
+        <p>We process your data based on legitimate service delivery and explicit user consent for the following purposes:</p>
         <ul>
-            <li>With healthcare providers or guardians involved in your care</li>
-            <li>When required by law or legal process</li>
-            <li>To protect the rights, property, or safety of our users</li>
-            <li>With your explicit consent for specific purposes</li>
-            <li>In case of emergencies requiring immediate attention</li>
+            <li><strong>Core App Functionality:</strong> Providing tailored cognitive stimulation activities, memory tracking, and daily schedule management.</li>
+            <li><strong>Care Coordination:</strong> Allowing linked family caregivers and supervising doctors to monitor progress, receive alerts, and respond to queries.</li>
+            <li><strong>Reminders &amp; Alerts:</strong> Dispatching timely local or push notifications for medications and scheduled activities.</li>
+            <li><strong>Platform Security &amp; Maintenance:</strong> Authenticating user accounts, preventing unauthorized access, monitoring system reliability, and repairing software defects.</li>
+            <li><strong>Legal &amp; Regulatory Compliance:</strong> Fulfilling statutory duties and responding to lawful governmental or court orders where mandatory.</li>
+        </ul>
+        <p>
+            <strong>Zero Targeted Advertising:</strong> DementiCare does <em>not</em> serve third-party advertisements. Your personal, health, and cognitive activity information is <strong>never</strong> sold, rented, leased, or traded to data brokers or advertising exchanges.
+        </p>
+
+        <h2>5. Information Sharing and Disclosure</h2>
+        <p>We strictly limit the sharing of your information to the following parties:</p>
+        <ul>
+            <li><strong>Authorized Care Circle:</strong> When you connect your account with a family caregiver or physician, your progress reports, queries, and activity logs are shared with those specific authorized individuals to support your care.</li>
+            <li><strong>Trusted Technical Service Providers:</strong> We engage reputable cloud infrastructure providers (secure database hosting, cloud compute, notification delivery) who process data strictly under confidentiality agreements and data protection standards.</li>
+            <li><strong>Legal Obligations:</strong> We may disclose information if required by a valid legal process, subpoena, or regulation, or to protect the vital life and safety of the user or others in an emergency.</li>
+            <li><strong>No Commercial Sale:</strong> We do not sell user personal data to any third party for marketing or monetization purposes.</li>
         </ul>
 
-        <div class="section-title">Data Security</div>
+        <h2>6. Data Security Practices</h2>
+        <p>
+            We implement robust organizational, technical, and administrative security measures to protect your sensitive information:
+        </p>
         <ul>
-            <li>End-to-end encryption for sensitive data</li>
-            <li>Secure servers with regular security updates</li>
-            <li>Access controls and authentication protocols</li>
-            <li>Regular security audits and vulnerability assessments</li>
+            <li><strong>Encryption in Transit:</strong> All communications between the DementiCare app and backend servers are secured using industry-standard Transport Layer Security (TLS/HTTPS).</li>
+            <li><strong>Role-Based Access Control:</strong> User data is partitioned by role (Patient, Caregiver, Doctor) and secured using cryptographically signed JSON Web Tokens (JWT). Doctors and caregivers can only access records of patients explicitly linked to their care profile.</li>
+            <li><strong>Password Protection:</strong> Passwords are encrypted using modern cryptographic hashing algorithms and are never stored in plaintext.</li>
+            <li><strong>Server Hardening:</strong> Routine system audits, vulnerability mitigations, and automated security monitoring.</li>
         </ul>
 
-        <div class="section-title">Your Rights</div>
+        <h2>7. Data Retention &amp; Account Deletion Policy</h2>
+        <p>
+            Google Play requires developers to provide a clear data retention policy and a user-accessible path for deleting accounts and personal data:
+        </p>
         <ul>
-            <li>Access your personal information</li>
-            <li>Request corrections to inaccurate data</li>
-            <li>Delete your account and associated data</li>
-            <li>Restrict processing of your information</li>
-            <li>Data portability for your records</li>
-            <li>Withdraw consent for data processing</li>
-            <li>File complaints with regulatory authorities</li>
+            <li><strong>Retention Period:</strong> We retain your personal profile and care data only for as long as your account remains active or as required to fulfill legitimate care coordination purposes. If an account is inactive for more than 24 months, it is slated for archival and deletion.</li>
+            <li><strong>Full Account &amp; Data Deletion:</strong> You retain complete ownership over your data and can request permanent account deletion at any time.</li>
         </ul>
 
-        <div class="section-title">Data Retention</div>
-        <div class="paragraph">
-            We retain your information for as long as necessary to provide our services and comply with legal obligations. Progress records are typically retained for 7 years or as required by applicable regulations. You may request deletion of your data, subject to legal requirements.
+        <div class="action-card">
+            <h3>How to Request Account &amp; Data Deletion</h3>
+            <p>You can permanently delete your DementiCare account and all associated personal data via any of the following methods:</p>
+            <ol style="margin-left: 20px; margin-bottom: 12px; color: var(--text-main);">
+                <li><strong>In-App Deletion:</strong> Navigate to <em>Settings &rarr; Account Settings &rarr; Delete Account</em> and confirm your request.</li>
+                <li><strong>Web-Based Deletion Portal:</strong> Visit our dedicated web deletion page at <a href="/delete-account"><strong>/delete-account</strong></a>, log in with your credentials, and click "Delete My Account".</li>
+                <li><strong>Email Request:</strong> Send an email directly to developer <strong>Meheer J</strong> at <a href="mailto:meheerj2327.sse@saveetha.com"><strong>meheerj2327.sse@saveetha.com</strong></a> with the subject line <code>"Delete DementiCare Account"</code> including your registered username/email.</li>
+            </ol>
+            <p style="font-size: 0.9rem; color: var(--text-muted); margin-bottom: 0;">
+                <em>Scope of Deletion:</em> Upon receiving your deletion request, your profile, authentication credentials, cognitive activity logs, game scores, and reminder history will be permanently deleted from our active databases within <strong>30 days</strong>.
+            </p>
+            <a href="/delete-account" class="deletion-btn">Go to Account Deletion Portal</a>
         </div>
 
-        <div class="section-title">Children's Privacy</div>
-        <div class="paragraph">
-            This app is designed for children, primarily those with lazy eye (amblyopia), and should only be used under adult supervision. We do not knowingly collect personal information from children under 3. If you are a parent or guardian and believe your child has provided us with personal information, please contact us immediately.
+        <h2>8. Children's Privacy</h2>
+        <p>
+            <strong>Target Audience:</strong> DementiCare is designed and intended for adults, seniors coping with cognitive conditions, family caregivers, and healthcare practitioners (aged 18 and older).
+        </p>
+        <p>
+            DementiCare is <strong>not directed to children under 13 years of age</strong> (or under 16 in applicable EU jurisdictions). We do not knowingly collect, solicit, or maintain personal information from children under 13. If you believe that a child under 13 has registered or provided personal information to DementiCare without verified parental/guardian consent, please contact us immediately at <a href="mailto:meheerj2327.sse@saveetha.com">meheerj2327.sse@saveetha.com</a>, and we will promptly remove such information and terminate the account.
+        </p>
+
+        <h2>9. User Rights &amp; Choices</h2>
+        <p>Depending on your jurisdiction (such as under GDPR, CCPA, or applicable state and national laws), you have the following rights regarding your data:</p>
+        <ul>
+            <li><strong>Right of Access:</strong> You can request a copy of the personal information we hold about you.</li>
+            <li><strong>Right of Rectification:</strong> You can edit and correct your profile information directly in the App or request corrections.</li>
+            <li><strong>Right to Erasure ("Right to be Forgotten"):</strong> You can request permanent deletion of your data as outlined in Section 7.</li>
+            <li><strong>Right to Withdraw Consent:</strong> You can revoke device permissions (Camera, Microphone, Notifications) at any time through your mobile device operating system settings (Settings &gt; Apps &gt; DementiCare &gt; Permissions).</li>
+            <li><strong>Right to Data Portability:</strong> You can request an electronic copy of your activity and care data in a structured, commonly used format.</li>
+        </ul>
+
+        <h2>10. International Data Transfers</h2>
+        <p>
+            If you access DementiCare outside the jurisdiction where our servers are located, your information may be transferred across international borders. We ensure that appropriate contractual, technical, and regulatory safeguards are implemented to protect your data in accordance with applicable data protection legislation.
+        </p>
+
+        <h2>11. Changes to This Privacy Policy</h2>
+        <p>
+            We may periodically update this Privacy Policy to reflect enhancements in the DementiCare service, legal requirements, or Google Play policy updates. Whenever revisions are made:
+        </p>
+        <ul>
+            <li>We will update the <strong>"Effective Date"</strong> at the top of this document.</li>
+            <li>For material modifications, we will provide prominent in-app notification or email notice before the changes become effective.</li>
+            <li>Your continued use of DementiCare following the posting of updated terms signifies your acknowledgement and acceptance of the revised policy.</li>
+        </ul>
+
+        <h2>12. Contact Information &amp; Developer Details</h2>
+        <p>
+            If you have any questions, comments, concerns, privacy inquiries, or data protection requests regarding DementiCare, please contact the developer directly:
+        </p>
+
+        <div class="summary-card" style="margin-top: 16px;">
+            <div class="summary-item">
+                <strong>Developer Name</strong>
+                <span>Meheer J</span>
+            </div>
+            <div class="summary-item">
+                <strong>Application Name</strong>
+                <span>DementiCare (Dementia Care)</span>
+            </div>
+            <div class="summary-item">
+                <strong>Developer Email</strong>
+                <a href="mailto:meheerj2327.sse@saveetha.com">meheerj2327.sse@saveetha.com</a>
+            </div>
+            <div class="summary-item">
+                <strong>Account Deletion URL</strong>
+                <a href="/delete-account">/delete-account</a>
+            </div>
         </div>
 
-        <div class="section-title">International Transfers</div>
-        <div class="paragraph">
-            Your information may be transferred to and processed in countries other than your own. We ensure appropriate safeguards are in place to protect your information in accordance with applicable data protection laws.
-        </div>
-
-        <div class="section-title">Changes to This Policy</div>
-        <div class="paragraph">
-            We may update this Privacy Policy from time to time. We will notify you of any material changes by posting the new Privacy Policy within the app and updating the "Last updated" date. Your continued use of the app after such changes constitutes acceptance of the updated policy.
-        </div>
-
-        <div class="section-title">Contact Information</div>
-        <div class="paragraph">
-            If you have any questions about this Privacy Policy or our data practices, please contact us at:<br>
-            Email: privacy@ambieye.com<br>
-            Phone: +1 (555) 123-4567<br>
-            Address: 123 Healthcare Ave, Medical District, City, State 12345
-        </div>
-
-        <div class="section-title">Consent</div>
-        <div class="paragraph">
-            By using Ambieye, you acknowledge that you have read, understood, and agree to be bound by this Privacy Policy and the above disclaimer. If you do not agree with these terms, please do not use our services.
-        </div>
-
-        <div class="bottom-padding"></div>
+        <footer>
+            <p>&copy; 2026 Meheer J. All rights reserved.</p>
+            <p>DementiCare &bull; Dedicated to Empowering Dementia Care &amp; Coordination</p>
+        </footer>
     </div>
 </body>
 </html>
